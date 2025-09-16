@@ -1,0 +1,251 @@
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import Layout from "@/components/Layout";
+import StatsCard from "@/components/StatsCard";
+
+export default function Dashboard() {
+  const { toast } = useToast();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+
+  const { data: stats, isLoading } = useQuery<{
+    totalStudents: number;
+    activeTeachers: number;
+    todaysClasses: number;
+    monthlyRevenue: number;
+  }>({
+    queryKey: ["/api/dashboard/stats"],
+    retry: false,
+  });
+
+  const { data: todaysLessons } = useQuery<any[]>({
+    queryKey: ["/api/lessons/today"],
+    retry: false,
+  });
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+  }, [isAuthenticated, authLoading, toast]);
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="p-6 space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground">Dashboard</h2>
+          <p className="text-sm text-muted-foreground">Visão geral do sistema de gestão escolar</p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="bg-card rounded-lg border border-border p-6 animate-pulse">
+                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-muted rounded w-1/2 mb-2"></div>
+                <div className="h-3 bg-muted rounded w-2/3"></div>
+              </div>
+            ))
+          ) : (
+            <>
+              <StatsCard
+                title="Total de Alunos"
+                value={stats?.totalStudents || 0}
+                change="+12%"
+                changeType="positive"
+                icon="fas fa-user-graduate"
+                iconColor="blue"
+                data-testid="card-total-students"
+              />
+              <StatsCard
+                title="Professores Ativos"
+                value={stats?.activeTeachers || 0}
+                change="+3%"
+                changeType="positive"
+                icon="fas fa-chalkboard-teacher"
+                iconColor="green"
+                data-testid="card-active-teachers"
+              />
+              <StatsCard
+                title="Aulas Hoje"
+                value={stats?.todaysClasses || 0}
+                change="92 concluídas"
+                changeType="neutral"
+                icon="fas fa-calendar-check"
+                iconColor="purple"
+                data-testid="card-todays-classes"
+              />
+              <StatsCard
+                title="Receita Mensal"
+                value={`R$ ${(stats?.monthlyRevenue || 0).toLocaleString()}`}
+                change="+8%"
+                changeType="positive"
+                icon="fas fa-dollar-sign"
+                iconColor="yellow"
+                data-testid="card-monthly-revenue"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Schedule Overview */}
+          <div className="lg:col-span-2 bg-card rounded-lg border border-border shadow-sm">
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground">Agenda de Hoje</h3>
+                <button className="text-primary hover:text-primary/80 text-sm font-medium">
+                  Ver todas
+                </button>
+              </div>
+            </div>
+            <div className="p-6" data-testid="todays-schedule">
+              <div className="space-y-4">
+                {!todaysLessons || todaysLessons.length === 0 ? (
+                  <div className="text-center py-8">
+                    <i className="fas fa-calendar-times text-muted-foreground text-4xl mb-4"></i>
+                    <p className="text-muted-foreground">Nenhuma aula agendada para hoje</p>
+                  </div>
+                ) : (
+                  todaysLessons.map((lesson: any) => (
+                    <div key={lesson.id} className="flex items-center space-x-4 p-4 rounded-lg bg-muted/50 border border-border/50">
+                      <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i className="fas fa-clock text-primary-foreground"></i>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-foreground">{lesson.title}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {lesson.startTime} - {lesson.endTime}
+                          {lesson.room && ` • Sala ${lesson.room}`}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+                          {lesson.status === 'scheduled' ? 'Agendado' : 
+                           lesson.status === 'in_progress' ? 'Em andamento' : 
+                           'Concluído'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activities */}
+          <div className="bg-card rounded-lg border border-border shadow-sm">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Atividades Recentes</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4" data-testid="recent-activities">
+                <div className="text-center py-8">
+                  <i className="fas fa-clock text-muted-foreground text-4xl mb-4"></i>
+                  <p className="text-muted-foreground">Nenhuma atividade recente</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-card rounded-lg border border-border shadow-sm">
+          <div className="p-6 border-b border-border">
+            <h3 className="text-lg font-semibold text-foreground">Ações Rápidas</h3>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {(user?.role === 'admin' || user?.role === 'secretary') && (
+                <button 
+                  className="p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-smooth text-left"
+                  data-testid="button-new-student"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-user-plus text-primary"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground">Novo Aluno</h4>
+                      <p className="text-sm text-muted-foreground">Cadastrar estudante</p>
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {(user?.role === 'teacher' || user?.role === 'admin') && (
+                <button 
+                  className="p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-smooth text-left"
+                  data-testid="button-schedule-class"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-calendar-plus text-green-600"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground">Agendar Aula</h4>
+                      <p className="text-sm text-muted-foreground">Nova agenda</p>
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              <button 
+                className="p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-smooth text-left"
+                data-testid="button-add-material"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-book text-purple-600"></i>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground">Adicionar Material</h4>
+                    <p className="text-sm text-muted-foreground">Conteúdo digital</p>
+                  </div>
+                </div>
+              </button>
+
+              {(user?.role === 'admin' || user?.role === 'financial') && (
+                <button 
+                  className="p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-smooth text-left"
+                  data-testid="button-generate-report"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-file-invoice-dollar text-yellow-600"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground">Gerar Relatório</h4>
+                      <p className="text-sm text-muted-foreground">Financeiro/Acadêmico</p>
+                    </div>
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}
