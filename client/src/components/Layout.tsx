@@ -1,79 +1,97 @@
-import Sidebar from "@/components/Sidebar";
+
 import { useAuth } from "@/hooks/useAuth";
+import { Sidebar } from "@/components/Sidebar";
+import { Button } from "@/components/ui/button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // Clear all queries and redirect to login
+      queryClient.clear();
+      window.location.href = '/';
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i className="fas fa-graduation-cap text-primary-foreground text-xl animate-pulse"></i>
+          </div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Will be handled by the routing
+  }
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen bg-gray-50">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="bg-card border-b border-border px-6 py-4 shadow-sm">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-semibold text-foreground">EduManage</h1>
-              <span className="text-sm text-muted-foreground">
-                {user?.role === 'admin' && 'Administrador'}
-                {user?.role === 'teacher' && 'Professor'}
-                {user?.role === 'secretary' && 'Secretário'}
-                {user?.role === 'financial' && 'Financeiro'}
-                {user?.role === 'student' && 'Aluno'}
-                {user?.role === 'developer' && 'Desenvolvedor'}
-              </span>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">EduManage</h1>
+              <p className="text-sm text-gray-600">Sistema de Gestão Escolar</p>
             </div>
-            
             <div className="flex items-center space-x-4">
-              {/* Search */}
-              <div className="relative hidden md:block">
-                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm"></i>
-                <input 
-                  type="text" 
-                  placeholder="Buscar..." 
-                  className="pl-10 pr-4 py-2 border border-input rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring w-64"
-                  data-testid="input-header-search"
-                />
-              </div>
-              
-              {/* Notifications */}
-              <button className="relative p-2 text-muted-foreground hover:text-foreground transition-smooth">
-                <i className="fas fa-bell text-lg"></i>
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full"></span>
-              </button>
-
-              {/* User Menu */}
-              <button 
-                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted transition-smooth"
-                onClick={() => window.location.href = "/api/logout"}
-                data-testid="button-user-menu"
-              >
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  {user?.profileImageUrl ? (
-                    <img 
-                      src={user.profileImageUrl} 
-                      alt="Profile" 
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <i className="fas fa-user text-primary-foreground text-sm"></i>
-                  )}
+              {user && (
+                <div className="flex items-center space-x-3">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    <p className="text-xs text-gray-600 capitalize">{user.role}</p>
+                  </div>
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {user.firstName?.[0]}{user.lastName?.[0]}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                  >
+                    <i className="fas fa-sign-out-alt mr-2"></i>
+                    {logoutMutation.isPending ? 'Saindo...' : 'Sair'}
+                  </Button>
                 </div>
-                <span className="hidden md:block text-sm font-medium">
-                  {user?.firstName || 'Usuário'}
-                </span>
-                <i className="fas fa-chevron-down text-muted-foreground text-xs"></i>
-              </button>
+              )}
             </div>
           </div>
         </header>
-
-        {/* Main Content */}
-        {children}
-      </main>
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

@@ -4,10 +4,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+
+// Demo users for display
+const demoUsers = [
+  { email: 'admin@demo.com', password: 'admin123', role: 'Administrador' },
+  { email: 'teacher@demo.com', password: 'teacher123', role: 'Professor' },
+  { email: 'secretary@demo.com', password: 'secretary123', role: 'Secretário' },
+  { email: 'student@demo.com', password: 'student123', role: 'Aluno' },
+];
 
 export default function Landing() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@demo.com");
+  const [password, setPassword] = useState("admin123");
   const [stars, setStars] = useState<Array<{ id: number; x: number; y: number; size: number; animationDelay: number }>>([]);
 
   useEffect(() => {
@@ -29,8 +38,39 @@ export default function Landing() {
     generateStars();
   }, []);
 
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: { email: string; password: string }) => {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Login failed');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Redirect to main app
+      window.location.href = '/';
+    },
+    onError: (error: Error) => {
+      alert('Erro no login: ' + error.message);
+    },
+  });
+
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    loginMutation.mutate({ email, password });
+  };
+
+  const setDemoUser = (user: { email: string; password: string }) => {
+    setEmail(user.email);
+    setPassword(user.password);
   };
 
   return (
@@ -106,19 +146,51 @@ export default function Landing() {
             <p className="text-muted-foreground">Sistema de Gestão Escolar</p>
           </div>
 
-          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm mb-6">
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center">
                 <CardTitle className="text-2xl font-bold text-foreground">
-                  Entrar no Sistema
+                  Login Demonstrativo
                 </CardTitle>
                 <CardDescription className="text-muted-foreground mt-2">
-                  Acesse sua conta para continuar
+                  Escolha um usuário demo ou digite suas credenciais
                 </CardDescription>
               </div>
             </CardHeader>
             
             <CardContent className="space-y-6">
+              {/* Demo Users */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Usuários Demo:</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {demoUsers.map((user, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDemoUser(user)}
+                      className="h-auto p-3 flex flex-col items-start bg-white/50 hover:bg-blue-50 border-gray-200"
+                    >
+                      <span className="font-medium text-xs">{user.role}</span>
+                      <span className="text-xs text-muted-foreground truncate w-full">
+                        {user.email}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-muted-foreground">
+                    Ou digite manualmente
+                  </span>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium">
@@ -148,52 +220,33 @@ export default function Landing() {
                   />
                 </div>
               </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" className="rounded border-gray-300" />
-                  <span className="text-muted-foreground">Lembrar-me</span>
-                </label>
-                <a href="#" className="text-primary hover:underline">
-                  Esqueceu a senha?
-                </a>
-              </div>
               
               <Button 
                 onClick={handleLogin}
+                disabled={loginMutation.isPending}
                 className="w-full h-12 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200"
                 data-testid="button-login"
               >
                 <i className="fas fa-sign-in-alt mr-2"></i>
-                Entrar no Sistema
+                {loginMutation.isPending ? 'Entrando...' : 'Entrar no Sistema'}
               </Button>
+            </CardContent>
+          </Card>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-200" />
+          {/* Demo Info */}
+          <Card className="border border-blue-200 bg-blue-50/50">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i className="fas fa-info text-white text-xs"></i>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-muted-foreground">
-                    Ou continue com
-                  </span>
+                <div>
+                  <h3 className="font-medium text-blue-800 mb-1">Sistema Demonstrativo</h3>
+                  <p className="text-sm text-blue-700">
+                    Este é um ambiente de demonstração. Todos os dados são fictícios e 
+                    serão redefinidos periodicamente.
+                  </p>
                 </div>
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full h-12 border-gray-200 bg-white/50 hover:bg-gray-50"
-              >
-                <i className="fab fa-google mr-2 text-red-500"></i>
-                Google
-              </Button>
-              
-              <div className="text-center pt-4 border-t border-gray-200">
-                <p className="text-sm text-muted-foreground">
-                  Não tem uma conta?{" "}
-                  <a href="#" className="text-primary hover:underline font-medium">
-                    Solicitar acesso
-                  </a>
-                </p>
               </div>
             </CardContent>
           </Card>

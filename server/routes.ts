@@ -1,7 +1,7 @@
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
   insertUnitSchema, 
   insertStaffSchema, 
@@ -11,20 +11,55 @@ import {
   insertLessonSchema 
 } from "@shared/schema";
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+// Simple demo users for login
+const demoUsers = [
+  { id: '1', email: 'admin@demo.com', password: 'admin123', firstName: 'Admin', lastName: 'User', role: 'admin' },
+  { id: '2', email: 'teacher@demo.com', password: 'teacher123', firstName: 'João', lastName: 'Silva', role: 'teacher' },
+  { id: '3', email: 'secretary@demo.com', password: 'secretary123', firstName: 'Maria', lastName: 'Santos', role: 'secretary' },
+  { id: '4', email: 'student@demo.com', password: 'student123', firstName: 'Pedro', lastName: 'Costa', role: 'student' },
+];
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+// Simple middleware to check if user is logged in
+const isAuthenticated = (req: any, res: any, next: any) => {
+  if (req.session?.user) {
+    return next();
+  }
+  return res.status(401).json({ message: "Unauthorized" });
+};
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Demo login endpoint
+  app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    
+    const user = demoUsers.find(u => u.email === email && u.password === password);
+    
+    if (!user) {
+      return res.status(401).json({ message: "Credenciais inválidas" });
     }
+
+    // Store user in session
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role
+    };
+
+    res.json({ user: req.session.user });
+  });
+
+  // Get current user
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    res.json(req.session.user);
+  });
+
+  // Logout endpoint
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy(() => {
+      res.json({ message: "Logged out" });
+    });
   });
 
   // Dashboard stats
