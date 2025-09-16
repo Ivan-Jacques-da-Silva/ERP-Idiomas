@@ -1,10 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Demo users for display
 const demoUsers = [
@@ -34,7 +34,7 @@ export default function Landing() {
       }
       setStars(newStars);
     };
-    
+
     generateStars();
   }, []);
 
@@ -94,29 +94,29 @@ export default function Landing() {
             />
           ))}
         </div>
-        
+
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-        
+
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center items-center text-center px-12 text-white">
           <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center mb-8 border border-white/30">
             <i className="fas fa-graduation-cap text-white text-3xl"></i>
           </div>
-          
+
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
             Bem-vindo ao Portal
           </h1>
-          
+
           <h2 className="text-3xl font-semibold mb-6 text-blue-100">
             EduManage
           </h2>
-          
+
           <p className="text-xl text-blue-200 mb-8 max-w-md leading-relaxed">
             Sistema completo de gestão escolar para escolas de idiomas. 
             Gerencie alunos, professores, horários e muito mais.
           </p>
-          
+
           <div className="grid grid-cols-2 gap-6 mt-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30">
@@ -146,6 +146,16 @@ export default function Landing() {
             <p className="text-muted-foreground">Sistema de Gestão Escolar</p>
           </div>
 
+          {/* Header com tema toggle */}
+        <div className="absolute top-6 right-6 z-50">
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <div className="text-white/80 text-sm hidden md:block">
+              Bem-vindo ao Portal Educacional
+            </div>
+          </div>
+        </div>
+
           <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm mb-6">
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center">
@@ -157,7 +167,7 @@ export default function Landing() {
                 </CardDescription>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-6">
               {/* Demo Users */}
               <div className="space-y-3">
@@ -205,7 +215,7 @@ export default function Landing() {
                     className="h-12 bg-white/50 border-gray-200 focus:border-primary"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-medium">
                     Senha
@@ -220,7 +230,7 @@ export default function Landing() {
                   />
                 </div>
               </div>
-              
+
               <Button 
                 onClick={handleLogin}
                 disabled={loginMutation.isPending}

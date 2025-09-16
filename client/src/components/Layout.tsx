@@ -1,8 +1,8 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import ThemeToggle from "@/components/ThemeToggle"; // Importe o componente ThemeToggle
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -68,6 +68,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center space-x-4">
               {user && (
                 <div className="flex items-center space-x-3">
+                  <ThemeToggle /> 
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">
                       {user.firstName} {user.lastName}
@@ -79,9 +80,9 @@ export default function Layout({ children }: LayoutProps) {
                       {user.firstName?.[0]}{user.lastName?.[0]}
                     </span>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleLogout}
                     disabled={logoutMutation.isPending}
                     className="glassmorphism hover:glassmorphism-card transition-smooth neon-border"
