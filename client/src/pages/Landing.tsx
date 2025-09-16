@@ -135,7 +135,7 @@ export default function Landing() {
       </div>
 
       {/* Right Column - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background theme-transition">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
@@ -147,16 +147,11 @@ export default function Landing() {
           </div>
 
           {/* Header com tema toggle */}
-        <div className="absolute top-6 right-6 z-50">
-          <div className="flex items-center gap-4">
+          <div className="absolute top-6 right-6 z-50">
             <ThemeToggle />
-            <div className="text-white/80 text-sm hidden md:block">
-              Bem-vindo ao Portal Educacional
-            </div>
           </div>
-        </div>
 
-          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="shadow-2xl bg-card border-border mb-6 theme-transition">
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center">
                 <CardTitle className="text-2xl font-bold text-foreground">
@@ -244,15 +239,15 @@ export default function Landing() {
           </Card>
 
           {/* Demo Info */}
-          <Card className="border border-blue-200 bg-blue-50/50">
+          <Card className="border-border bg-muted/50 theme-transition">
             <CardContent className="p-4">
               <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <i className="fas fa-info text-white text-xs"></i>
+                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i className="fas fa-info text-primary-foreground text-xs"></i>
                 </div>
                 <div>
-                  <h3 className="font-medium text-blue-800 mb-1">Sistema Demonstrativo</h3>
-                  <p className="text-sm text-blue-700">
+                  <h3 className="font-medium text-foreground mb-1">Sistema Demonstrativo</h3>
+                  <p className="text-sm text-muted-foreground">
                     Este é um ambiente de demonstração. Todos os dados são fictícios e 
                     serão redefinidos periodicamente.
                   </p>

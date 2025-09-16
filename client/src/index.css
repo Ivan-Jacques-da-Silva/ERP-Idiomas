@@ -4,14 +4,14 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 98%);
+  --background: hsl(0, 0%, 100%);
   --foreground: hsl(222, 14%, 15%);
   --card: hsl(0, 0%, 100%);
   --card-foreground: hsl(222, 14%, 15%);
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(222, 14%, 15%);
   --primary: hsl(221, 83%, 53%);
-  --primary-foreground: hsl(210, 40%, 98%);
+  --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(210, 40%, 96%);
   --secondary-foreground: hsl(222, 47%, 11%);
   --muted: hsl(210, 40%, 96%);
@@ -19,7 +19,7 @@
   --accent: hsl(210, 40%, 94%);
   --accent-foreground: hsl(222, 47%, 11%);
   --destructive: hsl(0, 84%, 60%);
-  --destructive-foreground: hsl(210, 40%, 98%);
+  --destructive-foreground: hsl(0, 0%, 100%);
   --border: hsl(214, 32%, 91%);
   --input: hsl(214, 32%, 91%);
   --ring: hsl(221, 83%, 53%);
@@ -113,10 +113,17 @@
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
-.glassmorphism-dark {
+.dark .glassmorphism {
   background: rgba(15, 23, 42, 0.8);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(148, 163, 184, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+.dark .glassmorphism-card {
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
 }
 

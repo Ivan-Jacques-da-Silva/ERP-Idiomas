@@ -51,10 +51,10 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="flex h-screen bg-background theme-transition">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="glassmorphism-card shadow-lg border-b border-white/20 px-6 py-4">
+        <header className="bg-card border-b border-border shadow-sm px-6 py-4 theme-transition">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center icon-glow">
@@ -70,13 +70,13 @@ export default function Layout({ children }: LayoutProps) {
                 <div className="flex items-center space-x-3">
                   <ThemeToggle /> 
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-foreground">
                       {user.firstName} {user.lastName}
                     </p>
-                    <p className="text-xs text-gray-600 capitalize">{user.role}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
                   </div>
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
+                    <span className="text-primary-foreground text-sm font-medium">
                       {user.firstName?.[0]}{user.lastName?.[0]}
                     </span>
                   </div>
@@ -85,9 +85,9 @@ export default function Layout({ children }: LayoutProps) {
                     size="sm"
                     onClick={handleLogout}
                     disabled={logoutMutation.isPending}
-                    className="glassmorphism hover:glassmorphism-card transition-smooth neon-border"
+                    className="transition-smooth"
                   >
-                    <i className="fas fa-sign-out-alt mr-2 icon-glow"></i>
+                    <i className="fas fa-sign-out-alt mr-2"></i>
                     {logoutMutation.isPending ? 'Saindo...' : 'Sair'}
                   </Button>
                 </div>
@@ -95,7 +95,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6 bg-gradient-to-br from-transparent to-blue-50/30">
+        <main className="flex-1 overflow-auto p-6 bg-background theme-transition">
           {children}
         </main>
       </div>
