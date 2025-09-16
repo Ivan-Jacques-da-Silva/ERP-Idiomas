@@ -71,27 +71,27 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-card border-r border-border flex flex-col shadow-lg" data-testid="sidebar">
+    <aside className="w-64 glassmorphism-card border-r border-white/20 flex flex-col shadow-xl backdrop-blur-xl" data-testid="sidebar">
       {/* Logo & Brand */}
-      <div className="p-6 border-b border-border">
+      <div className="p-6 border-b border-white/20">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <i className="fas fa-graduation-cap text-primary-foreground text-lg"></i>
+          <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center icon-glow shadow-lg">
+            <i className="fas fa-graduation-cap text-white text-xl"></i>
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">EduManage</h1>
-            <p className="text-xs text-muted-foreground">Escola de Idiomas</p>
+            <h1 className="text-xl font-bold text-gradient">EduManage</h1>
+            <p className="text-xs text-muted-foreground font-medium">Escola de Idiomas</p>
           </div>
         </div>
       </div>
 
       {/* User Profile */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-white/20">
         <div className="flex items-center space-x-3">
-          <Avatar className="w-8 h-8">
+          <Avatar className="w-10 h-10 ring-2 ring-blue-400/30">
             <AvatarImage src={user?.profileImageUrl || undefined} />
-            <AvatarFallback>
-              <i className="fas fa-user text-muted-foreground text-sm"></i>
+            <AvatarFallback className="gradient-secondary text-white">
+              <i className="fas fa-user text-sm"></i>
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
@@ -120,9 +120,9 @@ export default function Sidebar() {
             .map((item) => (
               <Link key={item.path} href={item.path}>
                 <a
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-smooth ${
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-smooth ${
                     isActive(item.path)
-                      ? "bg-primary/10 text-primary"
+                      ? "gradient-primary text-white shadow-lg icon-glow"
                       : "text-muted-foreground sidebar-hover"
                   }`}
                   data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
@@ -145,9 +145,9 @@ export default function Sidebar() {
                   .map((item) => (
                     <Link key={item.path} href={item.path}>
                       <a
-                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-smooth ${
+                        className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-smooth ${
                           isActive(item.path)
-                            ? "bg-primary/10 text-primary"
+                            ? "gradient-secondary text-white shadow-lg"
                             : "text-muted-foreground sidebar-hover"
                         }`}
                         data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
@@ -164,10 +164,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Support Section */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-white/20">
         <a 
           href="#" 
-          className="flex items-center space-x-3 px-3 py-2 rounded-lg sidebar-hover transition-smooth text-muted-foreground"
+          className="flex items-center space-x-3 px-4 py-3 rounded-xl sidebar-hover transition-smooth text-muted-foreground glassmorphism"
           data-testid="link-support"
         >
           <i className="fas fa-question-circle w-5"></i>

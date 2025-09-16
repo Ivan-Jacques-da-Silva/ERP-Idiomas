@@ -51,14 +51,19 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+        <header className="glassmorphism-card shadow-lg border-b border-white/20 px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">EduManage</h1>
-              <p className="text-sm text-gray-600">Sistema de Gestão Escolar</p>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center icon-glow">
+                <i className="fas fa-graduation-cap text-white text-lg"></i>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gradient">EduManage</h1>
+                <p className="text-sm text-muted-foreground">Sistema de Gestão Escolar</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               {user && (
@@ -79,8 +84,9 @@ export default function Layout({ children }: LayoutProps) {
                     size="sm" 
                     onClick={handleLogout}
                     disabled={logoutMutation.isPending}
+                    className="glassmorphism hover:glassmorphism-card transition-smooth neon-border"
                   >
-                    <i className="fas fa-sign-out-alt mr-2"></i>
+                    <i className="fas fa-sign-out-alt mr-2 icon-glow"></i>
                     {logoutMutation.isPending ? 'Saindo...' : 'Sair'}
                   </Button>
                 </div>
@@ -88,7 +94,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 bg-gradient-to-br from-transparent to-blue-50/30">
           {children}
         </main>
       </div>

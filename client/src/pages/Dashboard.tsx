@@ -50,10 +50,15 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="p-6 space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-foreground">Dashboard</h2>
-          <p className="text-sm text-muted-foreground">Visão geral do sistema de gestão escolar</p>
+      <div className="p-6 space-y-8">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center icon-glow">
+            <i className="fas fa-chart-line text-white text-lg"></i>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-gradient">Dashboard</h2>
+            <p className="text-sm text-muted-foreground">Visão geral do sistema de gestão escolar</p>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -111,11 +116,16 @@ export default function Dashboard() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Schedule Overview */}
-          <div className="lg:col-span-2 bg-card rounded-lg border border-border shadow-sm">
-            <div className="p-6 border-b border-border">
+          <div className="lg:col-span-2 glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
+            <div className="p-6 border-b border-white/20">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">Agenda de Hoje</h3>
-                <button className="text-primary hover:text-primary/80 text-sm font-medium">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 gradient-secondary rounded-lg flex items-center justify-center">
+                    <i className="fas fa-calendar-day text-white text-sm"></i>
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Agenda de Hoje</h3>
+                </div>
+                <button className="gradient-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-smooth">
                   Ver todas
                 </button>
               </div>
@@ -155,9 +165,14 @@ export default function Dashboard() {
           </div>
 
           {/* Recent Activities */}
-          <div className="bg-card rounded-lg border border-border shadow-sm">
-            <div className="p-6 border-b border-border">
-              <h3 className="text-lg font-semibold text-foreground">Atividades Recentes</h3>
+          <div className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
+            <div className="p-6 border-b border-white/20">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+                  <i className="fas fa-clock text-white text-sm"></i>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Atividades Recentes</h3>
+              </div>
             </div>
             <div className="p-6">
               <div className="space-y-4" data-testid="recent-activities">
@@ -171,15 +186,20 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-card rounded-lg border border-border shadow-sm">
-          <div className="p-6 border-b border-border">
-            <h3 className="text-lg font-semibold text-foreground">Ações Rápidas</h3>
+        <div className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
+          <div className="p-6 border-b border-white/20">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+                <i className="fas fa-bolt text-white text-sm"></i>
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Ações Rápidas</h3>
+            </div>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {(user?.role === 'admin' || user?.role === 'secretary') && (
                 <button 
-                  className="p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-smooth text-left"
+                  className="p-6 rounded-2xl glassmorphism hover:glassmorphism-card transition-smooth text-left border border-white/20 hover:border-blue-300/50 card-hover"
                   data-testid="button-new-student"
                 >
                   <div className="flex items-center space-x-3">
