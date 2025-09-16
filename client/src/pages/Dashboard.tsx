@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import Layout from "@/components/Layout";
 import StatsCard from "@/components/StatsCard";
+import { PageLoader, FadeIn, StaggeredFadeIn } from "@/components/PageLoader";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -50,73 +51,81 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="p-6 space-y-8">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center icon-glow">
-            <i className="fas fa-chart-line text-white text-lg"></i>
-          </div>
-          <div>
-            <h2 className="text-3xl font-bold text-gradient">Dashboard</h2>
-            <p className="text-sm text-muted-foreground">Visão geral do sistema de gestão escolar</p>
-          </div>
-        </div>
+      <PageLoader>
+        <div className="p-6 space-y-8">
+          <FadeIn delay={200}>
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center icon-glow">
+                <i className="fas fa-chart-line text-white text-lg"></i>
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-gradient">Dashboard</h2>
+                <p className="text-sm text-muted-foreground">Visão geral do sistema de gestão escolar</p>
+              </div>
+            </div>
+          </FadeIn>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {isLoading ? (
-            Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="bg-card rounded-lg border border-border p-6 animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-8 bg-muted rounded w-1/2 mb-2"></div>
-                <div className="h-3 bg-muted rounded w-2/3"></div>
-              </div>
-            ))
-          ) : (
-            <>
-              <StatsCard
-                title="Total de Alunos"
-                value={stats?.totalStudents || 0}
-                change="+12%"
-                changeType="positive"
-                icon="fas fa-user-graduate"
-                iconColor="blue"
-                data-testid="card-total-students"
-              />
-              <StatsCard
-                title="Professores Ativos"
-                value={stats?.activeTeachers || 0}
-                change="+3%"
-                changeType="positive"
-                icon="fas fa-chalkboard-teacher"
-                iconColor="green"
-                data-testid="card-active-teachers"
-              />
-              <StatsCard
-                title="Aulas Hoje"
-                value={stats?.todaysClasses || 0}
-                change="92 concluídas"
-                changeType="neutral"
-                icon="fas fa-calendar-check"
-                iconColor="purple"
-                data-testid="card-todays-classes"
-              />
-              <StatsCard
-                title="Receita Mensal"
-                value={`R$ ${(stats?.monthlyRevenue || 0).toLocaleString()}`}
-                change="+8%"
-                changeType="positive"
-                icon="fas fa-dollar-sign"
-                iconColor="yellow"
-                data-testid="card-monthly-revenue"
-              />
-            </>
-          )}
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <FadeIn key={index} delay={400 + index * 100}>
+                  <div className="bg-card rounded-lg border border-border p-6 animate-pulse">
+                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-muted rounded w-1/2 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </div>
+                </FadeIn>
+              ))
+            ) : (
+              <StaggeredFadeIn stagger={150}>
+                {[
+                  <StatsCard
+                    title="Total de Alunos"
+                    value={stats?.totalStudents || 0}
+                    change="+12%"
+                    changeType="positive"
+                    icon="fas fa-user-graduate"
+                    iconColor="blue"
+                    data-testid="card-total-students"
+                  />,
+                  <StatsCard
+                    title="Professores Ativos"
+                    value={stats?.activeTeachers || 0}
+                    change="+3%"
+                    changeType="positive"
+                    icon="fas fa-chalkboard-teacher"
+                    iconColor="green"
+                    data-testid="card-active-teachers"
+                  />,
+                  <StatsCard
+                    title="Aulas Hoje"
+                    value={stats?.todaysClasses || 0}
+                    change="92 concluídas"
+                    changeType="neutral"
+                    icon="fas fa-calendar-check"
+                    iconColor="purple"
+                    data-testid="card-todays-classes"
+                  />,
+                  <StatsCard
+                    title="Receita Mensal"
+                    value={`R$ ${(stats?.monthlyRevenue || 0).toLocaleString()}`}
+                    change="+8%"
+                    changeType="positive"
+                    icon="fas fa-dollar-sign"
+                    iconColor="yellow"
+                    data-testid="card-monthly-revenue"
+                  />
+                ]}
+              </StaggeredFadeIn>
+            )}
+          </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Schedule Overview */}
-          <div className="lg:col-span-2 glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
+          <FadeIn delay={800}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Schedule Overview */}
+              <div className="lg:col-span-2 glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
             <div className="p-6 border-b border-white/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -183,10 +192,12 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+          </FadeIn>
 
-        {/* Quick Actions */}
-        <div className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
+          {/* Quick Actions */}
+          <FadeIn delay={1000}>
+            <div className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
           <div className="p-6 border-b border-white/20">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
@@ -263,9 +274,10 @@ export default function Dashboard() {
                 </button>
               )}
             </div>
-          </div>
+            </div>
+          </FadeIn>
         </div>
-      </div>
+      </PageLoader>
     </Layout>
   );
 }
