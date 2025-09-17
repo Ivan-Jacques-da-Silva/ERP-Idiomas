@@ -66,7 +66,7 @@ export default function Dashboard() {
           </FadeIn>
 
         {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 lg:gap-6">
             {isLoading ? (
               Array.from({ length: 4 }).map((_, index) => (
                 <FadeIn key={index} delay={100 + index * 50}>
@@ -79,44 +79,167 @@ export default function Dashboard() {
               ))
             ) : (
               <StaggeredFadeIn stagger={80}>
-                {[
-                  <StatsCard
-                    title="Total de Alunos"
-                    value={stats?.totalStudents || 0}
-                    change="+12%"
-                    changeType="positive"
-                    icon="fas fa-user-graduate"
-                    iconColor="blue"
-                    data-testid="card-total-students"
-                  />,
-                  <StatsCard
-                    title="Professores Ativos"
-                    value={stats?.activeTeachers || 0}
-                    change="+3%"
-                    changeType="positive"
-                    icon="fas fa-chalkboard-teacher"
-                    iconColor="green"
-                    data-testid="card-active-teachers"
-                  />,
-                  <StatsCard
-                    title="Aulas Hoje"
-                    value={stats?.todaysClasses || 0}
-                    change="92 concluídas"
-                    changeType="neutral"
-                    icon="fas fa-calendar-check"
-                    iconColor="purple"
-                    data-testid="card-todays-classes"
-                  />,
-                  <StatsCard
-                    title="Receita Mensal"
-                    value={`R$ ${(stats?.monthlyRevenue || 0).toLocaleString()}`}
-                    change="+8%"
-                    changeType="positive"
-                    icon="fas fa-dollar-sign"
-                    iconColor="yellow"
-                    data-testid="card-monthly-revenue"
-                  />
-                ]}
+                {(() => {
+                  const availableCards = [];
+                  
+                  // Admin vê tudo
+                  if (user?.role === 'admin' || user?.role === 'developer') {
+                    availableCards.push(
+                      <StatsCard
+                        key="students"
+                        title="Total de Alunos"
+                        value={stats?.totalStudents || 0}
+                        change="+12%"
+                        changeType="positive"
+                        icon="fas fa-user-graduate"
+                        iconColor="blue"
+                        data-testid="card-total-students"
+                      />,
+                      <StatsCard
+                        key="teachers"
+                        title="Professores Ativos"
+                        value={stats?.activeTeachers || 0}
+                        change="+3%"
+                        changeType="positive"
+                        icon="fas fa-chalkboard-teacher"
+                        iconColor="green"
+                        data-testid="card-active-teachers"
+                      />,
+                      <StatsCard
+                        key="classes"
+                        title="Aulas Hoje"
+                        value={stats?.todaysClasses || 0}
+                        change="92 concluídas"
+                        changeType="neutral"
+                        icon="fas fa-calendar-check"
+                        iconColor="purple"
+                        data-testid="card-todays-classes"
+                      />,
+                      <StatsCard
+                        key="revenue"
+                        title="Receita Mensal"
+                        value={`R$ ${(stats?.monthlyRevenue || 0).toLocaleString()}`}
+                        change="+8%"
+                        changeType="positive"
+                        icon="fas fa-dollar-sign"
+                        iconColor="yellow"
+                        data-testid="card-monthly-revenue"
+                      />
+                    );
+                  }
+                  // Professor - não vê receita mensal
+                  else if (user?.role === 'teacher') {
+                    availableCards.push(
+                      <StatsCard
+                        key="students"
+                        title="Total de Alunos"
+                        value={stats?.totalStudents || 0}
+                        change="+12%"
+                        changeType="positive"
+                        icon="fas fa-user-graduate"
+                        iconColor="blue"
+                        data-testid="card-total-students"
+                      />,
+                      <StatsCard
+                        key="teachers"
+                        title="Professores Ativos"
+                        value={stats?.activeTeachers || 0}
+                        change="+3%"
+                        changeType="positive"
+                        icon="fas fa-chalkboard-teacher"
+                        iconColor="green"
+                        data-testid="card-active-teachers"
+                      />,
+                      <StatsCard
+                        key="classes"
+                        title="Aulas Hoje"
+                        value={stats?.todaysClasses || 0}
+                        change="92 concluídas"
+                        changeType="neutral"
+                        icon="fas fa-calendar-check"
+                        iconColor="purple"
+                        data-testid="card-todays-classes"
+                      />
+                    );
+                  }
+                  // Secretary - vê tudo exceto receita
+                  else if (user?.role === 'secretary') {
+                    availableCards.push(
+                      <StatsCard
+                        key="students"
+                        title="Total de Alunos"
+                        value={stats?.totalStudents || 0}
+                        change="+12%"
+                        changeType="positive"
+                        icon="fas fa-user-graduate"
+                        iconColor="blue"
+                        data-testid="card-total-students"
+                      />,
+                      <StatsCard
+                        key="teachers"
+                        title="Professores Ativos"
+                        value={stats?.activeTeachers || 0}
+                        change="+3%"
+                        changeType="positive"
+                        icon="fas fa-chalkboard-teacher"
+                        iconColor="green"
+                        data-testid="card-active-teachers"
+                      />,
+                      <StatsCard
+                        key="classes"
+                        title="Aulas Hoje"
+                        value={stats?.todaysClasses || 0}
+                        change="92 concluídas"
+                        changeType="neutral"
+                        icon="fas fa-calendar-check"
+                        iconColor="purple"
+                        data-testid="card-todays-classes"
+                      />
+                    );
+                  }
+                  // Financial - vê receita e estatísticas gerais
+                  else if (user?.role === 'financial') {
+                    availableCards.push(
+                      <StatsCard
+                        key="students"
+                        title="Total de Alunos"
+                        value={stats?.totalStudents || 0}
+                        change="+12%"
+                        changeType="positive"
+                        icon="fas fa-user-graduate"
+                        iconColor="blue"
+                        data-testid="card-total-students"
+                      />,
+                      <StatsCard
+                        key="revenue"
+                        title="Receita Mensal"
+                        value={`R$ ${(stats?.monthlyRevenue || 0).toLocaleString()}`}
+                        change="+8%"
+                        changeType="positive"
+                        icon="fas fa-dollar-sign"
+                        iconColor="yellow"
+                        data-testid="card-monthly-revenue"
+                      />
+                    );
+                  }
+                  // Student - só vê suas aulas
+                  else if (user?.role === 'student') {
+                    availableCards.push(
+                      <StatsCard
+                        key="classes"
+                        title="Minhas Aulas Hoje"
+                        value={stats?.todaysClasses || 0}
+                        change="próximas aulas"
+                        changeType="neutral"
+                        icon="fas fa-calendar-check"
+                        iconColor="purple"
+                        data-testid="card-my-classes"
+                      />
+                    );
+                  }
+                  
+                  return availableCards;
+                })()}
               </StaggeredFadeIn>
             )}
           </div>
