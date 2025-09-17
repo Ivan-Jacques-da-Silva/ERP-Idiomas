@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Menu, Settings, Bell, LogOut } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +15,39 @@ export default function Layout({ children }: LayoutProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const { toast } = useToast();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Erro ao fazer logout');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      });
+      // Redirecionar para a página de login
+      window.location.href = '/';
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro no logout",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   // Detectar se é mobile
   useEffect(() => {
@@ -56,7 +91,7 @@ export default function Layout({ children }: LayoutProps) {
     <div className="flex h-screen bg-background theme-transition">
       <Sidebar expanded={sidebarExpanded} isMobile={isMobile} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center p-4 bg-gray-50/50 border-b border-gray-100/80 navbar-shadow backdrop-blur-sm dark:bg-gray-900/50 dark:border-gray-800/50 theme-transition"></div></div>
+        <div className="flex justify-between items-center p-4 bg-gray-50/50 border-b border-gray-100/80 navbar-shadow backdrop-blur-sm dark:bg-gray-900/50 dark:border-gray-800/50 theme-transition">
           <Button
             variant="ghost"
             size="sm"
@@ -93,7 +128,11 @@ export default function Layout({ children }: LayoutProps) {
                     <span className="text-sm">Notificações</span>
                   </div>
                   <div className="border-t border-border my-2"></div>
-                  <div className="flex items-center p-2 hover:bg-accent/50 rounded-md transition-colors cursor-default" data-testid="menu-item-logout">
+                  <div 
+                    className="flex items-center p-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer" 
+                    data-testid="menu-item-logout"
+                    onClick={handleLogout}
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span className="text-sm">Sair</span>
                   </div>
