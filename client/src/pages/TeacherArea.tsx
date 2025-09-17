@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -20,6 +21,8 @@ export default function TeacherArea() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
+  const [selectedClassDetail, setSelectedClassDetail] = useState<any>(null);
+  const [showClassDetail, setShowClassDetail] = useState(false);
 
   // Fetch teacher's classes
   const { data: teacherClasses = [], isLoading: classesLoading } = useQuery<any[]>({
@@ -116,15 +119,26 @@ export default function TeacherArea() {
     setCurrentWeekStart(prev => addDays(prev, direction === 'next' ? 7 : -7));
   };
 
+  // Sistema de cores por livro - utilizando cores OpenLife
+  const bookColors: { [key: string]: string } = {
+    'English Basic - Book 1': '#b130ff',
+    'English Basic - Book 2': '#ff6506',
+    'English Basic - Book 3': '#3b82f6',
+    'English Intermediate - Book 1': '#10b981',
+    'English Intermediate - Book 2': '#059669',
+    'English Advanced - Book 1': '#8b5cf6',
+    'Español Básico - Libro 1': '#f59e0b',
+    'Español Básico - Libro 2': '#d97706'
+  };
+
+  const handleClassClick = (classItem: any) => {
+    setSelectedClassDetail(classItem);
+    setShowClassDetail(true);
+  };
+
   const renderWeeklySchedule = () => {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
     const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`);
-
-    // Sistema de cores por livro
-    const bookColors: { [key: string]: string } = {
-      'English Basic - Book 1': '#3b82f6',
-      'English Basic - Book 2': '#1d4ed8'
-    };
 
     // Dados exemplares das turmas do professor
     const mockTeacherSchedule = [
@@ -215,8 +229,8 @@ export default function TeacherArea() {
             {timeSlots.map((timeSlot) => {
               const [hour] = timeSlot.split(':');
               return (
-                <>
-                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
+                <React.Fragment key={timeSlot}>
+                  <div className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
                     {timeSlot}
                   </div>
                   
@@ -232,33 +246,22 @@ export default function TeacherArea() {
                         {dayClasses.map((classItem) => (
                           <div
                             key={classItem.id}
-                            className="p-3 rounded-lg text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full"
+                            className="p-2 rounded-lg text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full flex items-center justify-center"
                             style={{
                               backgroundColor: bookColors[classItem.book] + '20',
                               borderColor: bookColors[classItem.book],
                               color: '#000'
                             }}
+                            onClick={() => handleClassClick(classItem)}
                             data-testid={`schedule-class-${classItem.id}`}
                           >
-                            <div className="font-semibold text-sm mb-2">{classItem.title}</div>
-                            <div className="text-xs opacity-75 mb-1">
-                              📚 {classItem.book}
-                            </div>
-                            <div className="text-xs opacity-75 mb-1">
-                              🏢 {classItem.room}
-                            </div>
-                            <div className="text-xs opacity-75 mb-1">
-                              👥 {classItem.studentsCount}/{classItem.maxStudents} alunos
-                            </div>
-                            <div className="text-xs font-medium">
-                              Dia {classItem.currentDay}/{classItem.totalDays}
-                            </div>
+                            <div className="font-semibold text-sm text-center">{classItem.title}</div>
                           </div>
                         ))}
                       </div>
                     );
                   })}
-                </>
+                </React.Fragment>
               );
             })}
           </div>
@@ -621,6 +624,58 @@ export default function TeacherArea() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal de Detalhes da Aula */}
+      <Dialog open={showClassDetail} onOpenChange={setShowClassDetail}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <div
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: selectedClassDetail?.book && bookColors[selectedClassDetail.book] }}
+              />
+              <span>{selectedClassDetail?.title}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {selectedClassDetail && (
+            <div className="space-y-6">
+              {/* Informações da Turma */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Horário</Label>
+                  <p className="text-sm">{selectedClassDetail.startTime} - {selectedClassDetail.endTime}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Sala</Label>
+                  <p className="text-sm">{selectedClassDetail.room}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Livro</Label>
+                  <p className="text-sm">{selectedClassDetail.book}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Progresso</Label>
+                  <p className="text-sm">Dia {selectedClassDetail.currentDay}/{selectedClassDetail.totalDays}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Alunos</Label>
+                  <p className="text-sm">{selectedClassDetail.studentsCount}/{selectedClassDetail.maxStudents}</p>
+                </div>
+              </div>
+
+              {/* Ações */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowClassDetail(false)}>
+                  Fechar
+                </Button>
+                <Button>
+                  Gerenciar Turma
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
