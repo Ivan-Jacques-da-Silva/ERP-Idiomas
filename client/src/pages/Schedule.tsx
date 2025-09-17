@@ -262,9 +262,7 @@ export default function Schedule() {
     return courseColors;
   };
 
-  // Get colors for admin and teacher schedules
-  const adminCourseColors = generateCourseColors(mockAdminSchedule);
-  const teacherCourseColors = generateCourseColors(mockTeacherSchedule);
+  // Mock data will be defined within each render function to avoid scope issues
 
   const renderAdminCalendarView = () => {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
@@ -425,6 +423,9 @@ export default function Schedule() {
       if (selectedUnitFilter !== 'all' && classItem.unitId !== selectedUnitFilter) return false;
       return true;
     });
+
+    // Generate colors for admin schedule
+    const adminCourseColors = generateCourseColors(mockAdminSchedule);
 
     return (
       <div className="space-y-4">
@@ -618,6 +619,9 @@ export default function Schedule() {
         maxStudents: 15
       }
     ];
+
+    // Generate colors for teacher schedule
+    const teacherCourseColors = generateCourseColors(mockTeacherSchedule);
 
     return (
       <div className="space-y-4">
