@@ -236,17 +236,35 @@ export default function Schedule() {
     setCurrentWeekStart(prev => addDays(prev, direction === 'next' ? 7 : -7));
   };
 
-  // Define book colors for legend
-  const bookColors: { [key: string]: string } = {
-    'English Basic - Book 1': '#3b82f6',
-    'English Basic - Book 2': '#1d4ed8',
-    'English Basic - Book 3': '#1e40af',
-    'English Intermediate - Book 1': '#10b981',
-    'English Intermediate - Book 2': '#059669',
-    'English Advanced - Book 1': '#8b5cf6',
-    'Español Básico - Libro 1': '#f59e0b',
-    'Español Básico - Libro 2': '#d97706',
+  // Generate dynamic colors for courses
+  const generateCourseColors = (classes: any[]) => {
+    const uniqueCourses = [...new Set(classes.map(cls => cls.title))];
+    const colors = [
+      '#3b82f6', // Blue
+      '#10b981', // Green  
+      '#f59e0b', // Orange
+      '#8b5cf6', // Purple
+      '#ef4444', // Red
+      '#06b6d4', // Cyan
+      '#84cc16', // Lime
+      '#f97316', // Orange
+      '#ec4899', // Pink
+      '#6366f1', // Indigo
+      '#14b8a6', // Teal
+      '#eab308', // Yellow
+    ];
+    
+    const courseColors: { [key: string]: string } = {};
+    uniqueCourses.forEach((course, index) => {
+      courseColors[course] = colors[index % colors.length];
+    });
+    
+    return courseColors;
   };
+
+  // Get colors for admin and teacher schedules
+  const adminCourseColors = generateCourseColors(mockAdminSchedule);
+  const teacherCourseColors = generateCourseColors(mockTeacherSchedule);
 
   const renderAdminCalendarView = () => {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
@@ -260,7 +278,6 @@ export default function Schedule() {
         teacher: 'Prof. João Silva',
         teacherId: 'user-1',
         book: 'English Basic - Book 1',
-        bookColor: '#3b82f6',
         dayOfWeek: 1, // Segunda
         startTime: '09:00',
         endTime: '11:00',
@@ -277,7 +294,6 @@ export default function Schedule() {
         teacher: 'Prof. João Silva',
         teacherId: 'user-1',
         book: 'English Basic - Book 2',
-        bookColor: '#1d4ed8',
         dayOfWeek: 1, // Segunda
         startTime: '14:00',
         endTime: '16:00',
@@ -294,7 +310,6 @@ export default function Schedule() {
         teacher: 'Prof. Maria Santos',
         teacherId: 'user-2',
         book: 'English Intermediate - Book 1',
-        bookColor: '#10b981',
         dayOfWeek: 1, // Segunda
         startTime: '19:00',
         endTime: '21:00',
@@ -311,7 +326,6 @@ export default function Schedule() {
         teacher: 'Prof. Maria Santos',
         teacherId: 'user-2',
         book: 'Español Básico - Libro 1',
-        bookColor: '#f59e0b',
         dayOfWeek: 2, // Terça
         startTime: '18:00',
         endTime: '20:00',
@@ -328,7 +342,6 @@ export default function Schedule() {
         teacher: 'Prof. Ana Costa',
         teacherId: 'user-7',
         book: 'English Intermediate - Book 2',
-        bookColor: '#059669',
         dayOfWeek: 2, // Terça
         startTime: '10:00',
         endTime: '12:00',
@@ -345,7 +358,6 @@ export default function Schedule() {
         teacher: 'Prof. Ana Costa',
         teacherId: 'user-7',
         book: 'English Basic - Book 3',
-        bookColor: '#1e40af',
         dayOfWeek: 3, // Quarta
         startTime: '15:00',
         endTime: '17:00',
@@ -362,7 +374,6 @@ export default function Schedule() {
         teacher: 'Prof. Felipe Rodrigues',
         teacherId: 'user-8',
         book: 'English Advanced - Book 1',
-        bookColor: '#8b5cf6',
         dayOfWeek: 4, // Quinta
         startTime: '19:00',
         endTime: '21:00',
@@ -379,7 +390,6 @@ export default function Schedule() {
         teacher: 'Prof. Patricia Lima',
         teacherId: 'user-9',
         book: 'Español Básico - Libro 2',
-        bookColor: '#d97706',
         dayOfWeek: 5, // Sexta
         startTime: '16:00',
         endTime: '18:00',
@@ -397,7 +407,6 @@ export default function Schedule() {
         teacher: 'Prof. Patricia Lima',
         teacherId: 'user-9',
         book: 'English Basic - Book 1',
-        bookColor: '#3b82f6',
         dayOfWeek: 2, // Terça
         startTime: '14:00',
         endTime: '16:00',
@@ -497,31 +506,19 @@ export default function Schedule() {
                           {dayClasses.map((classItem, index) => (
                             <div
                               key={classItem.id}
-                              className="p-2 rounded-md text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30"
+                              className="p-3 rounded-lg text-sm cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full flex items-center justify-center"
                               style={{
-                                backgroundColor: classItem.bookColor + '15',
-                                borderColor: classItem.bookColor,
+                                backgroundColor: adminCourseColors[classItem.title] + '20',
+                                borderColor: adminCourseColors[classItem.title],
                                 color: '#000'
                               }}
-                              onClick={() => handleClassClick(classItem)}
+                              onClick={() => handleClassClick({
+                                ...classItem,
+                                bookColor: adminCourseColors[classItem.title]
+                              })}
                               data-testid={`admin-class-${classItem.id}`}
                             >
-                              <div className="font-semibold text-xs mb-1 leading-tight">{classItem.title}</div>
-                              <div className="text-xs opacity-75 mb-1">
-                                📚 {classItem.book}
-                              </div>
-                              <div className="text-xs opacity-75 mb-1">
-                                👨‍🏫 {classItem.teacher}
-                              </div>
-                              <div className="text-xs opacity-75 mb-1">
-                                🏢 {classItem.room}
-                              </div>
-                              <div className="text-xs opacity-75 mb-1">
-                                👥 {classItem.studentsCount}/{classItem.maxStudents}
-                              </div>
-                              <div className="text-xs font-medium">
-                                Dia {classItem.currentDay}/{classItem.totalDays}
-                              </div>
+                              <div className="font-semibold text-center leading-tight">{classItem.title}</div>
                             </div>
                           ))}
                         </div>
@@ -548,12 +545,12 @@ export default function Schedule() {
 
         {/* Legend */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-medium mb-3">Legenda dos Livros</h4>
+          <h4 className="font-medium mb-3">Legenda dos Cursos</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(bookColors).map(([bookName, color]) => (
-              <div key={bookName} className="flex items-center space-x-2">
+            {Object.entries(adminCourseColors).map(([courseName, color]) => (
+              <div key={courseName} className="flex items-center space-x-2">
                 <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
-                <span className="text-sm">{bookName}</span>
+                <span className="text-sm">{courseName}</span>
               </div>
             ))}
           </div>
@@ -572,7 +569,6 @@ export default function Schedule() {
         id: '1',
         title: 'Inglês A1 - Manhã',
         book: 'English Basic - Book 1',
-        bookColor: '#3b82f6',
         dayOfWeek: 1, // Segunda
         startTime: '09:00',
         endTime: '11:00',
@@ -586,7 +582,6 @@ export default function Schedule() {
         id: '2',
         title: 'Inglês A2 - Tarde',
         book: 'English Basic - Book 2',
-        bookColor: '#1d4ed8',
         dayOfWeek: 1, // Segunda
         startTime: '14:00',
         endTime: '16:00',
@@ -600,7 +595,6 @@ export default function Schedule() {
         id: '3',
         title: 'Inglês A1 - Manhã',
         book: 'English Basic - Book 1',
-        bookColor: '#3b82f6',
         dayOfWeek: 3, // Quarta
         startTime: '09:00',
         endTime: '11:00',
@@ -614,7 +608,6 @@ export default function Schedule() {
         id: '4',
         title: 'Inglês A2 - Tarde',
         book: 'English Basic - Book 2',
-        bookColor: '#1d4ed8',
         dayOfWeek: 3, // Quarta
         startTime: '14:00',
         endTime: '16:00',
@@ -676,28 +669,20 @@ export default function Schedule() {
                         {dayClasses.map((classItem) => (
                           <div
                             key={classItem.id}
-                            className="p-3 rounded-lg text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full"
+                            className="p-3 rounded-lg text-sm cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full flex items-center justify-center"
                             style={{
-                              backgroundColor: classItem.bookColor + '20',
-                              borderColor: classItem.bookColor,
+                              backgroundColor: teacherCourseColors[classItem.title] + '20',
+                              borderColor: teacherCourseColors[classItem.title],
                               color: '#000'
                             }}
-                            onClick={() => handleClassClick(classItem)}
+                            onClick={() => handleClassClick({
+                              ...classItem,
+                              bookColor: teacherCourseColors[classItem.title],
+                              teacher: 'Prof. Ivan Silva'
+                            })}
                             data-testid={`teacher-class-${classItem.id}`}
                           >
-                            <div className="font-semibold text-sm mb-2">{classItem.title}</div>
-                            <div className="text-xs opacity-75 mb-1">
-                              📚 {classItem.book}
-                            </div>
-                            <div className="text-xs opacity-75 mb-1">
-                              🏢 {classItem.room}
-                            </div>
-                            <div className="text-xs opacity-75 mb-1">
-                              👥 {classItem.studentsCount}/{classItem.maxStudents} alunos
-                            </div>
-                            <div className="text-xs font-medium">
-                              Dia {classItem.currentDay}/{classItem.totalDays}
-                            </div>
+                            <div className="font-semibold text-center leading-tight">{classItem.title}</div>
                           </div>
                         ))}
                       </div>
@@ -709,14 +694,14 @@ export default function Schedule() {
           </div>
         </div>
 
-        {/* Legenda de cores dos livros */}
+        {/* Legenda de cores dos cursos */}
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-medium mb-3">Legenda dos Livros</h4>
+          <h4 className="font-medium mb-3">Legenda dos Cursos</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(bookColors).map(([bookName, color]) => (
-              <div key={bookName} className="flex items-center space-x-2">
+            {Object.entries(teacherCourseColors).map(([courseName, color]) => (
+              <div key={courseName} className="flex items-center space-x-2">
                 <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
-                <span className="text-sm">{bookName}</span>
+                <span className="text-sm">{courseName}</span>
               </div>
             ))}
           </div>
