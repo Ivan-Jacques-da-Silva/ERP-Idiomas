@@ -32,6 +32,14 @@ const isAuthenticated = (req: any, res: any, next: any) => {
   return res.status(401).json({ message: "Unauthorized" });
 };
 
+// Middleware to check if user has admin or secretary role
+const requireAdminOrSecretary = (req: any, res: any, next: any) => {
+  if (req.session?.user?.role === 'admin' || req.session?.user?.role === 'secretary') {
+    return next();
+  }
+  return res.status(403).json({ message: "Forbidden - Admin or Secretary role required" });
+};
+
 // Configure multer for file uploads
 const bookUploads = multer({
   storage: multer.diskStorage({
@@ -458,7 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/classes", isAuthenticated, async (req, res) => {
+  app.post("/api/classes", isAuthenticated, requireAdminOrSecretary, async (req, res) => {
     try {
       const classData = insertClassSchema.parse(req.body);
       const newClass = await storage.createClass(classData);
@@ -469,7 +477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/classes/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/classes/:id", isAuthenticated, requireAdminOrSecretary, async (req, res) => {
     try {
       const classData = insertClassSchema.partial().parse(req.body);
       const updatedClass = await storage.updateClass(req.params.id, classData);
@@ -480,7 +488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/classes/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/classes/:id", isAuthenticated, requireAdminOrSecretary, async (req, res) => {
     try {
       await storage.deleteClass(req.params.id);
       res.status(204).send();
@@ -601,7 +609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule/Agenda routes para administração
-  app.get("/api/schedule/admin", isAuthenticated, async (req, res) => {
+  app.get("/api/schedule/admin", isAuthenticated, requireAdminOrSecretary, async (req, res) => {
     try {
       // Busca todas as turmas com horários para agenda administrativa
       const classes = await storage.getClasses();
@@ -611,6 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: cls.id,
         title: cls.name,
         teacher: `${cls.teacher.firstName} ${cls.teacher.lastName}`,
+        teacherId: cls.teacher.id,
         book: cls.book.name,
         bookColor: cls.book.color,
         dayOfWeek: cls.dayOfWeek,

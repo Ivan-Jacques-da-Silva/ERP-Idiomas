@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
 import LessonModal from "@/components/LessonModal";
+import ClassModal from "@/components/ClassModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,8 @@ export default function Schedule() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<any>(null);
+  const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<any>(null);
   const [selectedTeacherFilter, setSelectedTeacherFilter] = useState<string>("");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
 
@@ -39,6 +42,13 @@ export default function Schedule() {
   // Fetch classes to get teacher information for filtering
   const { data: classes = [] } = useQuery<any[]>({
     queryKey: ["/api/classes"],
+    enabled: user?.role === 'admin' || user?.role === 'secretary',
+    retry: false,
+  });
+
+  // Fetch admin schedule data (for administrative view)
+  const { data: adminSchedule = [] } = useQuery<any[]>({
+    queryKey: ["/api/schedule/admin"],
     enabled: user?.role === 'admin' || user?.role === 'secretary',
     retry: false,
   });
@@ -129,6 +139,21 @@ export default function Schedule() {
   const handleCloseModal = () => {
     setIsLessonModalOpen(false);
     setEditingLesson(null);
+  };
+
+  const handleNewClass = () => {
+    setEditingClass(null);
+    setIsClassModalOpen(true);
+  };
+
+  const handleEditClass = (classItem: any) => {
+    setEditingClass(classItem);
+    setIsClassModalOpen(true);
+  };
+
+  const handleCloseClassModal = () => {
+    setIsClassModalOpen(false);
+    setEditingClass(null);
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -242,6 +267,122 @@ export default function Schedule() {
     );
   };
 
+  const renderAdminScheduleView = () => {
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+    const timeSlots = Array.from({ length: 15 }, (_, i) => `${7 + i}:00`); // 7:00 to 21:00
+    
+    // Filter admin schedule by selected teacher if any
+    const filteredClasses = adminSchedule.filter(classItem => {
+      if (!selectedTeacherFilter) return true;
+      return classItem.teacherId === selectedTeacherFilter;
+    });
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={() => navigateWeek('prev')}>
+              ← Semana Anterior
+            </Button>
+            <h3 className="text-lg font-semibold">
+              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
+            </h3>
+            <Button variant="outline" onClick={() => navigateWeek('next')}>
+              Próxima Semana →
+            </Button>
+          </div>
+          
+          <Select value={selectedTeacherFilter} onValueChange={setSelectedTeacherFilter}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Filtrar por professor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos os professores</SelectItem>
+              {teachers
+                .filter(teacher => teacher.user?.role === 'teacher')
+                .map((teacher: any) => (
+                  <SelectItem key={teacher.user.id} value={teacher.user.id}>
+                    {teacher.user.firstName} {teacher.user.lastName}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-8 gap-1 min-w-[800px]">
+            {/* Header row */}
+            <div className="p-2 font-medium text-center bg-muted rounded">Horário</div>
+            {weekDays.map((day) => (
+              <div key={day.toISOString()} className="p-2 font-medium text-center bg-muted rounded">
+                <div>{format(day, "EEE", { locale: ptBR })}</div>
+                <div className="text-sm text-muted-foreground">
+                  {format(day, "dd/MM", { locale: ptBR })}
+                </div>
+              </div>
+            ))}
+
+            {/* Time slots */}
+            {timeSlots.map((timeSlot) => {
+              const [hour] = timeSlot.split(':');
+              return (
+                <div key={timeSlot}>
+                  {/* Time label */}
+                  <div className="p-2 text-sm font-medium text-center bg-muted/50 border-r">
+                    {timeSlot}
+                  </div>
+                  
+                  {/* Day cells */}
+                  {weekDays.map((day) => {
+                    const dayClasses = filteredClasses.filter(classItem => {
+                      if (classItem.dayOfWeek !== day.getDay()) return false;
+                      
+                      const classHour = parseInt(classItem.startTime.split(':')[0]);
+                      return classHour === parseInt(hour);
+                    });
+
+                    return (
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] p-1 border border-border/50">
+                        {dayClasses.map((classItem) => (
+                          <div
+                            key={classItem.id}
+                            className={`mb-1 last:mb-0 p-2 rounded text-xs cursor-pointer transition-all hover:opacity-80 border`}
+                            style={{
+                              backgroundColor: classItem.bookColor + '20', // 20% opacity
+                              borderColor: classItem.bookColor,
+                              color: '#000'
+                            }}
+                            onClick={() => handleEditClass(classItem)}
+                            data-testid={`class-${classItem.id}`}
+                          >
+                            <div className="font-medium truncate">{classItem.title}</div>
+                            <div className="text-xs opacity-75">
+                              {classItem.startTime}-{classItem.endTime}
+                            </div>
+                            <div className="text-xs opacity-75">{classItem.teacher}</div>
+                            <div className="text-xs opacity-75">{classItem.book}</div>
+                            {classItem.room && (
+                              <div className="text-xs opacity-75">Sala {classItem.room}</div>
+                            )}
+                            {classItem.currentDay && classItem.totalDays && (
+                              <div className="text-xs opacity-75">
+                                Dia {classItem.currentDay}/{classItem.totalDays}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
@@ -256,10 +397,18 @@ export default function Schedule() {
           </div>
           
           {canManageSchedule && (
-            <Button onClick={handleNewLesson} data-testid="button-new-lesson">
-              <i className="fas fa-plus mr-2"></i>
-              Nova Aula
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button onClick={handleNewLesson} data-testid="button-new-lesson">
+                <i className="fas fa-plus mr-2"></i>
+                Nova Aula
+              </Button>
+              {(user?.role === 'admin' || user?.role === 'secretary') && (
+                <Button onClick={handleNewClass} data-testid="button-new-class">
+                  <i className="fas fa-users mr-2"></i>
+                  Nova Turma
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
@@ -269,6 +418,9 @@ export default function Schedule() {
             <TabsTrigger value="week">Esta Semana</TabsTrigger>
             <TabsTrigger value="month">Este Mês</TabsTrigger>
             <TabsTrigger value="calendar">Calendário</TabsTrigger>
+            {(user?.role === 'admin' || user?.role === 'secretary') && (
+              <TabsTrigger value="admin">Agenda Administrativa</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="today" className="space-y-4">
@@ -395,6 +547,39 @@ export default function Schedule() {
               </Card>
             </div>
           </TabsContent>
+
+          {(user?.role === 'admin' || user?.role === 'secretary') && (
+            <TabsContent value="admin" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <i className="fas fa-users-cog text-primary"></i>
+                    <span>Agenda Administrativa</span>
+                    <Badge variant="secondary">
+                      {adminSchedule.length} turmas ativas
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {adminSchedule.length === 0 ? (
+                    <div className="text-center py-8">
+                      <i className="fas fa-calendar-times text-muted-foreground text-4xl mb-4"></i>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">Nenhuma turma agendada</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Crie turmas para organizar a agenda administrativa.
+                      </p>
+                      <Button onClick={handleNewClass} data-testid="button-create-first-class">
+                        <i className="fas fa-plus mr-2"></i>
+                        Criar primeira turma
+                      </Button>
+                    </div>
+                  ) : (
+                    renderAdminScheduleView()
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
       
@@ -403,6 +588,13 @@ export default function Schedule() {
         isOpen={isLessonModalOpen}
         onClose={handleCloseModal}
         lessonToEdit={editingLesson}
+      />
+      
+      {/* Class Modal */}
+      <ClassModal
+        isOpen={isClassModalOpen}
+        onClose={handleCloseClassModal}
+        classToEdit={editingClass}
       />
     </Layout>
   );
