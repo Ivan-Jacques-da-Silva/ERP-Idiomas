@@ -98,14 +98,7 @@ export default function Sidebar() {
             <p className="text-sm font-medium text-foreground" data-testid="text-user-name">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-xs text-muted-foreground" data-testid="text-user-role">
-              {user?.role === 'admin' && 'Administrador'}
-              {user?.role === 'teacher' && 'Professor'}
-              {user?.role === 'secretary' && 'Secretário'}
-              {user?.role === 'financial' && 'Financeiro'}
-              {user?.role === 'student' && 'Aluno'}
-              {user?.role === 'developer' && 'Desenvolvedor'}
-            </p>
+            
           </div>
           <i className="fas fa-chevron-down text-muted-foreground text-xs"></i>
         </div>

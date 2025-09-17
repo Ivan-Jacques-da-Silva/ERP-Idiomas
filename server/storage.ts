@@ -5,12 +5,14 @@ import type {
   InsertCourse,
   InsertClass,
   InsertLesson,
+  InsertBook,
   Unit,
   Staff,
   Student,
   Course,
   Class,
   Lesson,
+  Book,
   User,
   UpsertUser,
   StaffWithUser,
@@ -26,6 +28,8 @@ let demoUnits: Unit[] = [{
   address: 'Rua das Flores, 123 - Centro',
   phone: '(11) 3456-7890',
   email: 'centro@edumanage.com',
+  managerId: null,
+  isActive: true,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-15'),
 }, {
@@ -34,78 +38,143 @@ let demoUnits: Unit[] = [{
   address: 'Av. Principal, 456 - Vila Nova',
   phone: '(11) 3456-7891',
   email: 'vilanova@edumanage.com',
+  managerId: null,
+  isActive: true,
   createdAt: new Date('2024-02-10'),
   updatedAt: new Date('2024-02-10'),
 }, ];
 
-let demoStaff: Staff[] = [{
-  id: '1',
+let demoUsers: User[] = [{
+  id: 'user-1',
+  email: 'joao@edumanage.com',
   firstName: 'João',
   lastName: 'Silva',
-  email: 'joao@edumanage.com',
-  phone: '(11) 99999-1111',
+  profileImageUrl: null,
   role: 'teacher',
+  isActive: true,
+  createdAt: new Date('2024-01-20'),
+  updatedAt: new Date('2024-01-20'),
+}, {
+  id: 'user-2',
+  email: 'maria@edumanage.com',
+  firstName: 'Maria',
+  lastName: 'Santos',
+  profileImageUrl: null,
+  role: 'teacher',
+  isActive: true,
+  createdAt: new Date('2024-01-22'),
+  updatedAt: new Date('2024-01-22'),
+}, {
+  id: 'user-3',
+  email: 'carlos@edumanage.com',
+  firstName: 'Carlos',
+  lastName: 'Oliveira',
+  profileImageUrl: null,
+  role: 'secretary',
+  isActive: true,
+  createdAt: new Date('2024-02-01'),
+  updatedAt: new Date('2024-02-01'),
+}, {
+  id: 'user-4',
+  email: 'ana@email.com',
+  firstName: 'Ana',
+  lastName: 'Costa',
+  profileImageUrl: null,
+  role: 'student',
+  isActive: true,
+  createdAt: new Date('2024-01-15'),
+  updatedAt: new Date('2024-01-15'),
+}, {
+  id: 'user-5',
+  email: 'pedro@email.com',
+  firstName: 'Pedro',
+  lastName: 'Fernandes',
+  profileImageUrl: null,
+  role: 'student',
+  isActive: true,
+  createdAt: new Date('2024-02-01'),
+  updatedAt: new Date('2024-02-01'),
+}, {
+  id: 'user-6',
+  email: 'lucia@email.com',
+  firstName: 'Lucia',
+  lastName: 'Martins',
+  profileImageUrl: null,
+  role: 'student',
+  isActive: true,
+  createdAt: new Date('2024-01-20'),
+  updatedAt: new Date('2024-01-20'),
+}];
+
+let demoStaff: Staff[] = [{
+  id: '1',
+  userId: 'user-1',
   unitId: '1',
-  specialization: 'Inglês Avançado',
+  employeeId: 'EMP001',
+  position: 'Professor de Inglês',
+  department: 'Ensino',
+  salary: 5000,
+  hireDate: new Date('2024-01-20'),
+  isActive: true,
   createdAt: new Date('2024-01-20'),
   updatedAt: new Date('2024-01-20'),
 }, {
   id: '2',
-  firstName: 'Maria',
-  lastName: 'Santos',
-  email: 'maria@edumanage.com',
-  phone: '(11) 99999-2222',
-  role: 'teacher',
+  userId: 'user-2',
   unitId: '1',
-  specialization: 'Espanhol',
+  employeeId: 'EMP002',
+  position: 'Professor de Espanhol',
+  department: 'Ensino',
+  salary: 4800,
+  hireDate: new Date('2024-01-22'),
+  isActive: true,
   createdAt: new Date('2024-01-22'),
   updatedAt: new Date('2024-01-22'),
 }, {
   id: '3',
-  firstName: 'Carlos',
-  lastName: 'Oliveira',
-  email: 'carlos@edumanage.com',
-  phone: '(11) 99999-3333',
-  role: 'secretary',
+  userId: 'user-3',
   unitId: '2',
+  employeeId: 'EMP003',
+  position: 'Secretário',
+  department: 'Administrativo',
+  salary: 3000,
+  hireDate: new Date('2024-02-01'),
+  isActive: true,
   createdAt: new Date('2024-02-01'),
   updatedAt: new Date('2024-02-01'),
 }, ];
 
 let demoStudents: Student[] = [{
   id: '1',
-  firstName: 'Ana',
-  lastName: 'Costa',
-  email: 'ana@email.com',
-  phone: '(11) 98888-1111',
-  dateOfBirth: '1995-03-15',
+  userId: 'user-4',
   unitId: '1',
-  enrollmentDate: '2024-01-15',
+  studentId: 'STU001',
+  enrollmentDate: new Date('2024-01-15'),
   status: 'active',
+  emergencyContact: '(11) 98888-1111 - Contato de emergência',
+  notes: null,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-15'),
 }, {
   id: '2',
-  firstName: 'Pedro',
-  lastName: 'Fernandes',
-  email: 'pedro@email.com',
-  phone: '(11) 98888-2222',
-  dateOfBirth: '1988-07-22',
+  userId: 'user-5',
   unitId: '1',
-  enrollmentDate: '2024-02-01',
+  studentId: 'STU002',
+  enrollmentDate: new Date('2024-02-01'),
   status: 'active',
+  emergencyContact: '(11) 98888-2222 - Contato de emergência',
+  notes: null,
   createdAt: new Date('2024-02-01'),
   updatedAt: new Date('2024-02-01'),
 }, {
   id: '3',
-  firstName: 'Lucia',
-  lastName: 'Martins',
-  email: 'lucia@email.com',
-  phone: '(11) 98888-3333',
-  dateOfBirth: '1992-11-08',
+  userId: 'user-6',
   unitId: '2',
-  enrollmentDate: '2024-01-20',
+  studentId: 'STU003',
+  enrollmentDate: new Date('2024-01-20'),
   status: 'active',
+  emergencyContact: '(11) 98888-3333 - Contato de emergência',
+  notes: null,
   createdAt: new Date('2024-01-20'),
   updatedAt: new Date('2024-01-20'),
 }, ];
@@ -114,54 +183,111 @@ let demoCourses: Course[] = [{
   id: '1',
   name: 'Inglês Básico',
   description: 'Curso de inglês para iniciantes',
-  duration: 120,
+  language: 'English',
   level: 'Básico',
+  duration: 120,
+  price: 299,
+  isActive: true,
   createdAt: new Date('2024-01-10'),
   updatedAt: new Date('2024-01-10'),
 }, {
   id: '2',
   name: 'Inglês Intermediário',
   description: 'Curso de inglês para nível intermediário',
-  duration: 150,
+  language: 'English',
   level: 'Intermediário',
+  duration: 150,
+  price: 399,
+  isActive: true,
   createdAt: new Date('2024-01-10'),
   updatedAt: new Date('2024-01-10'),
 }, {
   id: '3',
   name: 'Espanhol Básico',
   description: 'Curso de espanhol para iniciantes',
-  duration: 100,
+  language: 'Spanish',
   level: 'Básico',
+  duration: 100,
+  price: 259,
+  isActive: true,
   createdAt: new Date('2024-01-12'),
   updatedAt: new Date('2024-01-12'),
 }, ];
 
+let demoBooks: Book[] = [{
+  id: '1',
+  courseId: '1',
+  name: 'English Basic - Book 1',
+  description: 'Livro básico de inglês para iniciantes',
+  pdfUrl: '/books/english-basic-1.pdf',
+  color: '#3b82f6',
+  displayOrder: 1,
+  totalDays: 30,
+  isActive: true,
+  createdAt: new Date('2024-01-10'),
+  updatedAt: new Date('2024-01-10'),
+}, {
+  id: '2',
+  courseId: '2',
+  name: 'English Intermediate - Book 1',
+  description: 'Livro de inglês intermediário',
+  pdfUrl: '/books/english-intermediate-1.pdf',
+  color: '#10b981',
+  displayOrder: 1,
+  totalDays: 40,
+  isActive: true,
+  createdAt: new Date('2024-01-10'),
+  updatedAt: new Date('2024-01-10'),
+}, {
+  id: '3',
+  courseId: '3',
+  name: 'Español Básico - Libro 1',
+  description: 'Livro básico de espanhol',
+  pdfUrl: '/books/spanish-basic-1.pdf',
+  color: '#f59e0b',
+  displayOrder: 1,
+  totalDays: 25,
+  isActive: true,
+  createdAt: new Date('2024-01-12'),
+  updatedAt: new Date('2024-01-12'),
+}];
+
 let demoClasses: Class[] = [{
   id: '1',
-  name: 'Turma Inglês A1',
-  courseId: '1',
-  teacherId: '1',
+  bookId: '1',
+  teacherId: 'user-1',
   unitId: '1',
+  name: 'Turma Inglês A1',
   schedule: 'Segunda e Quarta 19:00-21:00',
-  capacity: 15,
-  enrolledStudents: 12,
-  startDate: '2024-02-01',
-  endDate: '2024-05-30',
-  status: 'active',
+  dayOfWeek: 1, // Monday
+  startTime: '19:00',
+  endTime: '21:00',
+  room: 'Sala 101',
+  maxStudents: 15,
+  currentStudents: 12,
+  startDate: new Date('2024-02-01'),
+  endDate: new Date('2024-05-30'),
+  currentDay: 5,
+  isActive: true,
   createdAt: new Date('2024-01-25'),
   updatedAt: new Date('2024-01-25'),
 }, {
   id: '2',
-  name: 'Turma Espanhol B1',
-  courseId: '3',
-  teacherId: '2',
+  bookId: '3',
+  teacherId: 'user-2',
   unitId: '1',
+  name: 'Turma Espanhol B1',
   schedule: 'Terça e Quinta 18:00-20:00',
-  capacity: 12,
-  enrolledStudents: 8,
-  startDate: '2024-02-15',
-  endDate: '2024-06-15',
-  status: 'active',
+  dayOfWeek: 2, // Tuesday
+  startTime: '18:00',
+  endTime: '20:00',
+  room: 'Sala 102',
+  maxStudents: 12,
+  currentStudents: 8,
+  startDate: new Date('2024-02-15'),
+  endDate: new Date('2024-06-15'),
+  currentDay: 3,
+  isActive: true,
   createdAt: new Date('2024-02-05'),
   updatedAt: new Date('2024-02-05'),
 }, ];
@@ -169,37 +295,40 @@ let demoClasses: Class[] = [{
 let demoLessons: Lesson[] = [{
   id: '1',
   classId: '1',
-  teacherId: '1',
-  date: '2024-02-26',
+  title: 'Present Simple Tense',
+  bookDay: 5,
+  date: new Date('2024-02-26'),
   startTime: '19:00',
   endTime: '21:00',
-  topic: 'Present Simple Tense',
-  notes: 'Aula sobre tempo presente simples',
+  room: 'Sala 101',
   status: 'completed',
+  notes: 'Aula sobre tempo presente simples',
   createdAt: new Date('2024-02-20'),
   updatedAt: new Date('2024-02-26'),
 }, {
   id: '2',
   classId: '1',
-  teacherId: '1',
-  date: '2024-02-28',
+  title: 'Present Continuous',
+  bookDay: 6,
+  date: new Date('2024-02-28'),
   startTime: '19:00',
   endTime: '21:00',
-  topic: 'Present Continuous',
-  notes: 'Aula sobre presente contínuo',
+  room: 'Sala 101',
   status: 'scheduled',
+  notes: 'Aula sobre presente contínuo',
   createdAt: new Date('2024-02-20'),
   updatedAt: new Date('2024-02-20'),
 }, {
   id: '3',
   classId: '2',
-  teacherId: '2',
-  date: '2024-02-27',
+  title: 'Verbos Irregulares',
+  bookDay: 3,
+  date: new Date('2024-02-27'),
   startTime: '18:00',
   endTime: '20:00',
-  topic: 'Verbos Irregulares',
-  notes: 'Conjugação de verbos irregulares',
+  room: 'Sala 102',
   status: 'completed',
+  notes: 'Conjugação de verbos irregulares',
   createdAt: new Date('2024-02-20'),
   updatedAt: new Date('2024-02-27'),
 }, ];
@@ -215,6 +344,13 @@ export interface IStorage {
   createUnit(unit: InsertUnit): Promise < Unit > ;
   updateUnit(id: string, unit: Partial < InsertUnit > ): Promise < Unit > ;
   deleteUnit(id: string): Promise < void > ;
+
+  // Books
+  getBooks(): Promise < Book[] > ;
+  getBook(id: string): Promise < Book | undefined > ;
+  createBook(book: InsertBook): Promise < Book > ;
+  updateBook(id: string, book: Partial < InsertBook > ): Promise < Book > ;
+  deleteBook(id: string): Promise < void > ;
 
   // Staff
   getStaff(): Promise < StaffWithUser[] > ;
@@ -273,7 +409,7 @@ export class DatabaseStorage implements IStorage {
         email: 'demo@example.com',
         firstName: 'Demo',
         lastName: 'User',
-        profileImageUrl: undefined,
+        profileImageUrl: null,
         role: 'student', // or 'teacher', 'admin'
         isActive: true,
         createdAt: new Date(),
@@ -287,12 +423,15 @@ export class DatabaseStorage implements IStorage {
     // Demo mode - just log
     console.log('Demo user upserted:', user);
     return {
-      ...user,
       id: user.id || crypto.randomUUID(),
+      email: user.email || null,
+      firstName: user.firstName || null,
+      lastName: user.lastName || null,
+      profileImageUrl: user.profileImageUrl || null,
       role: user.role || 'student',
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      isActive: user.isActive ?? true,
+      createdAt: user.createdAt || new Date(),
+      updatedAt: user.updatedAt || new Date(),
     };
   }
 
@@ -308,8 +447,13 @@ export class DatabaseStorage implements IStorage {
   async createUnit(unit: InsertUnit): Promise < Unit > {
     const id = crypto.randomUUID();
     const newUnit: Unit = {
-      ...unit,
       id,
+      name: unit.name,
+      address: unit.address || null,
+      phone: unit.phone || null,
+      email: unit.email || null,
+      managerId: unit.managerId || null,
+      isActive: unit.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -337,49 +481,118 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Books
+  async getBooks(): Promise < Book[] > {
+    return [...demoBooks];
+  }
+
+  async getBook(id: string): Promise < Book | undefined > {
+    return demoBooks.find(book => book.id === id);
+  }
+
+  async createBook(bookData: InsertBook): Promise < Book > {
+    // Validate that the course exists and is active
+    const course = demoCourses.find(c => c.id === bookData.courseId);
+    if (!course) {
+      throw new Error(`Course with ID ${bookData.courseId} not found`);
+    }
+    if (!course.isActive) {
+      throw new Error(`Cannot create book for inactive course: ${course.name}`);
+    }
+
+    const id = crypto.randomUUID();
+    const newBook: Book = {
+      id,
+      courseId: bookData.courseId,
+      name: bookData.name,
+      description: bookData.description || null,
+      pdfUrl: bookData.pdfUrl || null,
+      color: bookData.color || '#3b82f6',
+      displayOrder: bookData.displayOrder ?? 1,
+      totalDays: bookData.totalDays ?? 30,
+      isActive: bookData.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    demoBooks.push(newBook);
+    return newBook;
+  }
+
+  async updateBook(id: string, bookData: Partial < InsertBook > ): Promise < Book > {
+    const index = demoBooks.findIndex(b => b.id === id);
+    if (index === -1) throw new Error('Book not found');
+
+    // If courseId is being updated, validate that the new course exists and is active
+    if (bookData.courseId) {
+      const course = demoCourses.find(c => c.id === bookData.courseId);
+      if (!course) {
+        throw new Error(`Course with ID ${bookData.courseId} not found`);
+      }
+      if (!course.isActive) {
+        throw new Error(`Cannot update book to inactive course: ${course.name}`);
+      }
+    }
+
+    const updatedBook = {
+      ...demoBooks[index],
+      ...bookData,
+      updatedAt: new Date(),
+    };
+    demoBooks[index] = updatedBook;
+    return updatedBook;
+  }
+
+  async deleteBook(id: string): Promise < void > {
+    // Check if any classes reference this book
+    const referencingClasses = demoClasses.filter(cls => cls.bookId === id);
+    if (referencingClasses.length > 0) {
+      const classNames = referencingClasses.map(cls => cls.name).join(', ');
+      throw new Error(`Cannot delete book: it is being used by the following classes: ${classNames}`);
+    }
+
+    const index = demoBooks.findIndex(book => book.id === id);
+    if (index !== -1) {
+      demoBooks.splice(index, 1);
+    }
+  }
+
   // Staff
   async getStaff(): Promise < StaffWithUser[] > {
-    return demoStaff.map(staff => ({
-      ...staff,
-      user: { // Mock user data for staff
-        id: staff.id, // Assuming staff ID can be used as a mock user ID
-        email: staff.email,
-        firstName: staff.firstName,
-        lastName: staff.lastName,
-        profileImageUrl: undefined, // Add if needed
-        role: staff.role,
-        isActive: true, // Assuming active staff are active users
-        createdAt: staff.createdAt,
-        updatedAt: staff.updatedAt,
-      }
-    }));
+    return demoStaff.map(staff => {
+      const user = demoUsers.find(u => u.id === staff.userId);
+      if (!user) throw new Error(`User not found for staff ${staff.id}`);
+      return {
+        ...staff,
+        user
+      };
+    });
   }
 
   async getStaffMember(id: string): Promise < StaffWithUser | undefined > {
     const staff = demoStaff.find(staff => staff.id === id);
     if (!staff) return undefined;
+    
+    const user = demoUsers.find(u => u.id === staff.userId);
+    if (!user) return undefined;
 
     return {
       ...staff,
-      user: { // Mock user data for staff
-        id: staff.id,
-        email: staff.email,
-        firstName: staff.firstName,
-        lastName: staff.lastName,
-        profileImageUrl: undefined,
-        role: staff.role,
-        isActive: true,
-        createdAt: staff.createdAt,
-        updatedAt: staff.updatedAt,
-      }
+      user
     };
   }
 
   async createStaff(staffData: InsertStaff): Promise < Staff > {
     const id = crypto.randomUUID();
     const newStaff: Staff = {
-      ...staffData,
       id,
+      userId: staffData.userId,
+      unitId: staffData.unitId || null,
+      employeeId: staffData.employeeId || null,
+      position: staffData.position || null,
+      department: staffData.department || null,
+      salary: staffData.salary || null,
+      hireDate: staffData.hireDate || null,
+      isActive: staffData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -409,47 +622,40 @@ export class DatabaseStorage implements IStorage {
 
   // Students
   async getStudents(): Promise < StudentWithUser[] > {
-    return demoStudents.map(student => ({
-      ...student,
-      user: { // Mock user data for student
-        id: student.id, // Assuming student ID can be used as a mock user ID
-        email: student.email,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        profileImageUrl: undefined,
-        role: student.status === 'active' ? 'student' : 'inactive_student', // Example role mapping
-        isActive: student.status === 'active',
-        createdAt: student.createdAt,
-        updatedAt: student.updatedAt,
-      }
-    }));
+    return demoStudents.map(student => {
+      const user = demoUsers.find(u => u.id === student.userId);
+      if (!user) throw new Error(`User not found for student ${student.id}`);
+      return {
+        ...student,
+        user
+      };
+    });
   }
 
   async getStudent(id: string): Promise < StudentWithUser | undefined > {
     const student = demoStudents.find(student => student.id === id);
     if (!student) return undefined;
+    
+    const user = demoUsers.find(u => u.id === student.userId);
+    if (!user) return undefined;
 
     return {
       ...student,
-      user: { // Mock user data for student
-        id: student.id,
-        email: student.email,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        profileImageUrl: undefined,
-        role: student.status === 'active' ? 'student' : 'inactive_student',
-        isActive: student.status === 'active',
-        createdAt: student.createdAt,
-        updatedAt: student.updatedAt,
-      }
+      user
     };
   }
 
   async createStudent(studentData: InsertStudent): Promise < Student > {
     const id = crypto.randomUUID();
     const newStudent: Student = {
-      ...studentData,
       id,
+      userId: studentData.userId,
+      studentId: studentData.studentId || null,
+      unitId: studentData.unitId || null,
+      enrollmentDate: studentData.enrollmentDate || null,
+      status: studentData.status || 'active',
+      emergencyContact: studentData.emergencyContact || null,
+      notes: studentData.notes || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -489,8 +695,14 @@ export class DatabaseStorage implements IStorage {
   async createCourse(courseData: InsertCourse): Promise < Course > {
     const id = crypto.randomUUID();
     const newCourse: Course = {
-      ...courseData,
       id,
+      name: courseData.name,
+      description: courseData.description || null,
+      language: courseData.language,
+      level: courseData.level,
+      duration: courseData.duration || null,
+      price: courseData.price || null,
+      isActive: courseData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -512,6 +724,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCourse(id: string): Promise < void > {
+    // Check if any books reference this course
+    const referencingBooks = demoBooks.filter(book => book.courseId === id);
+    if (referencingBooks.length > 0) {
+      const bookNames = referencingBooks.map(book => book.name).join(', ');
+      throw new Error(`Cannot delete course: it has the following books associated with it: ${bookNames}`);
+    }
+
     const index = demoCourses.findIndex(course => course.id === id);
     if (index !== -1) {
       demoCourses.splice(index, 1);
@@ -520,43 +739,107 @@ export class DatabaseStorage implements IStorage {
 
   // Classes
   async getClasses(): Promise < ClassWithDetails[] > {
-    return demoClasses.map(cls => ({
-      ...cls,
-      course: demoCourses.find(c => c.id === cls.courseId) || {} as Course, // Mock course
-      teacher: demoStaff.find(s => s.id === cls.teacherId) || {} as Staff, // Mock teacher
-      unit: demoUnits.find(u => u.id === cls.unitId) || {} as Unit, // Mock unit
-      enrollments: [], // No enrollments in demo
-    }));
+    return demoClasses.map(cls => {
+      const book = demoBooks.find(b => b.id === cls.bookId);
+      const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
+      const teacher = demoUsers.find(u => u.id === cls.teacherId);
+      const unit = demoUnits.find(u => u.id === cls.unitId);
+      
+      if (!book || !course || !teacher || !unit) {
+        throw new Error(`Missing required data for class ${cls.id}`);
+      }
+      
+      return {
+        ...cls,
+        book: { ...book, course },
+        teacher,
+        unit,
+        enrollments: [],
+      };
+    });
   }
 
   async getClass(id: string): Promise < ClassWithDetails | undefined > {
     const cls = demoClasses.find(cls => cls.id === id);
     if (!cls) return undefined;
+    
+    const book = demoBooks.find(b => b.id === cls.bookId);
+    const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
+    const teacher = demoUsers.find(u => u.id === cls.teacherId);
+    const unit = demoUnits.find(u => u.id === cls.unitId);
+    
+    if (!book || !course || !teacher || !unit) return undefined;
 
     return {
       ...cls,
-      course: demoCourses.find(c => c.id === cls.courseId) || {} as Course,
-      teacher: demoStaff.find(s => s.id === cls.teacherId) || {} as Staff,
-      unit: demoUnits.find(u => u.id === cls.unitId) || {} as Unit,
+      book: { ...book, course },
+      teacher,
+      unit,
       enrollments: [],
     };
   }
 
   async getClassesByTeacher(teacherId: string): Promise < ClassWithDetails[] > {
-    return demoClasses.filter(cls => cls.teacherId === teacherId).map(cls => ({
-      ...cls,
-      course: demoCourses.find(c => c.id === cls.courseId) || {} as Course,
-      teacher: demoStaff.find(s => s.id === cls.teacherId) || {} as Staff,
-      unit: demoUnits.find(u => u.id === cls.unitId) || {} as Unit,
-      enrollments: [],
-    }));
+    return demoClasses.filter(cls => cls.teacherId === teacherId).map(cls => {
+      const book = demoBooks.find(b => b.id === cls.bookId);
+      const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
+      const teacher = demoUsers.find(u => u.id === cls.teacherId);
+      const unit = demoUnits.find(u => u.id === cls.unitId);
+      
+      if (!book || !course || !teacher || !unit) {
+        throw new Error(`Missing required data for class ${cls.id}`);
+      }
+      
+      return {
+        ...cls,
+        book: { ...book, course },
+        teacher,
+        unit,
+        enrollments: [],
+      };
+    });
   }
 
   async createClass(classData: InsertClass): Promise < Class > {
+    // Validate that the book exists and is active
+    const book = demoBooks.find(b => b.id === classData.bookId);
+    if (!book) {
+      throw new Error(`Book with ID ${classData.bookId} not found`);
+    }
+    if (!book.isActive) {
+      throw new Error(`Cannot create class for inactive book: ${book.name}`);
+    }
+
+    // Validate that the teacher exists and has teacher role
+    const teacher = demoUsers.find(u => u.id === classData.teacherId);
+    if (!teacher) {
+      throw new Error(`Teacher with ID ${classData.teacherId} not found`);
+    }
+    if (teacher.role !== 'teacher') {
+      throw new Error(`User ${teacher.firstName} ${teacher.lastName} is not a teacher (current role: ${teacher.role})`);
+    }
+    if (!teacher.isActive) {
+      throw new Error(`Cannot assign inactive teacher ${teacher.firstName} ${teacher.lastName} to class`);
+    }
+
     const id = crypto.randomUUID();
     const newClass: Class = {
-      ...classData,
       id,
+      bookId: classData.bookId,
+      teacherId: classData.teacherId,
+      unitId: classData.unitId,
+      name: classData.name,
+      schedule: classData.schedule || null,
+      dayOfWeek: classData.dayOfWeek || null,
+      startTime: classData.startTime || null,
+      endTime: classData.endTime || null,
+      room: classData.room || null,
+      maxStudents: classData.maxStudents ?? 15,
+      currentStudents: classData.currentStudents ?? 0,
+      startDate: classData.startDate || null,
+      endDate: classData.endDate || null,
+      currentDay: classData.currentDay ?? 1,
+      isActive: classData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -594,19 +877,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLessonsByTeacher(teacherId: string): Promise < Lesson[] > {
-    return demoLessons.filter(lesson => lesson.teacherId === teacherId);
+    // Find classes taught by this teacher, then find lessons for those classes
+    const teacherClasses = demoClasses.filter(cls => cls.teacherId === teacherId);
+    const classIds = teacherClasses.map(cls => cls.id);
+    return demoLessons.filter(lesson => classIds.includes(lesson.classId));
   }
 
   async getTodaysLessons(): Promise < Lesson[] > {
-    const today = new Date().toISOString().split('T')[0];
-    return demoLessons.filter(lesson => lesson.date === today);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    return demoLessons.filter(lesson => {
+      const lessonDate = new Date(lesson.date);
+      return lessonDate >= today && lessonDate < tomorrow;
+    });
   }
 
   async createLesson(lessonData: InsertLesson): Promise < Lesson > {
     const id = crypto.randomUUID();
     const newLesson: Lesson = {
-      ...lessonData,
       id,
+      classId: lessonData.classId,
+      title: lessonData.title,
+      bookDay: lessonData.bookDay,
+      date: lessonData.date,
+      startTime: lessonData.startTime,
+      endTime: lessonData.endTime,
+      room: lessonData.room || null,
+      status: lessonData.status || 'scheduled',
+      notes: lessonData.notes || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -641,8 +942,19 @@ export class DatabaseStorage implements IStorage {
     todaysClasses: number;
     monthlyRevenue: number;
   } > {
-    const activeTeachers = demoStaff.filter(staff => staff.role === 'teacher').length;
-    const todaysLessons = demoLessons.filter(lesson => lesson.date === new Date().toISOString().split('T')[0]).length;
+    // Count teachers by checking users with teacher role
+    const activeTeachers = demoUsers.filter(user => user.role === 'teacher' && user.isActive).length;
+    
+    // Get today's lessons by comparing dates properly
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const todaysLessons = demoLessons.filter(lesson => {
+      const lessonDate = new Date(lesson.date);
+      return lessonDate >= today && lessonDate < tomorrow;
+    }).length;
 
     return {
       totalStudents: demoStudents.length,
