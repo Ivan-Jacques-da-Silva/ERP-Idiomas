@@ -79,30 +79,12 @@ export default function Sidebar() {
             <i className="fas fa-graduation-cap text-white text-xl"></i>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gradient">EduManage</h1>
+            <h1 className="text-xl font-bold text-gradient">ERP Idiomas</h1>
             <p className="text-xs text-muted-foreground font-medium">Escola de Idiomas</p>
           </div>
         </div>
       </div>
 
-      {/* User Profile */}
-      <div className="p-4 border-b border-white/20">
-        <div className="flex items-center space-x-3">
-          <Avatar className="w-10 h-10 ring-2 ring-blue-400/30">
-            <AvatarImage src={user?.profileImageUrl || undefined} />
-            <AvatarFallback className="gradient-secondary text-white">
-              <i className="fas fa-user text-sm"></i>
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground" data-testid="text-user-name">
-              {user?.firstName} {user?.lastName}
-            </p>
-            
-          </div>
-          <i className="fas fa-chevron-down text-muted-foreground text-xs"></i>
-        </div>
-      </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">

@@ -56,15 +56,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-card border-b border-border shadow-sm px-6 py-4 theme-transition">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center icon-glow">
-                <i className="fas fa-graduation-cap text-white text-lg"></i>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gradient">EduManage</h1>
-                <p className="text-sm text-muted-foreground">Sistema de Gestão Escolar</p>
-              </div>
-            </div>
+            <div></div>
             <div className="flex items-center space-x-4">
               {user && (
                 <div className="flex items-center space-x-3">
