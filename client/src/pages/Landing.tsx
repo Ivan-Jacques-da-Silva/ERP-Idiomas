@@ -74,7 +74,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Column - Welcome Section with Stars */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 overflow-hidden">
         {/* Stars Animation */}
@@ -99,7 +99,7 @@ export default function Landing() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center items-center text-center px-12 text-white">
+        <div className="relative z-10 flex flex-col justify-center items-center text-center px-8 lg:px-12 text-white w-full">
           <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center mb-8 border border-white/30">
             <i className="fas fa-graduation-cap text-white text-3xl"></i>
           </div>
@@ -109,7 +109,7 @@ export default function Landing() {
           </h1>
 
           <h2 className="text-3xl font-semibold mb-6 text-blue-100">
-            EduManage
+            ERP de Idioma
           </h2>
 
           <p className="text-xl text-blue-200 mb-8 max-w-md leading-relaxed">
@@ -117,32 +117,32 @@ export default function Landing() {
             Gerencie alunos, professores, horários e muito mais.
           </p>
 
-          <div className="grid grid-cols-2 gap-6 mt-8">
+          <div className="grid grid-cols-2 gap-4 lg:gap-6 mt-8 w-full max-w-sm mx-auto">
             <div className="text-center">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30">
-                <i className="fas fa-users text-white text-2xl"></i>
+              <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30">
+                <i className="fas fa-users text-white text-lg lg:text-2xl"></i>
               </div>
-              <p className="text-sm text-blue-200">Gestão de Alunos</p>
+              <p className="text-xs lg:text-sm text-blue-200">Gestão de Alunos</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30">
-                <i className="fas fa-calendar-alt text-white text-2xl"></i>
+              <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30">
+                <i className="fas fa-calendar-alt text-white text-lg lg:text-2xl"></i>
               </div>
-              <p className="text-sm text-blue-200">Agenda Inteligente</p>
+              <p className="text-xs lg:text-sm text-blue-200">Agenda Inteligente</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Right Column - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background theme-transition">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-background theme-transition min-h-screen lg:min-h-auto">
+        <div className="w-full max-w-md mx-auto">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
               <i className="fas fa-graduation-cap text-primary-foreground text-2xl"></i>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">EduManage</h1>
+            <h1 className="text-2xl font-bold text-foreground">ERP de Idioma</h1>
             <p className="text-muted-foreground">Sistema de Gestão Escolar</p>
           </div>
 
@@ -167,14 +167,14 @@ export default function Landing() {
               {/* Demo Users */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Usuários Demo:</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {demoUsers.map((user, index) => (
                     <Button
                       key={index}
                       variant="outline"
                       size="sm"
                       onClick={() => setDemoUser(user)}
-                      className="h-auto p-3 flex flex-col items-start bg-white/50 hover:bg-blue-50 border-gray-200"
+                      className="h-auto p-3 flex flex-col items-start bg-white/50 hover:bg-blue-50 border-gray-200 text-left"
                     >
                       <span className="font-medium text-xs">{user.role}</span>
                       <span className="text-xs text-muted-foreground truncate w-full">
@@ -207,7 +207,7 @@ export default function Landing() {
                     placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 bg-white/50 border-gray-200 focus:border-primary"
+                    className="h-10 sm:h-12 bg-white/50 border-gray-200 focus:border-primary"
                   />
                 </div>
 
@@ -221,7 +221,7 @@ export default function Landing() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 bg-white/50 border-gray-200 focus:border-primary"
+                    className="h-10 sm:h-12 bg-white/50 border-gray-200 focus:border-primary"
                   />
                 </div>
               </div>
@@ -229,7 +229,7 @@ export default function Landing() {
               <Button 
                 onClick={handleLogin}
                 disabled={loginMutation.isPending}
-                className="w-full h-12 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-medium text-base shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full h-10 sm:h-12 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-medium text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200"
                 data-testid="button-login"
               >
                 <i className="fas fa-sign-in-alt mr-2"></i>
