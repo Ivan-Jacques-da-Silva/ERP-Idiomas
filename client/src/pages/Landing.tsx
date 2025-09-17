@@ -135,7 +135,7 @@ export default function Landing() {
       </div>
 
       {/* Right Column - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-background theme-transition min-h-screen lg:min-h-auto">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-purple-100 via-purple-50 to-indigo-100 dark:from-purple-900 dark:via-purple-800 dark:to-indigo-900 theme-transition min-h-screen lg:min-h-auto">
         <div className="w-full max-w-md mx-auto">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
@@ -258,7 +258,7 @@ export default function Landing() {
 
           <div className="mt-8 text-center">
             <p className="text-xs text-muted-foreground">
-              © 2024 EduManage. Todos os direitos reservados.
+              © 2024 OpenLife. Todos os direitos reservados.
             </p>
           </div>
         </div>
