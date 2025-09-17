@@ -74,7 +74,14 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {user.firstName} {user.lastName}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {user.role === 'admin' && 'Administrador'}
+                      {user.role === 'teacher' && 'Professor'}
+                      {user.role === 'secretary' && 'Secretário'}
+                      {user.role === 'financial' && 'Financeiro'}
+                      {user.role === 'developer' && 'Desenvolvedor'}
+                      {user.role === 'student' && 'Estudante'}
+                    </p>
                   </div>
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">

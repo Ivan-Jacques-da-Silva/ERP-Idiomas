@@ -145,6 +145,7 @@ export default function Staff() {
                           {member.user?.role === 'secretary' && 'Secretário'}
                           {member.user?.role === 'financial' && 'Financeiro'}
                           {member.user?.role === 'developer' && 'Desenvolvedor'}
+                          {member.user?.role === 'student' && 'Estudante'}
                         </Badge>
                       </CardDescription>
                     </div>

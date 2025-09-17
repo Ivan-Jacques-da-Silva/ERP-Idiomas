@@ -18,10 +18,10 @@ import {
 
 // Simple demo users for login
 const demoUsers = [
-  { id: '1', email: 'admin@demo.com', password: 'admin123', firstName: 'Admin', lastName: 'User', role: 'admin' },
-  { id: '2', email: 'teacher@demo.com', password: 'teacher123', firstName: 'João', lastName: 'Silva', role: 'teacher' },
-  { id: '3', email: 'secretary@demo.com', password: 'secretary123', firstName: 'Maria', lastName: 'Santos', role: 'secretary' },
-  { id: '4', email: 'student@demo.com', password: 'student123', firstName: 'Pedro', lastName: 'Costa', role: 'student' },
+  { id: '1', email: 'admin@demo.com', password: 'admin123', firstName: 'Ivan', lastName: 'Silva', role: 'admin' },
+  { id: '2', email: 'teacher@demo.com', password: 'teacher123', firstName: 'Ivan', lastName: 'Silva', role: 'teacher' },
+  { id: '3', email: 'secretary@demo.com', password: 'secretary123', firstName: 'Ivan', lastName: 'Silva', role: 'secretary' },
+  { id: '4', email: 'student@demo.com', password: 'student123', firstName: 'Ivan', lastName: 'Silva', role: 'student' },
 ];
 
 // Simple middleware to check if user is logged in

@@ -64,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
         setSidebarExpanded(false);
       }
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -107,7 +107,7 @@ export default function Layout({ children }: LayoutProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          
+
           {user && (
             <HoverCard>
               <HoverCardTrigger className="flex items-center space-x-3 hover:bg-accent/50 rounded-lg p-2 transition-colors cursor-pointer" data-testid="dropdown-user">
@@ -115,7 +115,14 @@ export default function Layout({ children }: LayoutProps) {
                   <p className="text-sm font-medium text-foreground">
                     {user.firstName} {user.lastName}
                   </p>
-                  <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {user.role === 'admin' && 'Administrador'}
+                      {user.role === 'teacher' && 'Professor'}
+                      {user.role === 'secretary' && 'Secretário'}
+                      {user.role === 'financial' && 'Financeiro'}
+                      {user.role === 'developer' && 'Desenvolvedor'}
+                      {user.role === 'student' && 'Estudante'}
+                    </p>
                 </div>
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                   <span className="text-primary-foreground text-sm font-medium">
