@@ -1,7 +1,13 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { Menu, Settings, Bell, LogOut } from "lucide-react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface StudentLayoutProps {
@@ -68,8 +74,8 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
             {/* User Menu */}
             {user && (
-              <HoverCard>
-                <HoverCardTrigger className="flex items-center space-x-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors cursor-pointer" data-testid="dropdown-user">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors cursor-pointer focus:outline-none" data-testid="dropdown-user">
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {user.firstName} {user.lastName}
@@ -88,25 +94,27 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                       {user.firstName?.[0]}{user.lastName?.[0]}
                     </span>
                   </div>
-                </HoverCardTrigger>
-                <HoverCardContent align="end" className="w-48">
-                  <div className="space-y-2">
-                    <div className="flex items-center p-2 hover:bg-accent/50 rounded-md transition-colors cursor-default" data-testid="menu-item-settings">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span className="text-sm">Configurações</span>
-                    </div>
-                    <div className="flex items-center p-2 hover:bg-accent/50 rounded-md transition-colors cursor-default" data-testid="menu-item-notifications">
-                      <Bell className="mr-2 h-4 w-4" />
-                      <span className="text-sm">Notificações</span>
-                    </div>
-                    <div className="border-t border-border my-2"></div>
-                    <div className="flex items-center p-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer" data-testid="menu-item-logout" onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span className="text-sm">Sair</span>
-                    </div>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem className="cursor-default" data-testid="menu-item-settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Configurações</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-default" data-testid="menu-item-notifications">
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span>Notificações</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    data-testid="menu-item-logout"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sair</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>

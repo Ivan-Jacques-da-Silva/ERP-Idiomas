@@ -253,12 +253,12 @@ export default function Schedule() {
       '#14b8a6', // Teal
       '#eab308', // Yellow
     ];
-    
+
     const courseColors: { [key: string]: string } = {};
     uniqueCourses.forEach((course, index) => {
       courseColors[course] = colors[index % colors.length];
     });
-    
+
     return courseColors;
   };
 
