@@ -56,7 +56,7 @@ export default function Layout({ children }: LayoutProps) {
     <div className="flex h-screen bg-background theme-transition">
       <Sidebar expanded={sidebarExpanded} isMobile={isMobile} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center p-4">
+        <div className="flex justify-between items-center p-4 bg-gray-50/50 border-b border-gray-100/80 navbar-shadow backdrop-blur-sm dark:bg-gray-900/50 dark:border-gray-800/50 theme-transition"></div></div>
           <Button
             variant="ghost"
             size="sm"
