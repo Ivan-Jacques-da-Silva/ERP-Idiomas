@@ -130,7 +130,7 @@ export default function Layout({ children }: LayoutProps) {
                   </span>
                 </div>
               </HoverCardTrigger>
-              <HoverCardContent align="end" className="w-48 z-[9999]">
+              <HoverCardContent align="end" className="w-48 z-[99999]">
                 <div className="space-y-2">
                   <div className="flex items-center p-2 hover:bg-accent/50 rounded-md transition-colors cursor-default" data-testid="menu-item-settings">
                     <Settings className="mr-2 h-4 w-4" />
