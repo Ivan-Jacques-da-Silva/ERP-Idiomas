@@ -65,7 +65,7 @@ export default function Schedule() {
       return isWithinInterval(lessonDate, { start: weekStart, end: weekEnd });
     }).filter(lesson => {
       // Apply teacher filter if selected
-      if (!selectedTeacherFilter) return true;
+      if (!selectedTeacherFilter || selectedTeacherFilter === 'all') return true;
       
       // Find the class for this lesson to get teacher information
       const lessonClass = classes.find((cls: any) => cls.id === lesson.classId);
@@ -186,7 +186,7 @@ export default function Schedule() {
                 <SelectValue placeholder="Filtrar por professor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os professores</SelectItem>
+                <SelectItem value="all">Todos os professores</SelectItem>
                 {teachers
                   .filter(teacher => teacher.user?.role === 'teacher')
                   .map((teacher: any) => (
@@ -271,9 +271,105 @@ export default function Schedule() {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
     const timeSlots = Array.from({ length: 15 }, (_, i) => `${7 + i}:00`); // 7:00 to 21:00
     
+    // Dados exemplares para demonstração das funcionalidades
+    const mockAdminSchedule = [
+      {
+        id: '1',
+        title: 'Turma Inglês A1',
+        teacher: 'Prof. Maria Silva',
+        teacherId: 'teacher1',
+        book: 'English Basic - Book 1',
+        bookColor: '#3b82f6', // Azul claro
+        dayOfWeek: 1, // Segunda-feira
+        startTime: '19:00',
+        endTime: '21:00',
+        room: 'Sala 101',
+        currentDay: 5,
+        totalDays: 30
+      },
+      {
+        id: '2',
+        title: 'Turma Inglês B1',
+        teacher: 'Prof. João Santos',
+        teacherId: 'teacher2',
+        book: 'English Intermediate - Book 1',
+        bookColor: '#10b981', // Verde
+        dayOfWeek: 1, // Segunda-feira  
+        startTime: '19:00', // Mesmo horário - múltiplas turmas
+        endTime: '21:00',
+        room: 'Sala 102',
+        currentDay: 8,
+        totalDays: 40
+      },
+      {
+        id: '3',
+        title: 'Turma Espanhol A1',
+        teacher: 'Prof. Ana Costa',
+        teacherId: 'teacher3',
+        book: 'Español Básico - Libro 1',
+        bookColor: '#f59e0b', // Laranja
+        dayOfWeek: 2, // Terça-feira
+        startTime: '18:00',
+        endTime: '20:00',
+        room: 'Sala 201',
+        currentDay: 12,
+        totalDays: 25
+      },
+      {
+        id: '4',
+        title: 'Turma Inglês A2',
+        teacher: 'Prof. Maria Silva',
+        teacherId: 'teacher1',
+        book: 'English Basic - Book 2',
+        bookColor: '#6366f1', // Azul mais escuro
+        dayOfWeek: 3, // Quarta-feira
+        startTime: '20:00',
+        endTime: '22:00',
+        room: 'Sala 103',
+        currentDay: 15,
+        totalDays: 35
+      },
+      {
+        id: '5',
+        title: 'Turma Francês A1',
+        teacher: 'Prof. Carlos Lima',
+        teacherId: 'teacher4',
+        book: 'Français Débutant - Livre 1',
+        bookColor: '#8b5cf6', // Roxo
+        dayOfWeek: 4, // Quinta-feira
+        startTime: '19:00',
+        endTime: '21:00',
+        room: 'Sala 301',
+        currentDay: 3,
+        totalDays: 28
+      },
+      {
+        id: '6',
+        title: 'Turma Alemão A1',
+        teacher: 'Prof. Ana Costa',
+        teacherId: 'teacher3',
+        book: 'Deutsch Grundlagen - Buch 1',
+        bookColor: '#ef4444', // Vermelho
+        dayOfWeek: 5, // Sexta-feira
+        startTime: '18:00',
+        endTime: '20:00',
+        room: 'Sala 202',
+        currentDay: 7,
+        totalDays: 32
+      }
+    ];
+
+    // Dados exemplares de professores para o filtro
+    const mockTeachers = [
+      { user: { id: 'teacher1', firstName: 'Maria', lastName: 'Silva', role: 'teacher' } },
+      { user: { id: 'teacher2', firstName: 'João', lastName: 'Santos', role: 'teacher' } },
+      { user: { id: 'teacher3', firstName: 'Ana', lastName: 'Costa', role: 'teacher' } },
+      { user: { id: 'teacher4', firstName: 'Carlos', lastName: 'Lima', role: 'teacher' } }
+    ];
+    
     // Filter admin schedule by selected teacher if any
-    const filteredClasses = adminSchedule.filter(classItem => {
-      if (!selectedTeacherFilter) return true;
+    const filteredClasses = mockAdminSchedule.filter(classItem => {
+      if (!selectedTeacherFilter || selectedTeacherFilter === 'all') return true;
       return classItem.teacherId === selectedTeacherFilter;
     });
 
@@ -297,8 +393,8 @@ export default function Schedule() {
               <SelectValue placeholder="Filtrar por professor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os professores</SelectItem>
-              {teachers
+              <SelectItem value="all">Todos os professores</SelectItem>
+              {mockTeachers
                 .filter(teacher => teacher.user?.role === 'teacher')
                 .map((teacher: any) => (
                   <SelectItem key={teacher.user.id} value={teacher.user.id}>
