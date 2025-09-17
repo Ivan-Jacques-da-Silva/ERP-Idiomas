@@ -62,7 +62,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                 <i className="fas fa-graduation-cap text-white text-sm"></i>
               </div>
               <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                ERP Idiomas
+                OpenLife
               </span>
             </div>
 

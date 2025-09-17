@@ -109,7 +109,7 @@ export default function Landing() {
           </h1>
 
           <h2 className="text-3xl font-semibold mb-6 text-blue-100">
-            ERP de Idioma
+            OpenLife
           </h2>
 
           <p className="text-xl text-blue-200 mb-8 max-w-md leading-relaxed">
@@ -142,7 +142,7 @@ export default function Landing() {
             <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
               <i className="fas fa-graduation-cap text-primary-foreground text-2xl"></i>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">ERP de Idioma</h1>
+            <h1 className="text-2xl font-bold text-foreground">OpenLife</h1>
             <p className="text-muted-foreground">Sistema de Gestão Escolar</p>
           </div>
 

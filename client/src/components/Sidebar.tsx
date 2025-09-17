@@ -100,7 +100,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
           </div>
           {expanded && (
             <div className="overflow-hidden">
-              <h1 className="text-xl font-bold text-gradient whitespace-nowrap">ERP Idiomas</h1>
+              <h1 className="text-xl font-bold text-gradient whitespace-nowrap">OpenLife</h1>
               <p className="text-xs text-muted-foreground font-medium whitespace-nowrap">Escola de Idiomas</p>
             </div>
           )}
