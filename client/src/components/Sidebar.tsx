@@ -87,7 +87,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
         expanded ? (isMobile ? 'w-64' : 'w-64') : 'w-16'
       } ${
         isMobile && !expanded ? 'hidden' : ''
-      } glassmorphism-card border-r border-white/20 flex flex-col shadow-xl backdrop-blur-xl transition-all duration-300 ease-in-out ${
+      } glassmorphism-card border-r border-white/20 flex flex-col shadow-xl backdrop-blur-xl transition-all duration-300 ease-in-out overflow-hidden ${
         isMobile && expanded ? 'fixed inset-y-0 left-0 z-50' : ''
       }`} 
       data-testid="sidebar"
@@ -109,7 +109,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
 
 
       {/* Navigation */}
-      <nav className={`flex-1 overflow-y-auto ${expanded ? 'p-4' : 'p-2'} transition-all duration-300`}>
+      <nav className={`flex-1 overflow-y-auto overflow-x-hidden ${expanded ? 'p-4' : 'p-2'} transition-all duration-300`}>
         <div className="space-y-2">
           {/* Main Menu Items */}
           {menuItems
@@ -175,7 +175,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       </nav>
 
       {/* Support Section */}
-      <div className={`${expanded ? 'p-4' : 'p-2'} border-t border-white/20 transition-all duration-300`}>
+      <div className={`${expanded ? 'p-4' : 'p-2'} border-t border-white/20 transition-all duration-300 overflow-hidden`}>
         <a 
           href="#" 
           className={`flex items-center ${expanded ? 'space-x-3 px-4 py-3' : 'justify-center px-2 py-3'} rounded-xl sidebar-hover transition-smooth text-muted-foreground glassmorphism group relative`}
