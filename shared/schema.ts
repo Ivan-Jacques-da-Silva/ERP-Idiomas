@@ -104,18 +104,38 @@ export const courses = pgTable("courses", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Classes table
-export const classes = pgTable("classes", {
+// Books table - livros virtuais dentro de cada curso
+export const books = pgTable("books", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   courseId: varchar("course_id").references(() => courses.id).notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  pdfUrl: varchar("pdf_url"), // URL do arquivo PDF do livro
+  color: varchar("color").notNull().default('#3b82f6'), // Cor do livro em hex
+  displayOrder: integer("display_order").default(1), // Ordem do livro dentro do curso
+  totalDays: integer("total_days").default(30), // Quantos dias de aula tem o livro
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Classes table (turmas)
+export const classes = pgTable("classes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookId: varchar("book_id").references(() => books.id).notNull(),
   teacherId: varchar("teacher_id").references(() => users.id).notNull(),
   unitId: varchar("unit_id").references(() => units.id).notNull(),
   name: varchar("name").notNull(),
   schedule: text("schedule"), // JSON string with schedule info
+  dayOfWeek: integer("day_of_week"), // 0=Sunday, 1=Monday, ..., 6=Saturday  
+  startTime: varchar("start_time"), // formato HH:mm
+  endTime: varchar("end_time"), // formato HH:mm
+  room: varchar("room"),
   maxStudents: integer("max_students").default(15),
   currentStudents: integer("current_students").default(0),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
+  currentDay: integer("current_day").default(1), // Qual DIA a turma está atualmente
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -138,6 +158,7 @@ export const lessons = pgTable("lessons", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   classId: varchar("class_id").references(() => classes.id).notNull(),
   title: varchar("title").notNull(),
+  bookDay: integer("book_day").notNull(), // DIA 1, DIA 2, etc. do livro
   date: timestamp("date").notNull(),
   startTime: varchar("start_time").notNull(),
   endTime: varchar("end_time").notNull(),
@@ -197,12 +218,21 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
 
 export const coursesRelations = relations(courses, ({ many }) => ({
   classes: many(classes),
+  books: many(books),
+}));
+
+export const booksRelations = relations(books, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [books.courseId],
+    references: [courses.id],
+  }),
+  classes: many(classes),
 }));
 
 export const classesRelations = relations(classes, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [classes.courseId],
-    references: [courses.id],
+  book: one(books, {
+    fields: [classes.bookId],
+    references: [books.id],
   }),
   teacher: one(users, {
     fields: [classes.teacherId],
@@ -277,6 +307,12 @@ export const insertLessonSchema = createInsertSchema(lessons).omit({
   updatedAt: true,
 });
 
+export const insertBookSchema = createInsertSchema(books).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -287,11 +323,13 @@ export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type InsertClass = z.infer<typeof insertClassSchema>;
 export type InsertLesson = z.infer<typeof insertLessonSchema>;
+export type InsertBook = z.infer<typeof insertBookSchema>;
 
 export type Unit = typeof units.$inferSelect;
 export type Staff = typeof staff.$inferSelect;
 export type Student = typeof students.$inferSelect;
 export type Course = typeof courses.$inferSelect;
+export type Book = typeof books.$inferSelect;
 export type Class = typeof classes.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type ClassEnrollment = typeof classEnrollments.$inferSelect;
@@ -301,8 +339,19 @@ export type UserWithRole = User;
 export type StaffWithUser = Staff & { user: User };
 export type StudentWithUser = Student & { user: User };
 export type ClassWithDetails = Class & { 
-  course: Course; 
+  book: Book & { course: Course };
   teacher: User; 
   unit: Unit;
   enrollments: (ClassEnrollment & { student: StudentWithUser })[];
+};
+
+// Novo tipo para livros com detalhes do curso
+export type BookWithDetails = Book & {
+  course: Course;
+  classes: Class[];
+};
+
+// Novo tipo para cursos com todos os detalhes
+export type CourseWithDetails = Course & {
+  books: (Book & { classes: Class[] })[];
 };
