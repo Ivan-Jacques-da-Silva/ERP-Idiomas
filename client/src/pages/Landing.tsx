@@ -76,7 +76,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Column - Welcome Section with Stars */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-purple-900 via-orange-900 to-purple-800 overflow-hidden">
         {/* Stars Animation */}
         <div className="absolute inset-0">
           {stars.map((star) => (
@@ -104,15 +104,15 @@ export default function Landing() {
             <i className="fas fa-graduation-cap text-white text-3xl"></i>
           </div>
 
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-orange-200 bg-clip-text text-transparent">
             Bem-vindo ao Portal
           </h1>
 
-          <h2 className="text-3xl font-semibold mb-6 text-blue-100">
+          <h2 className="text-3xl font-semibold mb-6 text-orange-100">
             OpenLife
           </h2>
 
-          <p className="text-xl text-blue-200 mb-8 max-w-md leading-relaxed">
+          <p className="text-xl text-orange-200 mb-8 max-w-md leading-relaxed">
             Sistema completo de gestão escolar para escolas de idiomas. 
             Gerencie alunos, professores, horários e muito mais.
           </p>
@@ -122,13 +122,13 @@ export default function Landing() {
               <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30">
                 <i className="fas fa-users text-white text-lg lg:text-2xl"></i>
               </div>
-              <p className="text-xs lg:text-sm text-blue-200">Gestão de Alunos</p>
+              <p className="text-xs lg:text-sm text-orange-200">Gestão de Alunos</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30">
                 <i className="fas fa-calendar-alt text-white text-lg lg:text-2xl"></i>
               </div>
-              <p className="text-xs lg:text-sm text-blue-200">Agenda Inteligente</p>
+              <p className="text-xs lg:text-sm text-orange-200">Agenda Inteligente</p>
             </div>
           </div>
         </div>
