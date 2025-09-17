@@ -42,6 +42,12 @@ export default function Sidebar() {
       roles: ["admin", "secretary", "teacher", "developer"]
     },
     {
+      path: "/courses",
+      icon: "fas fa-book",
+      label: "Cursos",
+      roles: ["admin", "developer", "secretary"]
+    },
+    {
       path: "/schedule",
       icon: "fas fa-calendar-alt",
       label: "Agenda",

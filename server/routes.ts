@@ -1,8 +1,10 @@
 
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { 
   insertUnitSchema, 
@@ -46,7 +48,7 @@ const bookUploads = multer({
     if (file.mimetype === 'application/pdf') {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF files are allowed!'), false);
+      cb(new Error('Only PDF files are allowed!') as any, false);
     }
   },
   limits: {
@@ -56,7 +58,7 @@ const bookUploads = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
-  app.use('/uploads', require('express').static('uploads'));
+  app.use('/uploads', express.static('uploads'));
 
   // Demo login endpoint
   app.post('/api/auth/login', async (req, res) => {

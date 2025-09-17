@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import Units from "@/pages/Units";
 import Staff from "@/pages/Staff";
 import Students from "@/pages/Students";
+import Courses from "@/pages/Courses";
 import Schedule from "@/pages/Schedule";
 import StudentArea from "@/pages/StudentArea";
 
@@ -35,6 +36,7 @@ function Router() {
           <Route path="/units" component={Units} />
           <Route path="/staff" component={Staff} />
           <Route path="/students" component={Students} />
+          <Route path="/courses" component={Courses} />
           <Route path="/schedule" component={Schedule} />
           {user?.role === 'student' && (
             <Route path="/student-area" component={StudentArea} />
