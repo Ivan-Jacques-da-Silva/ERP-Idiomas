@@ -121,7 +121,7 @@ export default function TeacherArea() {
     const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`);
 
     // Sistema de cores por livro
-    const bookColors = {
+    const bookColors: { [key: string]: string } = {
       'English Basic - Book 1': '#3b82f6',
       'English Basic - Book 2': '#1d4ed8'
     };
@@ -420,7 +420,7 @@ export default function TeacherArea() {
                       <Card key={student.id} className="p-4">
                         <div className="flex items-center space-x-4">
                           <Avatar className="w-12 h-12">
-                            <AvatarImage src={student.avatar} />
+                            <AvatarImage src={student.avatar || undefined} />
                             <AvatarFallback>
                               <i className="fas fa-user"></i>
                             </AvatarFallback>
