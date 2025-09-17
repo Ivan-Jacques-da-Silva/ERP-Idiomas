@@ -3,6 +3,8 @@ import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useState, useEffect } from "react";
+import { Menu } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +13,27 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar se é mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      // No mobile, sidebar começa contraído
+      if (window.innerWidth < 768) {
+        setSidebarExpanded(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarExpanded(!sidebarExpanded);
+  };
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -52,11 +75,21 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex h-screen bg-background theme-transition">
-      <Sidebar />
+      <Sidebar expanded={sidebarExpanded} isMobile={isMobile} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-card border-b border-border shadow-sm px-6 py-4 theme-transition">
           <div className="flex items-center justify-between">
-            <div></div>
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleSidebar}
+                className="mr-4 hover:bg-primary/10 transition-colors"
+                data-testid="button-toggle-sidebar"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
             <div className="flex items-center space-x-4">
               {user && (
                 <div className="flex items-center space-x-3">
