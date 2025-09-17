@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/Sidebar";
+import StudentLayout from "@/components/StudentLayout";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Menu, Settings, Bell, LogOut } from "lucide-react";
@@ -15,6 +16,11 @@ export default function Layout({ children }: LayoutProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Use StudentLayout for students
+  if (user?.role === 'student') {
+    return <StudentLayout>{children}</StudentLayout>;
+  }
   const { toast } = useToast();
 
   const logoutMutation = useMutation({
