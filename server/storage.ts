@@ -18,6 +18,7 @@ import type {
   StaffWithUser,
   StudentWithUser,
   ClassWithDetails,
+  ClassWithRelations,
 } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
@@ -376,7 +377,7 @@ export interface IStorage {
   // Classes
   getClasses(): Promise < ClassWithDetails[] > ;
   getClass(id: string): Promise < ClassWithDetails | undefined > ;
-  getClassesByTeacher(teacherId: string): Promise < ClassWithDetails[] > ;
+  getClassesByTeacher(teacherId: string): Promise < ClassWithRelations[] > ;
   createClass(classData: InsertClass): Promise < Class > ;
   updateClass(id: string, classData: Partial < InsertClass > ): Promise < Class > ;
   deleteClass(id: string): Promise < void > ;
@@ -404,12 +405,12 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Helper function to check for teacher time conflicts
   private checkTeacherTimeConflict(
-    teacherId: string, 
-    dayOfWeek: number | null, 
-    startTime: string | null, 
+    teacherId: string,
+    dayOfWeek: number | null,
+    startTime: string | null,
     endTime: string | null,
-    excludeClassId?: string
-  ): { hasConflict: boolean; conflictingClass?: Class } {
+    excludeClassId ? : string
+  ): { hasConflict: boolean; conflictingClass ? : Class } {
     if (!dayOfWeek || !startTime || !endTime) {
       return { hasConflict: false };
     }
@@ -424,8 +425,8 @@ export class DatabaseStorage implements IStorage {
     const newEndMinutes = timeToMinutes(endTime);
 
     // Find existing classes for this teacher on the same day
-    const existingClasses = demoClasses.filter(cls => 
-      cls.teacherId === teacherId && 
+    const existingClasses = demoClasses.filter(cls =>
+      cls.teacherId === teacherId &&
       cls.dayOfWeek === dayOfWeek &&
       cls.isActive &&
       (excludeClassId ? cls.id !== excludeClassId : true)
@@ -452,8 +453,8 @@ export class DatabaseStorage implements IStorage {
     date: Date,
     startTime: string,
     endTime: string,
-    excludeLessonId?: string
-  ): { hasConflict: boolean; conflictingLesson?: Lesson } {
+    excludeLessonId ? : string
+  ): { hasConflict: boolean; conflictingLesson ? : Lesson } {
     // Convert time strings to minutes for easy comparison
     const timeToMinutes = (time: string): number => {
       const [hours, minutes] = time.split(':').map(Number);
@@ -475,10 +476,10 @@ export class DatabaseStorage implements IStorage {
     const existingLessons = demoLessons.filter(lesson => {
       if (excludeLessonId && lesson.id === excludeLessonId) return false;
       if (!classIds.includes(lesson.classId)) return false;
-      
+
       const lessonDate = new Date(lesson.date);
       lessonDate.setHours(0, 0, 0, 0);
-      
+
       return lessonDate.getTime() === targetDate.getTime();
     });
 
@@ -666,7 +667,7 @@ export class DatabaseStorage implements IStorage {
   async getStaffMember(id: string): Promise < StaffWithUser | undefined > {
     const staff = demoStaff.find(staff => staff.id === id);
     if (!staff) return undefined;
-    
+
     const user = demoUsers.find(u => u.id === staff.userId);
     if (!user) return undefined;
 
@@ -730,7 +731,7 @@ export class DatabaseStorage implements IStorage {
   async getStudent(id: string): Promise < StudentWithUser | undefined > {
     const student = demoStudents.find(student => student.id === id);
     if (!student) return undefined;
-    
+
     const user = demoUsers.find(u => u.id === student.userId);
     if (!user) return undefined;
 
@@ -839,11 +840,11 @@ export class DatabaseStorage implements IStorage {
       const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
       const teacher = demoUsers.find(u => u.id === cls.teacherId);
       const unit = demoUnits.find(u => u.id === cls.unitId);
-      
+
       if (!book || !course || !teacher || !unit) {
         throw new Error(`Missing required data for class ${cls.id}`);
       }
-      
+
       return {
         ...cls,
         book: { ...book, course },
@@ -857,12 +858,12 @@ export class DatabaseStorage implements IStorage {
   async getClass(id: string): Promise < ClassWithDetails | undefined > {
     const cls = demoClasses.find(cls => cls.id === id);
     if (!cls) return undefined;
-    
+
     const book = demoBooks.find(b => b.id === cls.bookId);
     const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
     const teacher = demoUsers.find(u => u.id === cls.teacherId);
     const unit = demoUnits.find(u => u.id === cls.unitId);
-    
+
     if (!book || !course || !teacher || !unit) return undefined;
 
     return {
@@ -874,23 +875,20 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getClassesByTeacher(teacherId: string): Promise < ClassWithDetails[] > {
-    return demoClasses.filter(cls => cls.teacherId === teacherId).map(cls => {
+  async getClassesByTeacher(teacherId: string): Promise < ClassWithRelations[] > {
+    const classes = demoClasses.filter(cls => cls.teacherId === teacherId && cls.isActive);
+
+    return classes.map(cls => {
       const book = demoBooks.find(b => b.id === cls.bookId);
+      const unit = demoUnits.find(u => u.id === cls.unitId);
       const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
       const teacher = demoUsers.find(u => u.id === cls.teacherId);
-      const unit = demoUnits.find(u => u.id === cls.unitId);
-      
-      if (!book || !course || !teacher || !unit) {
-        throw new Error(`Missing required data for class ${cls.id}`);
-      }
-      
+
       return {
         ...cls,
-        book: { ...book, course },
-        teacher,
-        unit,
-        enrollments: [],
+        book: book ? { ...book, course: course || demoCourses[0] } : demoBooks[0],
+        unit: unit || demoUnits[0],
+        teacher: teacher
       };
     });
   }
@@ -924,7 +922,7 @@ export class DatabaseStorage implements IStorage {
       classData.startTime || null,
       classData.endTime || null
     );
-    
+
     if (timeConflict.hasConflict && timeConflict.conflictingClass) {
       throw new Error(`Teacher ${teacher.firstName} ${teacher.lastName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
     }
@@ -966,9 +964,9 @@ export class DatabaseStorage implements IStorage {
     const startTime = classData.startTime !== undefined ? classData.startTime : currentClass.startTime;
     const endTime = classData.endTime !== undefined ? classData.endTime : currentClass.endTime;
 
-    if (classData.teacherId || classData.dayOfWeek !== undefined || 
-        classData.startTime !== undefined || classData.endTime !== undefined) {
-      
+    if (classData.teacherId || classData.dayOfWeek !== undefined ||
+      classData.startTime !== undefined || classData.endTime !== undefined) {
+
       const timeConflict = this.checkTeacherTimeConflict(
         teacherId,
         dayOfWeek,
@@ -976,7 +974,7 @@ export class DatabaseStorage implements IStorage {
         endTime,
         id // Exclude current class from conflict check
       );
-      
+
       if (timeConflict.hasConflict && timeConflict.conflictingClass) {
         const teacher = demoUsers.find(u => u.id === teacherId);
         const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}` : teacherId;
@@ -1025,7 +1023,7 @@ export class DatabaseStorage implements IStorage {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     return demoLessons.filter(lesson => {
       const lessonDate = new Date(lesson.date);
       return lessonDate >= today && lessonDate < tomorrow;
@@ -1080,7 +1078,7 @@ export class DatabaseStorage implements IStorage {
     if (index === -1) throw new Error('Lesson not found');
 
     const currentLesson = demoLessons[index];
-    
+
     // If date, start time, or end time is being updated, check for conflicts
     const date = lessonData.date || currentLesson.date;
     const startTime = lessonData.startTime || currentLesson.startTime;
@@ -1126,7 +1124,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async checkLessonConflicts(teacherId: string, date: Date, startTime: string, endTime: string, excludeLessonId?: string): Promise<{ hasConflict: boolean; conflictingLesson?: Lesson }> {
+  async checkLessonConflicts(teacherId: string, date: Date, startTime: string, endTime: string, excludeLessonId ? : string): Promise<{ hasConflict: boolean; conflictingLesson ? : Lesson }> {
     return this.checkLessonTimeConflict(teacherId, date, startTime, endTime, excludeLessonId);
   }
 
@@ -1139,13 +1137,13 @@ export class DatabaseStorage implements IStorage {
   } > {
     // Count teachers by checking users with teacher role
     const activeTeachers = demoUsers.filter(user => user.role === 'teacher' && user.isActive).length;
-    
+
     // Get today's lessons by comparing dates properly
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     const todaysLessons = demoLessons.filter(lesson => {
       const lessonDate = new Date(lesson.date);
       return lessonDate >= today && lessonDate < tomorrow;

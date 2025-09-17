@@ -7,6 +7,9 @@ import { Menu, Settings, Bell, LogOut } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from 'react-router-dom'; // Assuming you are using react-router-dom for navigation
+import { useNavigate } from 'react-router-dom'; // Assuming you are using react-router-dom for navigation
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,6 +19,8 @@ export default function Layout({ children }: LayoutProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation().pathname; // Get current location
+  const navigate = useNavigate(); // Get navigate function
 
   // Use StudentLayout for students
   if (user?.role === 'student') {
@@ -92,6 +97,15 @@ export default function Layout({ children }: LayoutProps) {
     return null; // Will be handled by the routing
   }
 
+  // Redirect students to student area and teachers to teacher area
+  useEffect(() => {
+    if (user?.role === 'student' && !location.startsWith('/aluno') && location !== '/') {
+      navigate('/aluno');
+    } else if (user?.role === 'teacher' && !location.startsWith('/professor') && location !== '/') {
+      navigate('/professor');
+    }
+  }, [user?.role, location, navigate]);
+
 
   return (
     <div className="flex h-screen bg-background theme-transition">
@@ -141,8 +155,8 @@ export default function Layout({ children }: LayoutProps) {
                     <span className="text-sm">Notificações</span>
                   </div>
                   <div className="border-t border-border my-2"></div>
-                  <div 
-                    className="flex items-center p-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer" 
+                  <div
+                    className="flex items-center p-2 hover:bg-accent/50 rounded-md transition-colors cursor-pointer"
                     data-testid="menu-item-logout"
                     onClick={handleLogout}
                   >

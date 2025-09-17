@@ -14,6 +14,7 @@ import Students from "@/pages/Students";
 import Courses from "@/pages/Courses";
 import Schedule from "@/pages/Schedule";
 import StudentArea from "@/pages/StudentArea";
+import TeacherArea from "@/pages/TeacherArea";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -45,6 +46,7 @@ function Router() {
           <Route path="/students" component={Students} />
           <Route path="/courses" component={Courses} />
           <Route path="/schedule" component={Schedule} />
+          <Route path="/professor" component={TeacherArea} />
         </>
       )}
       <Route component={NotFound} />

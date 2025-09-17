@@ -638,6 +638,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/classes/teacher/:teacherId", isAuthenticated, async (req, res) => {
+    try {
+      // Busca as turmas do professor específico
+      const classes = await storage.getClassesByTeacher(req.params.teacherId);
+      
+      const classesData = classes.map(cls => ({
+        id: cls.id,
+        name: cls.name,
+        book: {
+          id: cls.book.id,
+          name: cls.book.name,
+          color: cls.book.color,
+          totalDays: cls.book.totalDays
+        },
+        schedule: cls.schedule,
+        dayOfWeek: cls.dayOfWeek,
+        startTime: cls.startTime,
+        endTime: cls.endTime,
+        room: cls.room,
+        maxStudents: cls.maxStudents,
+        currentStudents: cls.currentStudents,
+        currentDay: cls.currentDay,
+        unit: cls.unit
+      }));
+      
+      res.json(classesData);
+    } catch (error) {
+      console.error("Error fetching teacher classes:", error);
+      res.status(500).json({ message: "Failed to fetch teacher classes" });
+    }
+  });
+
   app.get("/api/schedule/teacher/:teacherId", isAuthenticated, async (req, res) => {
     try {
       // Busca as turmas do professor específico (sem conflito de horário)
