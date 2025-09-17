@@ -1,6 +1,8 @@
 
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import multer from "multer";
+import path from "path";
 import { storage } from "./storage";
 import { 
   insertUnitSchema, 
@@ -8,7 +10,8 @@ import {
   insertStudentSchema,
   insertCourseSchema,
   insertClassSchema,
-  insertLessonSchema 
+  insertLessonSchema,
+  insertBookSchema
 } from "@shared/schema";
 
 // Simple demo users for login
@@ -27,7 +30,34 @@ const isAuthenticated = (req: any, res: any, next: any) => {
   return res.status(401).json({ message: "Unauthorized" });
 };
 
+// Configure multer for file uploads
+const bookUploads = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, './uploads/books');
+    },
+    filename: (req, file, cb) => {
+      const bookId = req.params.id;
+      const ext = path.extname(file.originalname);
+      cb(null, `book_${bookId}_${Date.now()}${ext}`);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve uploaded files
+  app.use('/uploads', require('express').static('uploads'));
+
   // Demo login endpoint
   app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
@@ -39,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Store user in session
-    req.session.user = {
+    (req.session as any).user = {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -47,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       role: user.role
     };
 
-    res.json({ user: req.session.user });
+    res.json({ user: (req.session as any).user });
   });
 
   // Get current user
@@ -252,6 +282,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/courses/:id", isAuthenticated, async (req, res) => {
+    try {
+      const course = await storage.getCourse(req.params.id);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      res.json(course);
+    } catch (error) {
+      console.error("Error fetching course:", error);
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
   app.post("/api/courses", isAuthenticated, async (req, res) => {
     try {
       const courseData = insertCourseSchema.parse(req.body);
@@ -263,6 +306,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/courses/:id", isAuthenticated, async (req, res) => {
+    try {
+      const courseData = insertCourseSchema.partial().parse(req.body);
+      const course = await storage.updateCourse(req.params.id, courseData);
+      res.json(course);
+    } catch (error) {
+      console.error("Error updating course:", error);
+      res.status(400).json({ message: "Invalid course data" });
+    }
+  });
+
+  app.delete("/api/courses/:id", isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteCourse(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      res.status(500).json({ message: "Failed to delete course" });
+    }
+  });
+
+  // Books routes
+  app.get("/api/books", isAuthenticated, async (req, res) => {
+    try {
+      const books = await storage.getBooks();
+      res.json(books);
+    } catch (error) {
+      console.error("Error fetching books:", error);
+      res.status(500).json({ message: "Failed to fetch books" });
+    }
+  });
+
+  app.get("/api/books/:id", isAuthenticated, async (req, res) => {
+    try {
+      const book = await storage.getBook(req.params.id);
+      if (!book) {
+        return res.status(404).json({ message: "Book not found" });
+      }
+      res.json(book);
+    } catch (error) {
+      console.error("Error fetching book:", error);
+      res.status(500).json({ message: "Failed to fetch book" });
+    }
+  });
+
+  app.post("/api/books", isAuthenticated, async (req, res) => {
+    try {
+      const bookData = insertBookSchema.parse(req.body);
+      const book = await storage.createBook(bookData);
+      res.status(201).json(book);
+    } catch (error) {
+      console.error("Error creating book:", error);
+      res.status(400).json({ message: "Invalid book data" });
+    }
+  });
+
+  app.put("/api/books/:id", isAuthenticated, async (req, res) => {
+    try {
+      const bookData = insertBookSchema.partial().parse(req.body);
+      const book = await storage.updateBook(req.params.id, bookData);
+      res.json(book);
+    } catch (error) {
+      console.error("Error updating book:", error);
+      res.status(400).json({ message: "Invalid book data" });
+    }
+  });
+
+  app.delete("/api/books/:id", isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteBook(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting book:", error);
+      res.status(500).json({ message: "Failed to delete book" });
+    }
+  });
+
+  // PDF upload route for books
+  app.post("/api/books/:id/upload", isAuthenticated, bookUploads.single('pdf'), async (req, res) => {
+    try {
+      const bookId = req.params.id;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ message: "No PDF file provided" });
+      }
+
+      // Check if book exists
+      const book = await storage.getBook(bookId);
+      if (!book) {
+        return res.status(404).json({ message: "Book not found" });
+      }
+
+      // Update book with new PDF URL
+      const pdfUrl = `/uploads/books/${file.filename}`;
+      const updatedBook = await storage.updateBook(bookId, { pdfUrl });
+
+      res.json({
+        message: "PDF uploaded successfully",
+        book: updatedBook,
+        fileInfo: {
+          filename: file.filename,
+          originalName: file.originalname,
+          size: file.size,
+          url: pdfUrl
+        }
+      });
+    } catch (error: any) {
+      console.error("Error uploading PDF:", error);
+      if (error.message === 'Only PDF files are allowed!') {
+        return res.status(400).json({ message: "Only PDF files are allowed" });
+      }
+      res.status(500).json({ message: "Failed to upload PDF file" });
+    }
+  });
+
   // Classes routes
   app.get("/api/classes", isAuthenticated, async (req, res) => {
     try {
@@ -271,6 +430,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching classes:", error);
       res.status(500).json({ message: "Failed to fetch classes" });
+    }
+  });
+
+  app.get("/api/classes/:id", isAuthenticated, async (req, res) => {
+    try {
+      const classItem = await storage.getClass(req.params.id);
+      if (!classItem) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+      res.json(classItem);
+    } catch (error) {
+      console.error("Error fetching class:", error);
+      res.status(500).json({ message: "Failed to fetch class" });
     }
   });
 
@@ -295,6 +467,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/classes/:id", isAuthenticated, async (req, res) => {
+    try {
+      const classData = insertClassSchema.partial().parse(req.body);
+      const updatedClass = await storage.updateClass(req.params.id, classData);
+      res.json(updatedClass);
+    } catch (error) {
+      console.error("Error updating class:", error);
+      res.status(400).json({ message: "Invalid class data" });
+    }
+  });
+
+  app.delete("/api/classes/:id", isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteClass(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      res.status(500).json({ message: "Failed to delete class" });
+    }
+  });
+
   // Lessons/Schedule routes
   app.get("/api/lessons", isAuthenticated, async (req, res) => {
     try {
@@ -313,6 +506,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching today's lessons:", error);
       res.status(500).json({ message: "Failed to fetch today's lessons" });
+    }
+  });
+
+  app.get("/api/lessons/:id", isAuthenticated, async (req, res) => {
+    try {
+      const lesson = await storage.getLesson(req.params.id);
+      if (!lesson) {
+        return res.status(404).json({ message: "Lesson not found" });
+      }
+      res.json(lesson);
+    } catch (error) {
+      console.error("Error fetching lesson:", error);
+      res.status(500).json({ message: "Failed to fetch lesson" });
+    }
+  });
+
+  app.get("/api/lessons/class/:classId", isAuthenticated, async (req, res) => {
+    try {
+      const lessons = await storage.getLessonsByClass(req.params.classId);
+      res.json(lessons);
+    } catch (error) {
+      console.error("Error fetching class lessons:", error);
+      res.status(500).json({ message: "Failed to fetch class lessons" });
     }
   });
 
@@ -345,6 +561,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating lesson:", error);
       res.status(400).json({ message: "Invalid lesson data" });
+    }
+  });
+
+  app.delete("/api/lessons/:id", isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteLesson(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting lesson:", error);
+      res.status(500).json({ message: "Failed to delete lesson" });
+    }
+  });
+
+  // Schedule/Agenda routes para administração
+  app.get("/api/schedule/admin", isAuthenticated, async (req, res) => {
+    try {
+      // Busca todas as turmas com horários para agenda administrativa
+      const classes = await storage.getClasses();
+      
+      // Formata os dados para agenda (pode ter múltiplas turmas no mesmo horário)
+      const scheduleData = classes.map(cls => ({
+        id: cls.id,
+        title: cls.name,
+        teacher: `${cls.teacher.firstName} ${cls.teacher.lastName}`,
+        book: cls.book.name,
+        bookColor: cls.book.color,
+        dayOfWeek: cls.dayOfWeek,
+        startTime: cls.startTime,
+        endTime: cls.endTime,
+        room: cls.room,
+        unit: cls.unit.name,
+        currentDay: cls.currentDay,
+        totalDays: cls.book.totalDays
+      }));
+      
+      res.json(scheduleData);
+    } catch (error) {
+      console.error("Error fetching admin schedule:", error);
+      res.status(500).json({ message: "Failed to fetch admin schedule" });
+    }
+  });
+
+  app.get("/api/schedule/teacher/:teacherId", isAuthenticated, async (req, res) => {
+    try {
+      // Busca as turmas do professor específico (sem conflito de horário)
+      const classes = await storage.getClassesByTeacher(req.params.teacherId);
+      
+      const scheduleData = classes.map(cls => ({
+        id: cls.id,
+        title: cls.name,
+        book: cls.book.name,
+        bookColor: cls.book.color,
+        dayOfWeek: cls.dayOfWeek,
+        startTime: cls.startTime,
+        endTime: cls.endTime,
+        room: cls.room,
+        unit: cls.unit.name,
+        currentDay: cls.currentDay,
+        totalDays: cls.book.totalDays,
+        studentsCount: cls.currentStudents,
+        maxStudents: cls.maxStudents
+      }));
+      
+      res.json(scheduleData);
+    } catch (error) {
+      console.error("Error fetching teacher schedule:", error);
+      res.status(500).json({ message: "Failed to fetch teacher schedule" });
     }
   });
 

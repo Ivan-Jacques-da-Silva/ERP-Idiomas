@@ -383,6 +383,7 @@ export interface IStorage {
 
   // Lessons/Schedule
   getLessons(): Promise < Lesson[] > ;
+  getLesson(id: string): Promise < Lesson | undefined > ;
   getLessonsByClass(classId: string): Promise < Lesson[] > ;
   getLessonsByTeacher(teacherId: string): Promise < Lesson[] > ;
   getTodaysLessons(): Promise < Lesson[] > ;
@@ -400,6 +401,50 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Helper function to check for teacher time conflicts
+  private checkTeacherTimeConflict(
+    teacherId: string, 
+    dayOfWeek: number | null, 
+    startTime: string | null, 
+    endTime: string | null,
+    excludeClassId?: string
+  ): { hasConflict: boolean; conflictingClass?: Class } {
+    if (!dayOfWeek || !startTime || !endTime) {
+      return { hasConflict: false };
+    }
+
+    // Convert time strings to minutes for easy comparison
+    const timeToMinutes = (time: string): number => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const newStartMinutes = timeToMinutes(startTime);
+    const newEndMinutes = timeToMinutes(endTime);
+
+    // Find existing classes for this teacher on the same day
+    const existingClasses = demoClasses.filter(cls => 
+      cls.teacherId === teacherId && 
+      cls.dayOfWeek === dayOfWeek &&
+      cls.isActive &&
+      (excludeClassId ? cls.id !== excludeClassId : true)
+    );
+
+    for (const existingClass of existingClasses) {
+      if (!existingClass.startTime || !existingClass.endTime) continue;
+
+      const existingStartMinutes = timeToMinutes(existingClass.startTime);
+      const existingEndMinutes = timeToMinutes(existingClass.endTime);
+
+      // Check for overlap: new class starts before existing ends AND new class ends after existing starts
+      if (newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes) {
+        return { hasConflict: true, conflictingClass: existingClass };
+      }
+    }
+
+    return { hasConflict: false };
+  }
+
   // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise < User | undefined > {
     // Demo mode - returning a dummy user for login demonstration
@@ -822,6 +867,18 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Cannot assign inactive teacher ${teacher.firstName} ${teacher.lastName} to class`);
     }
 
+    // Check for time conflicts with teacher's existing classes
+    const timeConflict = this.checkTeacherTimeConflict(
+      classData.teacherId,
+      classData.dayOfWeek || null,
+      classData.startTime || null,
+      classData.endTime || null
+    );
+    
+    if (timeConflict.hasConflict && timeConflict.conflictingClass) {
+      throw new Error(`Teacher ${teacher.firstName} ${teacher.lastName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
+    }
+
     const id = crypto.randomUUID();
     const newClass: Class = {
       id,
@@ -851,8 +908,34 @@ export class DatabaseStorage implements IStorage {
     const index = demoClasses.findIndex(c => c.id === id);
     if (index === -1) throw new Error('Class not found');
 
+    const currentClass = demoClasses[index];
+
+    // If teacher, day, or time is being updated, check for conflicts
+    const teacherId = classData.teacherId || currentClass.teacherId;
+    const dayOfWeek = classData.dayOfWeek !== undefined ? classData.dayOfWeek : currentClass.dayOfWeek;
+    const startTime = classData.startTime !== undefined ? classData.startTime : currentClass.startTime;
+    const endTime = classData.endTime !== undefined ? classData.endTime : currentClass.endTime;
+
+    if (classData.teacherId || classData.dayOfWeek !== undefined || 
+        classData.startTime !== undefined || classData.endTime !== undefined) {
+      
+      const timeConflict = this.checkTeacherTimeConflict(
+        teacherId,
+        dayOfWeek,
+        startTime,
+        endTime,
+        id // Exclude current class from conflict check
+      );
+      
+      if (timeConflict.hasConflict && timeConflict.conflictingClass) {
+        const teacher = demoUsers.find(u => u.id === teacherId);
+        const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}` : teacherId;
+        throw new Error(`Teacher ${teacherName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
+      }
+    }
+
     const updatedClass = {
-      ...demoClasses[index],
+      ...currentClass,
       ...classData,
       updatedAt: new Date(),
     };
@@ -870,6 +953,10 @@ export class DatabaseStorage implements IStorage {
   // Lessons/Schedule
   async getLessons(): Promise < Lesson[] > {
     return [...demoLessons].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getLesson(id: string): Promise < Lesson | undefined > {
+    return demoLessons.find(lesson => lesson.id === id);
   }
 
   async getLessonsByClass(classId: string): Promise < Lesson[] > {
