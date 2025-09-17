@@ -390,6 +390,7 @@ export interface IStorage {
   createLesson(lesson: InsertLesson): Promise < Lesson > ;
   updateLesson(id: string, lesson: Partial < InsertLesson > ): Promise < Lesson > ;
   deleteLesson(id: string): Promise < void > ;
+  checkLessonConflicts(teacherId: string, date: Date, startTime: string, endTime: string, excludeLessonId?: string): Promise<{ hasConflict: boolean; conflictingLesson?: Lesson }>;
 
   // Dashboard stats
   getDashboardStats(): Promise < {
@@ -439,6 +440,55 @@ export class DatabaseStorage implements IStorage {
       // Check for overlap: new class starts before existing ends AND new class ends after existing starts
       if (newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes) {
         return { hasConflict: true, conflictingClass: existingClass };
+      }
+    }
+
+    return { hasConflict: false };
+  }
+
+  // Helper function to check for lesson time conflicts
+  private checkLessonTimeConflict(
+    teacherId: string,
+    date: Date,
+    startTime: string,
+    endTime: string,
+    excludeLessonId?: string
+  ): { hasConflict: boolean; conflictingLesson?: Lesson } {
+    // Convert time strings to minutes for easy comparison
+    const timeToMinutes = (time: string): number => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const newStartMinutes = timeToMinutes(startTime);
+    const newEndMinutes = timeToMinutes(endTime);
+
+    // Normalize date for comparison (set to start of day)
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    // Find teacher's classes to get list of classes they teach
+    const teacherClasses = demoClasses.filter(cls => cls.teacherId === teacherId);
+    const classIds = teacherClasses.map(cls => cls.id);
+
+    // Find existing lessons for this teacher on the same date
+    const existingLessons = demoLessons.filter(lesson => {
+      if (excludeLessonId && lesson.id === excludeLessonId) return false;
+      if (!classIds.includes(lesson.classId)) return false;
+      
+      const lessonDate = new Date(lesson.date);
+      lessonDate.setHours(0, 0, 0, 0);
+      
+      return lessonDate.getTime() === targetDate.getTime();
+    });
+
+    for (const existingLesson of existingLessons) {
+      const existingStartMinutes = timeToMinutes(existingLesson.startTime);
+      const existingEndMinutes = timeToMinutes(existingLesson.endTime);
+
+      // Check for overlap: new lesson starts before existing ends AND new lesson ends after existing starts
+      if (newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes) {
+        return { hasConflict: true, conflictingLesson: existingLesson };
       }
     }
 
@@ -983,6 +1033,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLesson(lessonData: InsertLesson): Promise < Lesson > {
+    // Validate that the class exists
+    const classData = demoClasses.find(cls => cls.id === lessonData.classId);
+    if (!classData) {
+      throw new Error(`Class with ID ${lessonData.classId} not found`);
+    }
+
+    // Get the teacher ID from the class
+    const teacherId = classData.teacherId;
+
+    // Check for lesson conflicts
+    const conflictCheck = this.checkLessonTimeConflict(
+      teacherId,
+      lessonData.date,
+      lessonData.startTime,
+      lessonData.endTime
+    );
+
+    if (conflictCheck.hasConflict && conflictCheck.conflictingLesson) {
+      const teacher = demoUsers.find(u => u.id === teacherId);
+      const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}` : teacherId;
+      throw new Error(`Professor ${teacherName} já tem uma aula "${conflictCheck.conflictingLesson.title}" neste horário (${conflictCheck.conflictingLesson.startTime}-${conflictCheck.conflictingLesson.endTime})`);
+    }
+
     const id = crypto.randomUUID();
     const newLesson: Lesson = {
       id,
@@ -1006,8 +1079,39 @@ export class DatabaseStorage implements IStorage {
     const index = demoLessons.findIndex(l => l.id === id);
     if (index === -1) throw new Error('Lesson not found');
 
+    const currentLesson = demoLessons[index];
+    
+    // If date, start time, or end time is being updated, check for conflicts
+    const date = lessonData.date || currentLesson.date;
+    const startTime = lessonData.startTime || currentLesson.startTime;
+    const endTime = lessonData.endTime || currentLesson.endTime;
+    const classId = lessonData.classId || currentLesson.classId;
+
+    // Get the teacher ID from the class
+    const classData = demoClasses.find(cls => cls.id === classId);
+    if (!classData) {
+      throw new Error(`Class with ID ${classId} not found`);
+    }
+    const teacherId = classData.teacherId;
+
+    if (lessonData.date || lessonData.startTime || lessonData.endTime) {
+      const conflictCheck = this.checkLessonTimeConflict(
+        teacherId,
+        date,
+        startTime,
+        endTime,
+        id // Exclude current lesson from conflict check
+      );
+
+      if (conflictCheck.hasConflict && conflictCheck.conflictingLesson) {
+        const teacher = demoUsers.find(u => u.id === teacherId);
+        const teacherName = teacher ? `${teacher.firstName} ${teacher.lastName}` : teacherId;
+        throw new Error(`Professor ${teacherName} já tem uma aula "${conflictCheck.conflictingLesson.title}" neste horário (${conflictCheck.conflictingLesson.startTime}-${conflictCheck.conflictingLesson.endTime})`);
+      }
+    }
+
     const updatedLesson = {
-      ...demoLessons[index],
+      ...currentLesson,
       ...lessonData,
       updatedAt: new Date(),
     };
@@ -1020,6 +1124,10 @@ export class DatabaseStorage implements IStorage {
     if (index !== -1) {
       demoLessons.splice(index, 1);
     }
+  }
+
+  async checkLessonConflicts(teacherId: string, date: Date, startTime: string, endTime: string, excludeLessonId?: string): Promise<{ hasConflict: boolean; conflictingLesson?: Lesson }> {
+    return this.checkLessonTimeConflict(teacherId, date, startTime, endTime, excludeLessonId);
   }
 
   // Dashboard stats

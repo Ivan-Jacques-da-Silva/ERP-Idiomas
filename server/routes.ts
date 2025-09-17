@@ -576,6 +576,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check lesson conflicts endpoint
+  app.post("/api/lessons/check-conflicts", isAuthenticated, async (req, res) => {
+    try {
+      const { teacherId, date, startTime, endTime, excludeLessonId } = req.body;
+      
+      if (!teacherId || !date || !startTime || !endTime) {
+        return res.status(400).json({ message: "Missing required fields: teacherId, date, startTime, endTime" });
+      }
+
+      const conflictCheck = await storage.checkLessonConflicts(
+        teacherId,
+        new Date(date),
+        startTime,
+        endTime,
+        excludeLessonId
+      );
+
+      res.json(conflictCheck);
+    } catch (error) {
+      console.error("Error checking lesson conflicts:", error);
+      res.status(500).json({ message: "Failed to check lesson conflicts" });
+    }
+  });
+
   // Schedule/Agenda routes para administração
   app.get("/api/schedule/admin", isAuthenticated, async (req, res) => {
     try {
