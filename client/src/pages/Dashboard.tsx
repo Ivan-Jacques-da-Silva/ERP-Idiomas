@@ -66,9 +66,9 @@ export default function Dashboard() {
           </FadeIn>
 
         {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 lg:gap-6">
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, index) => (
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 lg:gap-6">
+              {Array.from({ length: 4 }).map((_, index) => (
                 <FadeIn key={index} delay={100 + index * 50}>
                   <div className="bg-card rounded-lg border border-border p-6 animate-pulse">
                     <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
@@ -76,10 +76,14 @@ export default function Dashboard() {
                     <div className="h-3 bg-muted rounded w-2/3"></div>
                   </div>
                 </FadeIn>
-              ))
-            ) : (
-              <StaggeredFadeIn stagger={80}>
-                {(() => {
+              ))}
+            </div>
+          ) : (
+            <StaggeredFadeIn 
+              stagger={80}
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 lg:gap-6"
+            >
+              {(() => {
                   const availableCards = [];
                   
                   // Admin vê tudo
@@ -242,7 +246,6 @@ export default function Dashboard() {
                 })()}
               </StaggeredFadeIn>
             )}
-          </div>
 
         {/* Main Content Grid */}
           <FadeIn delay={300}>
@@ -398,7 +401,7 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-            </div>
+        </div>
           </FadeIn>
         </div>
       </PageLoader>
