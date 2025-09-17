@@ -120,13 +120,18 @@ export default function TeacherArea() {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
     const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`);
 
+    // Sistema de cores por livro
+    const bookColors = {
+      'English Basic - Book 1': '#3b82f6',
+      'English Basic - Book 2': '#1d4ed8'
+    };
+
     // Dados exemplares das turmas do professor
     const mockTeacherSchedule = [
       {
         id: '1',
         title: 'Inglês A1 - Manhã',
         book: 'English Basic - Book 1',
-        bookColor: '#3b82f6',
         dayOfWeek: 1, // Segunda
         startTime: '09:00',
         endTime: '11:00',
@@ -140,7 +145,6 @@ export default function TeacherArea() {
         id: '2',
         title: 'Inglês A2 - Tarde',
         book: 'English Basic - Book 2',
-        bookColor: '#1d4ed8',
         dayOfWeek: 1, // Segunda
         startTime: '14:00',
         endTime: '16:00',
@@ -154,7 +158,6 @@ export default function TeacherArea() {
         id: '3',
         title: 'Inglês A1 - Manhã',
         book: 'English Basic - Book 1',
-        bookColor: '#3b82f6',
         dayOfWeek: 3, // Quarta
         startTime: '09:00',
         endTime: '11:00',
@@ -168,7 +171,6 @@ export default function TeacherArea() {
         id: '4',
         title: 'Inglês A2 - Tarde',
         book: 'English Basic - Book 2',
-        bookColor: '#1d4ed8',
         dayOfWeek: 3, // Quarta
         startTime: '14:00',
         endTime: '16:00',
@@ -232,8 +234,8 @@ export default function TeacherArea() {
                             key={classItem.id}
                             className="p-3 rounded-lg text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full"
                             style={{
-                              backgroundColor: classItem.bookColor + '20',
-                              borderColor: classItem.bookColor,
+                              backgroundColor: bookColors[classItem.book] + '20',
+                              borderColor: bookColors[classItem.book],
                               color: '#000'
                             }}
                             data-testid={`schedule-class-${classItem.id}`}
@@ -262,18 +264,16 @@ export default function TeacherArea() {
           </div>
         </div>
 
-        {/* Legend for teacher's books */}
+        {/* Legenda dos meus livros */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium mb-3">Meus Livros</h4>
           <div className="flex flex-wrap gap-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
-              <span className="text-sm">English Basic - Book 1</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1d4ed8' }}></div>
-              <span className="text-sm">English Basic - Book 2</span>
-            </div>
+            {Object.entries(bookColors).map(([bookName, color]) => (
+              <div key={bookName} className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
+                <span className="text-sm">{bookName}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

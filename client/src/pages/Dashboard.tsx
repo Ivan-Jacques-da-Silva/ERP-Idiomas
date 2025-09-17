@@ -131,34 +131,34 @@ export default function Dashboard() {
                       />
                     );
                   }
-                  // Professor - não vê receita mensal
+                  // Professor - só vê dados relevantes para ele
                   else if (user?.role === 'teacher') {
                     availableCards.push(
                       <StatsCard
-                        key="students"
-                        title="Total de Alunos"
-                        value={stats?.totalStudents || 0}
-                        change="+12%"
+                        key="my-students"
+                        title="Meus Alunos"
+                        value={85}
+                        change="+5 novos"
                         changeType="positive"
                         icon="fas fa-user-graduate"
                         iconColor="blue"
-                        data-testid="card-total-students"
+                        data-testid="card-my-students"
                       />,
                       <StatsCard
-                        key="teachers"
-                        title="Professores Ativos"
-                        value={stats?.activeTeachers || 0}
-                        change="+3%"
-                        changeType="positive"
-                        icon="fas fa-chalkboard-teacher"
+                        key="my-classes"
+                        title="Minhas Turmas"
+                        value={4}
+                        change="2 ativas hoje"
+                        changeType="neutral"
+                        icon="fas fa-users"
                         iconColor="green"
-                        data-testid="card-active-teachers"
+                        data-testid="card-my-classes"
                       />,
                       <StatsCard
-                        key="classes"
+                        key="classes-today"
                         title="Aulas Hoje"
                         value={stats?.todaysClasses || 0}
-                        change="92 concluídas"
+                        change="próximas"
                         changeType="neutral"
                         icon="fas fa-calendar-check"
                         iconColor="purple"

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,7 +31,7 @@ function ClassDetailModal({ isOpen, onClose, classData }: ClassDetailModalProps)
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <div 
+            <div
               className="w-4 h-4 rounded-full"
               style={{ backgroundColor: classData.bookColor }}
             />
@@ -82,21 +81,21 @@ function ClassDetailModal({ isOpen, onClose, classData }: ClassDetailModalProps)
                   <span className="text-sm">{student.name}</span>
                 </div>
               )) || [
-                { name: 'Ana Silva' },
-                { name: 'João Santos' },
-                { name: 'Maria Costa' },
-                { name: 'Pedro Lima' },
-                { name: 'Carla Oliveira' },
-              ].map((student, index) => (
-                <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
-                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white font-medium">
-                      {student.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
-                    </span>
+                  { name: 'Ana Silva' },
+                  { name: 'João Santos' },
+                  { name: 'Maria Costa' },
+                  { name: 'Pedro Lima' },
+                  { name: 'Carla Oliveira' },
+                ].map((student, index) => (
+                  <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                    <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-medium">
+                        {student.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                      </span>
+                    </div>
+                    <span className="text-sm">{student.name}</span>
                   </div>
-                  <span className="text-sm">{student.name}</span>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
 
@@ -131,7 +130,7 @@ export default function Schedule() {
 
   // Fetch lessons based on user role
   const { data: lessons, isLoading } = useQuery<any[]>({
-    queryKey: user?.role === 'teacher' 
+    queryKey: user?.role === 'teacher'
       ? ["/api/lessons/teacher", user.id]
       : ["/api/lessons"],
     retry: false,
@@ -237,10 +236,22 @@ export default function Schedule() {
     setCurrentWeekStart(prev => addDays(prev, direction === 'next' ? 7 : -7));
   };
 
+  // Define book colors for legend
+  const bookColors: { [key: string]: string } = {
+    'English Basic - Book 1': '#3b82f6',
+    'English Basic - Book 2': '#1d4ed8',
+    'English Basic - Book 3': '#1e40af',
+    'English Intermediate - Book 1': '#10b981',
+    'English Intermediate - Book 2': '#059669',
+    'English Advanced - Book 1': '#8b5cf6',
+    'Español Básico - Libro 1': '#f59e0b',
+    'Español Básico - Libro 2': '#d97706',
+  };
+
   const renderAdminCalendarView = () => {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
     const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`); // 8:00 to 21:00
-    
+
     // Dados de agenda administrativa (turmas regulares)
     const mockAdminSchedule = [
       {
@@ -398,7 +409,7 @@ export default function Schedule() {
         unitId: '1'
       }
     ];
-    
+
     // Filter classes by selected teacher and unit
     const filteredClasses = mockAdminSchedule.filter(classItem => {
       if (selectedTeacherFilter !== 'all' && classItem.teacherId !== selectedTeacherFilter) return false;
@@ -420,7 +431,7 @@ export default function Schedule() {
               Próxima Semana →
             </Button>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <Select value={selectedUnitFilter} onValueChange={setSelectedUnitFilter}>
               <SelectTrigger className="w-48">
@@ -432,7 +443,7 @@ export default function Schedule() {
                 <SelectItem value="2">Unidade Vila Nova</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={selectedTeacherFilter} onValueChange={setSelectedTeacherFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filtrar por professor" />
@@ -471,7 +482,7 @@ export default function Schedule() {
                   <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
                     {timeSlot}
                   </div>
-                  
+
                   {/* Day cells */}
                   {weekDays.map((day) => {
                     const dayClasses = filteredClasses.filter(classItem => {
@@ -514,10 +525,10 @@ export default function Schedule() {
                             </div>
                           ))}
                         </div>
-                        
+
                         {/* Add class button for empty slots or when admin */}
                         {dayClasses.length === 0 && isAdminView && (
-                          <div 
+                          <div
                             className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer bg-gray-50 bg-opacity-50"
                             onClick={() => handleNewClass()}
                           >
@@ -534,43 +545,17 @@ export default function Schedule() {
             })}
           </div>
         </div>
-        
+
         {/* Legend */}
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium mb-3">Legenda dos Livros</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
-              <span className="text-sm">English Basic - Book 1</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1d4ed8' }}></div>
-              <span className="text-sm">English Basic - Book 2</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1e40af' }}></div>
-              <span className="text-sm">English Basic - Book 3</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#10b981' }}></div>
-              <span className="text-sm">English Intermediate - Book 1</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#059669' }}></div>
-              <span className="text-sm">English Intermediate - Book 2</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#8b5cf6' }}></div>
-              <span className="text-sm">English Advanced - Book 1</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#f59e0b' }}></div>
-              <span className="text-sm">Español Básico - Libro 1</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#d97706' }}></div>
-              <span className="text-sm">Español Básico - Libro 2</span>
-            </div>
+            {Object.entries(bookColors).map(([bookName, color]) => (
+              <div key={bookName} className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
+                <span className="text-sm">{bookName}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -678,7 +663,7 @@ export default function Schedule() {
                   <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
                     {timeSlot}
                   </div>
-                  
+
                   {weekDays.map((day) => {
                     const dayClasses = mockTeacherSchedule.filter(classItem => {
                       if (classItem.dayOfWeek !== day.getDay()) return false;
@@ -723,6 +708,19 @@ export default function Schedule() {
             })}
           </div>
         </div>
+
+        {/* Legenda de cores dos livros */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="font-medium mb-3">Legenda dos Livros</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Object.entries(bookColors).map(([bookName, color]) => (
+              <div key={bookName} className="flex items-center space-x-2">
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
+                <span className="text-sm">{bookName}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   };
@@ -734,12 +732,12 @@ export default function Schedule() {
           <div>
             <h2 className="text-2xl font-semibold text-foreground">Agenda</h2>
             <p className="text-sm text-muted-foreground">
-              {user?.role === 'teacher' 
+              {user?.role === 'teacher'
                 ? "Gerencie sua agenda de aulas"
                 : "Visualize e gerencie a agenda da escola"}
             </p>
           </div>
-          
+
           {canManageSchedule && (
             <div className="flex items-center space-x-2">
               <Button onClick={handleNewLesson} data-testid="button-new-lesson">
@@ -770,11 +768,11 @@ export default function Schedule() {
                   <i className="fas fa-calendar-day text-primary"></i>
                   <span>Aulas de Hoje</span>
                   <Badge variant="secondary">
-                    {new Date().toLocaleDateString('pt-BR', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    {new Date().toLocaleDateString('pt-BR', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </Badge>
                 </CardTitle>
@@ -813,8 +811,8 @@ export default function Schedule() {
                         </div>
                         <div className="flex items-center space-x-2">
                           {canManageSchedule && (
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleEditLesson(lesson)}
                               data-testid={`button-edit-lesson-${lesson.id}`}
@@ -871,14 +869,14 @@ export default function Schedule() {
           )}
         </Tabs>
       </div>
-      
+
       {/* Lesson Modal */}
       <LessonModal
         isOpen={isLessonModalOpen}
         onClose={handleCloseModal}
         lessonToEdit={editingLesson}
       />
-      
+
       {/* Class Modal */}
       <ClassModal
         isOpen={isClassModalOpen}
