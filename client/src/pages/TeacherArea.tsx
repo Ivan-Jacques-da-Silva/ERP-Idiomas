@@ -118,7 +118,67 @@ export default function TeacherArea() {
 
   const renderWeeklySchedule = () => {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-    const timeSlots = Array.from({ length: 15 }, (_, i) => `${7 + i}:00`);
+    const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`);
+
+    // Dados exemplares das turmas do professor
+    const mockTeacherSchedule = [
+      {
+        id: '1',
+        title: 'Inglês A1 - Manhã',
+        book: 'English Basic - Book 1',
+        bookColor: '#3b82f6',
+        dayOfWeek: 1, // Segunda
+        startTime: '09:00',
+        endTime: '11:00',
+        room: 'Sala 101',
+        currentDay: 5,
+        totalDays: 30,
+        studentsCount: 12,
+        maxStudents: 15
+      },
+      {
+        id: '2',
+        title: 'Inglês A2 - Tarde',
+        book: 'English Basic - Book 2',
+        bookColor: '#1d4ed8',
+        dayOfWeek: 1, // Segunda
+        startTime: '14:00',
+        endTime: '16:00',
+        room: 'Sala 102',
+        currentDay: 8,
+        totalDays: 35,
+        studentsCount: 10,
+        maxStudents: 15
+      },
+      {
+        id: '3',
+        title: 'Inglês A1 - Manhã',
+        book: 'English Basic - Book 1',
+        bookColor: '#3b82f6',
+        dayOfWeek: 3, // Quarta
+        startTime: '09:00',
+        endTime: '11:00',
+        room: 'Sala 101',
+        currentDay: 6,
+        totalDays: 30,
+        studentsCount: 12,
+        maxStudents: 15
+      },
+      {
+        id: '4',
+        title: 'Inglês A2 - Tarde',
+        book: 'English Basic - Book 2',
+        bookColor: '#1d4ed8',
+        dayOfWeek: 3, // Quarta
+        startTime: '14:00',
+        endTime: '16:00',
+        room: 'Sala 102',
+        currentDay: 9,
+        totalDays: 35,
+        studentsCount: 10,
+        maxStudents: 15
+      }
+    ];
 
     return (
       <div className="space-y-4">
@@ -136,14 +196,14 @@ export default function TeacherArea() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="grid grid-cols-8 gap-1 min-w-[800px]">
+        <div className="overflow-x-auto bg-white rounded-lg border shadow-sm">
+          <div className="grid grid-cols-8 gap-0 min-w-[900px]">
             {/* Header */}
-            <div className="p-2 font-medium text-center bg-muted rounded">Horário</div>
+            <div className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">Horário</div>
             {weekDays.map((day) => (
-              <div key={day.toISOString()} className="p-2 font-medium text-center bg-muted rounded">
-                <div>{format(day, "EEE", { locale: ptBR })}</div>
-                <div className="text-sm text-muted-foreground">
+              <div key={day.toISOString()} className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">
+                <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
+                <div className="text-xs text-gray-500 mt-1">
                   {format(day, "dd/MM", { locale: ptBR })}
                 </div>
               </div>
@@ -153,25 +213,24 @@ export default function TeacherArea() {
             {timeSlots.map((timeSlot) => {
               const [hour] = timeSlot.split(':');
               return (
-                <div key={timeSlot}>
-                  <div className="p-2 text-sm font-medium text-center bg-muted/50 border-r">
+                <>
+                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
                     {timeSlot}
                   </div>
                   
                   {weekDays.map((day) => {
-                    // Find classes for this day and time
-                    const dayClasses = teacherSchedule.filter(classItem => {
+                    const dayClasses = mockTeacherSchedule.filter(classItem => {
                       if (classItem.dayOfWeek !== day.getDay()) return false;
                       const classHour = parseInt(classItem.startTime.split(':')[0]);
                       return classHour === parseInt(hour);
                     });
 
                     return (
-                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border border-border/50">
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border-b border-r border-gray-100">
                         {dayClasses.map((classItem) => (
                           <div
                             key={classItem.id}
-                            className="mb-1 last:mb-0 p-3 rounded-lg text-xs cursor-pointer transition-all hover:opacity-80 border"
+                            className="p-3 rounded-lg text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full"
                             style={{
                               backgroundColor: classItem.bookColor + '20',
                               borderColor: classItem.bookColor,
@@ -179,10 +238,7 @@ export default function TeacherArea() {
                             }}
                             data-testid={`schedule-class-${classItem.id}`}
                           >
-                            <div className="font-semibold text-sm mb-1">{classItem.title}</div>
-                            <div className="text-xs opacity-75 mb-1">
-                              {classItem.startTime} - {classItem.endTime}
-                            </div>
+                            <div className="font-semibold text-sm mb-2">{classItem.title}</div>
                             <div className="text-xs opacity-75 mb-1">
                               📚 {classItem.book}
                             </div>
@@ -200,9 +256,24 @@ export default function TeacherArea() {
                       </div>
                     );
                   })}
-                </div>
+                </>
               );
             })}
+          </div>
+        </div>
+
+        {/* Legend for teacher's books */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="font-medium mb-3">Meus Livros</h4>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
+              <span className="text-sm">English Basic - Book 1</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1d4ed8' }}></div>
+              <span className="text-sm">English Basic - Book 2</span>
+            </div>
           </div>
         </div>
       </div>

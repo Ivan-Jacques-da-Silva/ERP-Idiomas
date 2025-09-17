@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
@@ -9,10 +10,110 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { format, startOfWeek, addDays, isSameDay, parseISO, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+interface ClassDetailModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  classData: any;
+}
+
+function ClassDetailModal({ isOpen, onClose, classData }: ClassDetailModalProps) {
+  if (!classData) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center space-x-2">
+            <div 
+              className="w-4 h-4 rounded-full"
+              style={{ backgroundColor: classData.bookColor }}
+            />
+            <span>{classData.title}</span>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Informações da Turma */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium text-gray-500">Professor</Label>
+              <p className="text-sm font-semibold">{classData.teacher}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-500">Horário</Label>
+              <p className="text-sm">{classData.startTime} - {classData.endTime}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-500">Sala</Label>
+              <p className="text-sm">{classData.room}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-500">Livro</Label>
+              <p className="text-sm">{classData.book}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-500">Progresso</Label>
+              <p className="text-sm">Dia {classData.currentDay}/{classData.totalDays}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-500">Alunos</Label>
+              <p className="text-sm">{classData.studentsCount}/{classData.maxStudents}</p>
+            </div>
+          </div>
+
+          {/* Lista de Alunos */}
+          <div>
+            <Label className="text-sm font-medium text-gray-500 mb-3 block">Alunos Matriculados</Label>
+            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+              {classData.students?.map((student: any, index: number) => (
+                <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white font-medium">
+                      {student.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                    </span>
+                  </div>
+                  <span className="text-sm">{student.name}</span>
+                </div>
+              )) || [
+                { name: 'Ana Silva' },
+                { name: 'João Santos' },
+                { name: 'Maria Costa' },
+                { name: 'Pedro Lima' },
+                { name: 'Carla Oliveira' },
+              ].map((student, index) => (
+                <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white font-medium">
+                      {student.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                    </span>
+                  </div>
+                  <span className="text-sm">{student.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Ações */}
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Fechar
+            </Button>
+            <Button>
+              Editar Turma
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Schedule() {
   const { toast } = useToast();
@@ -22,63 +123,53 @@ export default function Schedule() {
   const [editingLesson, setEditingLesson] = useState<any>(null);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<any>(null);
-  const [selectedTeacherFilter, setSelectedTeacherFilter] = useState<string>("");
+  const [selectedTeacherFilter, setSelectedTeacherFilter] = useState<string>("all");
+  const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>("all");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
+  const [selectedClassDetail, setSelectedClassDetail] = useState<any>(null);
+  const [showClassDetail, setShowClassDetail] = useState(false);
 
+  // Fetch lessons based on user role
   const { data: lessons, isLoading } = useQuery<any[]>({
     queryKey: user?.role === 'teacher' 
       ? ["/api/lessons/teacher", user.id]
       : ["/api/lessons"],
     retry: false,
+    enabled: isAuthenticated,
   });
 
   // Fetch teachers for filter (only for admin/secretary)
   const { data: teachers = [] } = useQuery<any[]>({
     queryKey: ["/api/staff"],
-    enabled: user?.role === 'admin' || user?.role === 'secretary',
+    enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
     retry: false,
   });
 
-  // Fetch classes to get teacher information for filtering
-  const { data: classes = [] } = useQuery<any[]>({
-    queryKey: ["/api/classes"],
-    enabled: user?.role === 'admin' || user?.role === 'secretary',
+  // Fetch units for filter
+  const { data: units = [] } = useQuery<any[]>({
+    queryKey: ["/api/units"],
+    enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
     retry: false,
   });
 
   // Fetch admin schedule data (for administrative view)
   const { data: adminSchedule = [] } = useQuery<any[]>({
     queryKey: ["/api/schedule/admin"],
-    enabled: user?.role === 'admin' || user?.role === 'secretary',
+    enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
     retry: false,
   });
 
-  // Get filtered lessons for weekly view
-  const getWeeklyLessons = () => {
-    if (!lessons) return [];
-    
-    const weekStart = startOfDay(currentWeekStart);
-    const weekEnd = endOfDay(addDays(currentWeekStart, 6));
-    
-    return lessons.filter(lesson => {
-      const lessonDate = parseISO(lesson.date);
-      return isWithinInterval(lessonDate, { start: weekStart, end: weekEnd });
-    }).filter(lesson => {
-      // Apply teacher filter if selected
-      if (!selectedTeacherFilter || selectedTeacherFilter === 'all') return true;
-      
-      // Find the class for this lesson to get teacher information
-      const lessonClass = classes.find((cls: any) => cls.id === lesson.classId);
-      if (!lessonClass?.teacher?.id) return false;
-      
-      // Check if the lesson's teacher matches the selected filter
-      return lessonClass.teacher.id === selectedTeacherFilter;
-    });
-  };
+  // Fetch teacher schedule data
+  const { data: teacherSchedule = [] } = useQuery<any[]>({
+    queryKey: ["/api/schedule/teacher", user?.id],
+    enabled: isAuthenticated && user?.role === 'teacher',
+    retry: false,
+  });
 
   const { data: todaysLessons } = useQuery<any[]>({
     queryKey: ["/api/lessons/today"],
     retry: false,
+    enabled: isAuthenticated,
   });
 
   // Redirect to login if not authenticated
@@ -104,27 +195,8 @@ export default function Schedule() {
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-700';
-      case 'in_progress': return 'bg-green-100 text-green-700';
-      case 'completed': return 'bg-gray-100 text-gray-700';
-      case 'cancelled': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'Agendado';
-      case 'in_progress': return 'Em andamento';
-      case 'completed': return 'Concluído';
-      case 'cancelled': return 'Cancelado';
-      default: return status;
-    }
-  };
-
   const canManageSchedule = user?.role === 'admin' || user?.role === 'teacher' || user?.role === 'secretary';
+  const isAdminView = user?.role === 'admin' || user?.role === 'secretary';
 
   const handleNewLesson = () => {
     setEditingLesson(null);
@@ -156,221 +228,182 @@ export default function Schedule() {
     setEditingClass(null);
   };
 
+  const handleClassClick = (classItem: any) => {
+    setSelectedClassDetail(classItem);
+    setShowClassDetail(true);
+  };
+
   const navigateWeek = (direction: 'prev' | 'next') => {
     setCurrentWeekStart(prev => addDays(prev, direction === 'next' ? 7 : -7));
   };
 
-  const renderWeeklyView = () => {
+  const renderAdminCalendarView = () => {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-    const timeSlots = Array.from({ length: 15 }, (_, i) => `${7 + i}:00`); // 7:00 to 21:00
-    const weeklyLessons = getWeeklyLessons();
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={() => navigateWeek('prev')}>
-              ← Semana Anterior
-            </Button>
-            <h3 className="text-lg font-semibold">
-              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
-            </h3>
-            <Button variant="outline" onClick={() => navigateWeek('next')}>
-              Próxima Semana →
-            </Button>
-          </div>
-          
-          {(user?.role === 'admin' || user?.role === 'secretary') && (
-            <Select value={selectedTeacherFilter} onValueChange={setSelectedTeacherFilter}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Filtrar por professor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os professores</SelectItem>
-                {teachers
-                  .filter(teacher => teacher.user?.role === 'teacher')
-                  .map((teacher: any) => (
-                    <SelectItem key={teacher.user.id} value={teacher.user.id}>
-                      {teacher.user.firstName} {teacher.user.lastName}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        <div className="overflow-x-auto">
-          <div className="grid grid-cols-8 gap-1 min-w-[800px]">
-            {/* Header row */}
-            <div className="p-2 font-medium text-center bg-muted rounded">Horário</div>
-            {weekDays.map((day) => (
-              <div key={day.toISOString()} className="p-2 font-medium text-center bg-muted rounded">
-                <div>{format(day, "EEE", { locale: ptBR })}</div>
-                <div className="text-sm text-muted-foreground">
-                  {format(day, "dd/MM", { locale: ptBR })}
-                </div>
-              </div>
-            ))}
-
-            {/* Time slots */}
-            {timeSlots.map((timeSlot) => {
-              const [hour] = timeSlot.split(':');
-              return (
-                <div key={timeSlot}>
-                  {/* Time label */}
-                  <div className="p-2 text-sm font-medium text-center bg-muted/50 border-r">
-                    {timeSlot}
-                  </div>
-                  
-                  {/* Day cells */}
-                  {weekDays.map((day) => {
-                    const dayLessons = weeklyLessons.filter(lesson => {
-                      const lessonDate = parseISO(lesson.date);
-                      if (!isSameDay(lessonDate, day)) return false;
-                      
-                      const lessonHour = parseInt(lesson.startTime.split(':')[0]);
-                      return lessonHour === parseInt(hour);
-                    });
-
-                    return (
-                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] p-1 border border-border/50">
-                        {dayLessons.map((lesson) => (
-                          <div
-                            key={lesson.id}
-                            className={`p-2 rounded text-xs cursor-pointer transition-all hover:opacity-80 ${
-                              lesson.status === 'completed' ? 'bg-green-100 border border-green-200' :
-                              lesson.status === 'cancelled' ? 'bg-red-100 border border-red-200' :
-                              lesson.status === 'in_progress' ? 'bg-blue-100 border border-blue-200' :
-                              'bg-yellow-100 border border-yellow-200'
-                            }`}
-                            onClick={() => canManageSchedule && handleEditLesson(lesson)}
-                            data-testid={`lesson-${lesson.id}`}
-                          >
-                            <div className="font-medium truncate">{lesson.title}</div>
-                            <div className="text-xs opacity-75">
-                              {lesson.startTime}-{lesson.endTime}
-                            </div>
-                            {lesson.room && (
-                              <div className="text-xs opacity-75">Sala {lesson.room}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderAdminScheduleView = () => {
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-    const timeSlots = Array.from({ length: 15 }, (_, i) => `${7 + i}:00`); // 7:00 to 21:00
+    const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`); // 8:00 to 21:00
     
-    // Dados exemplares para demonstração das funcionalidades
+    // Dados de agenda administrativa (turmas regulares)
     const mockAdminSchedule = [
       {
         id: '1',
-        title: 'Turma Inglês A1',
-        teacher: 'Prof. Maria Silva',
-        teacherId: 'teacher1',
+        title: 'Inglês A1 - Manhã',
+        teacher: 'Prof. João Silva',
+        teacherId: 'user-1',
         book: 'English Basic - Book 1',
-        bookColor: '#3b82f6', // Azul claro
-        dayOfWeek: 1, // Segunda-feira
-        startTime: '19:00',
-        endTime: '21:00',
+        bookColor: '#3b82f6',
+        dayOfWeek: 1, // Segunda
+        startTime: '09:00',
+        endTime: '11:00',
         room: 'Sala 101',
         currentDay: 5,
-        totalDays: 30
+        totalDays: 30,
+        studentsCount: 12,
+        maxStudents: 15,
+        unitId: '1'
       },
       {
         id: '2',
-        title: 'Turma Inglês B1',
-        teacher: 'Prof. João Santos',
-        teacherId: 'teacher2',
-        book: 'English Intermediate - Book 1',
-        bookColor: '#10b981', // Verde
-        dayOfWeek: 1, // Segunda-feira  
-        startTime: '19:00', // Mesmo horário - múltiplas turmas
-        endTime: '21:00',
+        title: 'Inglês A2 - Tarde',
+        teacher: 'Prof. João Silva',
+        teacherId: 'user-1',
+        book: 'English Basic - Book 2',
+        bookColor: '#1d4ed8',
+        dayOfWeek: 1, // Segunda
+        startTime: '14:00',
+        endTime: '16:00',
         room: 'Sala 102',
         currentDay: 8,
-        totalDays: 40
+        totalDays: 35,
+        studentsCount: 10,
+        maxStudents: 15,
+        unitId: '1'
       },
       {
         id: '3',
-        title: 'Turma Espanhol A1',
-        teacher: 'Prof. Ana Costa',
-        teacherId: 'teacher3',
-        book: 'Español Básico - Libro 1',
-        bookColor: '#f59e0b', // Laranja
-        dayOfWeek: 2, // Terça-feira
-        startTime: '18:00',
-        endTime: '20:00',
-        room: 'Sala 201',
-        currentDay: 12,
-        totalDays: 25
+        title: 'Inglês B1 - Noite',
+        teacher: 'Prof. Maria Santos',
+        teacherId: 'user-2',
+        book: 'English Intermediate - Book 1',
+        bookColor: '#10b981',
+        dayOfWeek: 1, // Segunda
+        startTime: '19:00',
+        endTime: '21:00',
+        room: 'Sala 103',
+        currentDay: 3,
+        totalDays: 40,
+        studentsCount: 8,
+        maxStudents: 12,
+        unitId: '1'
       },
       {
         id: '4',
-        title: 'Turma Inglês A2',
-        teacher: 'Prof. Maria Silva',
-        teacherId: 'teacher1',
-        book: 'English Basic - Book 2',
-        bookColor: '#6366f1', // Azul mais escuro
-        dayOfWeek: 3, // Quarta-feira
-        startTime: '20:00',
-        endTime: '22:00',
-        room: 'Sala 103',
-        currentDay: 15,
-        totalDays: 35
+        title: 'Espanhol A1',
+        teacher: 'Prof. Maria Santos',
+        teacherId: 'user-2',
+        book: 'Español Básico - Libro 1',
+        bookColor: '#f59e0b',
+        dayOfWeek: 2, // Terça
+        startTime: '18:00',
+        endTime: '20:00',
+        room: 'Sala 201',
+        currentDay: 4,
+        totalDays: 25,
+        studentsCount: 9,
+        maxStudents: 12,
+        unitId: '1'
       },
       {
         id: '5',
-        title: 'Turma Francês A1',
-        teacher: 'Prof. Carlos Lima',
-        teacherId: 'teacher4',
-        book: 'Français Débutant - Livre 1',
-        bookColor: '#8b5cf6', // Roxo
-        dayOfWeek: 4, // Quinta-feira
-        startTime: '19:00',
-        endTime: '21:00',
-        room: 'Sala 301',
-        currentDay: 3,
-        totalDays: 28
+        title: 'Inglês B2 - Manhã',
+        teacher: 'Prof. Ana Costa',
+        teacherId: 'user-7',
+        book: 'English Intermediate - Book 2',
+        bookColor: '#059669',
+        dayOfWeek: 2, // Terça
+        startTime: '10:00',
+        endTime: '12:00',
+        room: 'Sala 104',
+        currentDay: 12,
+        totalDays: 42,
+        studentsCount: 13,
+        maxStudents: 15,
+        unitId: '1'
       },
       {
         id: '6',
-        title: 'Turma Alemão A1',
+        title: 'Inglês A3 - Tarde',
         teacher: 'Prof. Ana Costa',
-        teacherId: 'teacher3',
-        book: 'Deutsch Grundlagen - Buch 1',
-        bookColor: '#ef4444', // Vermelho
-        dayOfWeek: 5, // Sexta-feira
-        startTime: '18:00',
-        endTime: '20:00',
+        teacherId: 'user-7',
+        book: 'English Basic - Book 3',
+        bookColor: '#1e40af',
+        dayOfWeek: 3, // Quarta
+        startTime: '15:00',
+        endTime: '17:00',
+        room: 'Sala 105',
+        currentDay: 18,
+        totalDays: 40,
+        studentsCount: 11,
+        maxStudents: 15,
+        unitId: '1'
+      },
+      {
+        id: '7',
+        title: 'Inglês Avançado',
+        teacher: 'Prof. Felipe Rodrigues',
+        teacherId: 'user-8',
+        book: 'English Advanced - Book 1',
+        bookColor: '#8b5cf6',
+        dayOfWeek: 4, // Quinta
+        startTime: '19:00',
+        endTime: '21:00',
+        room: 'Sala 301',
+        currentDay: 22,
+        totalDays: 45,
+        studentsCount: 7,
+        maxStudents: 10,
+        unitId: '2'
+      },
+      {
+        id: '8',
+        title: 'Espanhol A2',
+        teacher: 'Prof. Patricia Lima',
+        teacherId: 'user-9',
+        book: 'Español Básico - Libro 2',
+        bookColor: '#d97706',
+        dayOfWeek: 5, // Sexta
+        startTime: '16:00',
+        endTime: '18:00',
         room: 'Sala 202',
+        currentDay: 15,
+        totalDays: 28,
+        studentsCount: 10,
+        maxStudents: 12,
+        unitId: '1'
+      },
+      // Aulas sobrepostas no mesmo horário para demonstrar
+      {
+        id: '9',
+        title: 'Inglês A1 - Tarde',
+        teacher: 'Prof. Patricia Lima',
+        teacherId: 'user-9',
+        book: 'English Basic - Book 1',
+        bookColor: '#3b82f6',
+        dayOfWeek: 2, // Terça
+        startTime: '14:00',
+        endTime: '16:00',
+        room: 'Sala 203',
         currentDay: 7,
-        totalDays: 32
+        totalDays: 30,
+        studentsCount: 14,
+        maxStudents: 15,
+        unitId: '1'
       }
     ];
-
-    // Dados exemplares de professores para o filtro
-    const mockTeachers = [
-      { user: { id: 'teacher1', firstName: 'Maria', lastName: 'Silva', role: 'teacher' } },
-      { user: { id: 'teacher2', firstName: 'João', lastName: 'Santos', role: 'teacher' } },
-      { user: { id: 'teacher3', firstName: 'Ana', lastName: 'Costa', role: 'teacher' } },
-      { user: { id: 'teacher4', firstName: 'Carlos', lastName: 'Lima', role: 'teacher' } }
-    ];
     
-    // Filter admin schedule by selected teacher if any
+    // Filter classes by selected teacher and unit
     const filteredClasses = mockAdminSchedule.filter(classItem => {
-      if (!selectedTeacherFilter || selectedTeacherFilter === 'all') return true;
-      return classItem.teacherId === selectedTeacherFilter;
+      if (selectedTeacherFilter !== 'all' && classItem.teacherId !== selectedTeacherFilter) return false;
+      if (selectedUnitFilter !== 'all' && classItem.unitId !== selectedUnitFilter) return false;
+      return true;
     });
 
     return (
@@ -388,31 +421,42 @@ export default function Schedule() {
             </Button>
           </div>
           
-          <Select value={selectedTeacherFilter} onValueChange={setSelectedTeacherFilter}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Filtrar por professor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os professores</SelectItem>
-              {mockTeachers
-                .filter(teacher => teacher.user?.role === 'teacher')
-                .map((teacher: any) => (
-                  <SelectItem key={teacher.user.id} value={teacher.user.id}>
-                    {teacher.user.firstName} {teacher.user.lastName}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center space-x-4">
+            <Select value={selectedUnitFilter} onValueChange={setSelectedUnitFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filtrar por unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as unidades</SelectItem>
+                <SelectItem value="1">Unidade Centro</SelectItem>
+                <SelectItem value="2">Unidade Vila Nova</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={selectedTeacherFilter} onValueChange={setSelectedTeacherFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filtrar por professor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os professores</SelectItem>
+                <SelectItem value="user-1">João Silva</SelectItem>
+                <SelectItem value="user-2">Maria Santos</SelectItem>
+                <SelectItem value="user-7">Ana Costa</SelectItem>
+                <SelectItem value="user-8">Felipe Rodrigues</SelectItem>
+                <SelectItem value="user-9">Patricia Lima</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="grid grid-cols-8 gap-1 min-w-[800px]">
+        <div className="overflow-x-auto bg-white rounded-lg border shadow-sm">
+          <div className="grid grid-cols-8 gap-0 min-w-[900px]">
             {/* Header row */}
-            <div className="p-2 font-medium text-center bg-muted rounded">Horário</div>
+            <div className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">Horário</div>
             {weekDays.map((day) => (
-              <div key={day.toISOString()} className="p-2 font-medium text-center bg-muted rounded">
-                <div>{format(day, "EEE", { locale: ptBR })}</div>
-                <div className="text-sm text-muted-foreground">
+              <div key={day.toISOString()} className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">
+                <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
+                <div className="text-xs text-gray-500 mt-1">
                   {format(day, "dd/MM", { locale: ptBR })}
                 </div>
               </div>
@@ -422,9 +466,9 @@ export default function Schedule() {
             {timeSlots.map((timeSlot) => {
               const [hour] = timeSlot.split(':');
               return (
-                <div key={timeSlot}>
+                <>
                   {/* Time label */}
-                  <div className="p-2 text-sm font-medium text-center bg-muted/50 border-r">
+                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
                     {timeSlot}
                   </div>
                   
@@ -432,45 +476,249 @@ export default function Schedule() {
                   {weekDays.map((day) => {
                     const dayClasses = filteredClasses.filter(classItem => {
                       if (classItem.dayOfWeek !== day.getDay()) return false;
-                      
                       const classHour = parseInt(classItem.startTime.split(':')[0]);
                       return classHour === parseInt(hour);
                     });
 
                     return (
-                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] p-1 border border-border/50">
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border-b border-r border-gray-100 relative">
+                        <div className="space-y-1">
+                          {dayClasses.map((classItem, index) => (
+                            <div
+                              key={classItem.id}
+                              className="p-2 rounded-md text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30"
+                              style={{
+                                backgroundColor: classItem.bookColor + '15',
+                                borderColor: classItem.bookColor,
+                                color: '#000'
+                              }}
+                              onClick={() => handleClassClick(classItem)}
+                              data-testid={`admin-class-${classItem.id}`}
+                            >
+                              <div className="font-semibold text-xs mb-1 leading-tight">{classItem.title}</div>
+                              <div className="text-xs opacity-75 mb-1">
+                                📚 {classItem.book}
+                              </div>
+                              <div className="text-xs opacity-75 mb-1">
+                                👨‍🏫 {classItem.teacher}
+                              </div>
+                              <div className="text-xs opacity-75 mb-1">
+                                🏢 {classItem.room}
+                              </div>
+                              <div className="text-xs opacity-75 mb-1">
+                                👥 {classItem.studentsCount}/{classItem.maxStudents}
+                              </div>
+                              <div className="text-xs font-medium">
+                                Dia {classItem.currentDay}/{classItem.totalDays}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Add class button for empty slots or when admin */}
+                        {dayClasses.length === 0 && isAdminView && (
+                          <div 
+                            className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer bg-gray-50 bg-opacity-50"
+                            onClick={() => handleNewClass()}
+                          >
+                            <Button size="sm" variant="outline" className="text-xs">
+                              + Adicionar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Legend */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="font-medium mb-3">Legenda dos Livros</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
+              <span className="text-sm">English Basic - Book 1</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1d4ed8' }}></div>
+              <span className="text-sm">English Basic - Book 2</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#1e40af' }}></div>
+              <span className="text-sm">English Basic - Book 3</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#10b981' }}></div>
+              <span className="text-sm">English Intermediate - Book 1</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#059669' }}></div>
+              <span className="text-sm">English Intermediate - Book 2</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#8b5cf6' }}></div>
+              <span className="text-sm">English Advanced - Book 1</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#f59e0b' }}></div>
+              <span className="text-sm">Español Básico - Libro 1</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#d97706' }}></div>
+              <span className="text-sm">Español Básico - Libro 2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTeacherCalendarView = () => {
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+    const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`);
+
+    // Dados específicos do professor
+    const mockTeacherSchedule = [
+      {
+        id: '1',
+        title: 'Inglês A1 - Manhã',
+        book: 'English Basic - Book 1',
+        bookColor: '#3b82f6',
+        dayOfWeek: 1, // Segunda
+        startTime: '09:00',
+        endTime: '11:00',
+        room: 'Sala 101',
+        currentDay: 5,
+        totalDays: 30,
+        studentsCount: 12,
+        maxStudents: 15
+      },
+      {
+        id: '2',
+        title: 'Inglês A2 - Tarde',
+        book: 'English Basic - Book 2',
+        bookColor: '#1d4ed8',
+        dayOfWeek: 1, // Segunda
+        startTime: '14:00',
+        endTime: '16:00',
+        room: 'Sala 102',
+        currentDay: 8,
+        totalDays: 35,
+        studentsCount: 10,
+        maxStudents: 15
+      },
+      {
+        id: '3',
+        title: 'Inglês A1 - Manhã',
+        book: 'English Basic - Book 1',
+        bookColor: '#3b82f6',
+        dayOfWeek: 3, // Quarta
+        startTime: '09:00',
+        endTime: '11:00',
+        room: 'Sala 101',
+        currentDay: 6,
+        totalDays: 30,
+        studentsCount: 12,
+        maxStudents: 15
+      },
+      {
+        id: '4',
+        title: 'Inglês A2 - Tarde',
+        book: 'English Basic - Book 2',
+        bookColor: '#1d4ed8',
+        dayOfWeek: 3, // Quarta
+        startTime: '14:00',
+        endTime: '16:00',
+        room: 'Sala 102',
+        currentDay: 9,
+        totalDays: 35,
+        studentsCount: 10,
+        maxStudents: 15
+      }
+    ];
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={() => navigateWeek('prev')}>
+              ← Semana Anterior
+            </Button>
+            <h3 className="text-lg font-semibold">
+              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
+            </h3>
+            <Button variant="outline" onClick={() => navigateWeek('next')}>
+              Próxima Semana →
+            </Button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto bg-white rounded-lg border shadow-sm">
+          <div className="grid grid-cols-8 gap-0 min-w-[900px]">
+            {/* Header */}
+            <div className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">Horário</div>
+            {weekDays.map((day) => (
+              <div key={day.toISOString()} className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">
+                <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {format(day, "dd/MM", { locale: ptBR })}
+                </div>
+              </div>
+            ))}
+
+            {/* Time slots */}
+            {timeSlots.map((timeSlot) => {
+              const [hour] = timeSlot.split(':');
+              return (
+                <>
+                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
+                    {timeSlot}
+                  </div>
+                  
+                  {weekDays.map((day) => {
+                    const dayClasses = mockTeacherSchedule.filter(classItem => {
+                      if (classItem.dayOfWeek !== day.getDay()) return false;
+                      const classHour = parseInt(classItem.startTime.split(':')[0]);
+                      return classHour === parseInt(hour);
+                    });
+
+                    return (
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border-b border-r border-gray-100">
                         {dayClasses.map((classItem) => (
                           <div
                             key={classItem.id}
-                            className={`mb-1 last:mb-0 p-2 rounded text-xs cursor-pointer transition-all hover:opacity-80 border`}
+                            className="p-3 rounded-lg text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full"
                             style={{
-                              backgroundColor: classItem.bookColor + '20', // 20% opacity
+                              backgroundColor: classItem.bookColor + '20',
                               borderColor: classItem.bookColor,
                               color: '#000'
                             }}
-                            onClick={() => handleEditClass(classItem)}
-                            data-testid={`class-${classItem.id}`}
+                            onClick={() => handleClassClick(classItem)}
+                            data-testid={`teacher-class-${classItem.id}`}
                           >
-                            <div className="font-medium truncate">{classItem.title}</div>
-                            <div className="text-xs opacity-75">
-                              {classItem.startTime}-{classItem.endTime}
+                            <div className="font-semibold text-sm mb-2">{classItem.title}</div>
+                            <div className="text-xs opacity-75 mb-1">
+                              📚 {classItem.book}
                             </div>
-                            <div className="text-xs opacity-75">{classItem.teacher}</div>
-                            <div className="text-xs opacity-75">{classItem.book}</div>
-                            {classItem.room && (
-                              <div className="text-xs opacity-75">Sala {classItem.room}</div>
-                            )}
-                            {classItem.currentDay && classItem.totalDays && (
-                              <div className="text-xs opacity-75">
-                                Dia {classItem.currentDay}/{classItem.totalDays}
-                              </div>
-                            )}
+                            <div className="text-xs opacity-75 mb-1">
+                              🏢 {classItem.room}
+                            </div>
+                            <div className="text-xs opacity-75 mb-1">
+                              👥 {classItem.studentsCount}/{classItem.maxStudents} alunos
+                            </div>
+                            <div className="text-xs font-medium">
+                              Dia {classItem.currentDay}/{classItem.totalDays}
+                            </div>
                           </div>
                         ))}
                       </div>
                     );
                   })}
-                </div>
+                </>
               );
             })}
           </div>
@@ -498,7 +746,7 @@ export default function Schedule() {
                 <i className="fas fa-plus mr-2"></i>
                 Nova Aula
               </Button>
-              {(user?.role === 'admin' || user?.role === 'secretary') && (
+              {isAdminView && (
                 <Button onClick={handleNewClass} data-testid="button-new-class">
                   <i className="fas fa-users mr-2"></i>
                   Nova Turma
@@ -508,15 +756,11 @@ export default function Schedule() {
           )}
         </div>
 
-        <Tabs defaultValue="today" className="space-y-6">
+        <Tabs defaultValue={isAdminView ? "admin" : "teacher"} className="space-y-6">
           <TabsList>
             <TabsTrigger value="today">Hoje</TabsTrigger>
-            <TabsTrigger value="week">Esta Semana</TabsTrigger>
-            <TabsTrigger value="month">Este Mês</TabsTrigger>
-            <TabsTrigger value="calendar">Calendário</TabsTrigger>
-            {(user?.role === 'admin' || user?.role === 'secretary') && (
-              <TabsTrigger value="admin">Agenda Administrativa</TabsTrigger>
-            )}
+            {isAdminView && <TabsTrigger value="admin">Agenda Administrativa</TabsTrigger>}
+            {user?.role === 'teacher' && <TabsTrigger value="teacher">Minhas Aulas</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="today" className="space-y-4">
@@ -568,9 +812,6 @@ export default function Schedule() {
                           )}
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Badge className={getStatusColor(lesson.status)}>
-                            {getStatusText(lesson.status)}
-                          </Badge>
                           {canManageSchedule && (
                             <Button 
                               variant="outline" 
@@ -591,60 +832,7 @@ export default function Schedule() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="week" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Visualização Semanal</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {renderWeeklyView()}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="month" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Este Mês</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <i className="fas fa-calendar-alt text-muted-foreground text-4xl mb-4"></i>
-                  <p className="text-muted-foreground">Visualização mensal em desenvolvimento</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="calendar" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Calendário</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <i className="fas fa-calendar text-muted-foreground text-4xl mb-4"></i>
-                    <p className="text-muted-foreground">Calendário interativo em desenvolvimento</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Próximas Aulas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <i className="fas fa-list text-muted-foreground text-4xl mb-4"></i>
-                    <p className="text-muted-foreground">Lista de próximas aulas</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {(user?.role === 'admin' || user?.role === 'secretary') && (
+          {isAdminView && (
             <TabsContent value="admin" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -652,26 +840,31 @@ export default function Schedule() {
                     <i className="fas fa-users-cog text-primary"></i>
                     <span>Agenda Administrativa</span>
                     <Badge variant="secondary">
-                      {adminSchedule.length} turmas ativas
+                      Todas as turmas e professores
                     </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {adminSchedule.length === 0 ? (
-                    <div className="text-center py-8">
-                      <i className="fas fa-calendar-times text-muted-foreground text-4xl mb-4"></i>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">Nenhuma turma agendada</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Crie turmas para organizar a agenda administrativa.
-                      </p>
-                      <Button onClick={handleNewClass} data-testid="button-create-first-class">
-                        <i className="fas fa-plus mr-2"></i>
-                        Criar primeira turma
-                      </Button>
-                    </div>
-                  ) : (
-                    renderAdminScheduleView()
-                  )}
+                  {renderAdminCalendarView()}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {user?.role === 'teacher' && (
+            <TabsContent value="teacher" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <i className="fas fa-chalkboard-teacher text-primary"></i>
+                    <span>Minhas Aulas</span>
+                    <Badge variant="secondary">
+                      Prof. Ivan Silva
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderTeacherCalendarView()}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -691,6 +884,13 @@ export default function Schedule() {
         isOpen={isClassModalOpen}
         onClose={handleCloseClassModal}
         classToEdit={editingClass}
+      />
+
+      {/* Class Detail Modal */}
+      <ClassDetailModal
+        isOpen={showClassDetail}
+        onClose={() => setShowClassDetail(false)}
+        classData={selectedClassDetail}
       />
     </Layout>
   );
