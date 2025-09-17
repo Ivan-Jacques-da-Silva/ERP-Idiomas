@@ -6,7 +6,7 @@ interface PageLoaderProps {
   delay?: number;
 }
 
-export function PageLoader({ children, delay = 100 }: PageLoaderProps) {
+export function PageLoader({ children, delay = 30 }: PageLoaderProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export function PageLoader({ children, delay = 100 }: PageLoaderProps) {
 
   return (
     <div 
-      className={`transition-all duration-700 ease-out ${
+      className={`transition-all duration-300 ease-out ${
         isVisible 
           ? 'opacity-100 translate-y-0' 
           : 'opacity-0 translate-y-8'
@@ -67,7 +67,7 @@ export function FadeIn({
 
   return (
     <div 
-      className={`transition-all duration-700 ease-out ${
+      className={`transition-all duration-300 ease-out ${
         isVisible 
           ? 'opacity-100' 
           : 'opacity-0'

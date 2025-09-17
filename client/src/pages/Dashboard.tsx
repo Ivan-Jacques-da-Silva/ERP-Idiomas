@@ -52,8 +52,8 @@ export default function Dashboard() {
   return (
     <Layout>
       <PageLoader>
-        <div className="p-6 space-y-8">
-          <FadeIn delay={200}>
+        <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+          <FadeIn delay={50}>
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center icon-glow">
                 <i className="fas fa-chart-line text-white text-lg"></i>
@@ -69,7 +69,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {isLoading ? (
               Array.from({ length: 4 }).map((_, index) => (
-                <FadeIn key={index} delay={400 + index * 100}>
+                <FadeIn key={index} delay={100 + index * 50}>
                   <div className="bg-card rounded-lg border border-border p-6 animate-pulse">
                     <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
                     <div className="h-8 bg-muted rounded w-1/2 mb-2"></div>
@@ -78,7 +78,7 @@ export default function Dashboard() {
                 </FadeIn>
               ))
             ) : (
-              <StaggeredFadeIn stagger={150}>
+              <StaggeredFadeIn stagger={80}>
                 {[
                   <StatsCard
                     title="Total de Alunos"
@@ -122,10 +122,10 @@ export default function Dashboard() {
           </div>
 
         {/* Main Content Grid */}
-          <FadeIn delay={800}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <FadeIn delay={300}>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
               {/* Schedule Overview */}
-              <div className="lg:col-span-2 glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
+              <div className="xl:col-span-2 glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
             <div className="p-6 border-b border-white/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -196,7 +196,7 @@ export default function Dashboard() {
           </FadeIn>
 
           {/* Quick Actions */}
-          <FadeIn delay={1000}>
+          <FadeIn delay={400}>
             <div className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
           <div className="p-6 border-b border-white/20">
             <div className="flex items-center space-x-3">
@@ -207,7 +207,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
               {(user?.role === 'admin' || user?.role === 'secretary') && (
                 <button 
                   className="p-6 rounded-2xl glassmorphism hover:glassmorphism-card transition-smooth text-left border border-white/20 hover:border-blue-300/50 card-hover"
