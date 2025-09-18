@@ -48,6 +48,14 @@ const requireAdminOrDeveloper = (req: any, res: any, next: any) => {
   return res.status(403).json({ message: "Forbidden - Admin or Developer role required" });
 };
 
+// Middleware to check if user has admin or secretary role
+const requireAdminOrSecretary = (req: any, res: any, next: any) => {
+  if (req.session?.user?.role === 'admin' || req.session?.user?.role === 'secretary') {
+    return next();
+  }
+  return res.status(403).json({ message: "Forbidden - Admin or Secretary role required" });
+};
+
 // Configure multer for file uploads
 const bookUploads = multer({
   storage: multer.diskStorage({
