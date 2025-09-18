@@ -26,13 +26,17 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
   };
 
   const canAccess = (permissionName: string) => {
-    // If user permissions are loading, allow basic access for now
+    // If user permissions are still loading, show loading state (allow access temporarily)
     if (permissionsLoading) {
       return true;
     }
     
     // If user permissions haven't loaded yet or are empty, deny access
     if (!userPermissions || !Array.isArray((userPermissions as any)?.userPermissions)) {
+      // For admin and developer roles, allow all access as fallback
+      if (user?.role === 'admin' || user?.role === 'developer') {
+        return true;
+      }
       return false;
     }
     

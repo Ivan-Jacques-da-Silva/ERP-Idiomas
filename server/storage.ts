@@ -874,13 +874,21 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       };
     }
+    // Try to find the user in the demoUsers array
+    const demoUser = demoUsers.find(u => u.id === id);
+    if (demoUser) {
+      return demoUser;
+    }
+
     return undefined;
   }
 
   async upsertUser(user: UpsertUser): Promise < User > {
     // Demo mode - just log
     console.log('Demo user upserted:', user);
-    return {
+    // In a real app, you'd save this to a database
+    const existingUserIndex = demoUsers.findIndex(u => u.id === user.id);
+    const newUser: User = {
       id: user.id || crypto.randomUUID(),
       email: user.email || null,
       firstName: user.firstName || null,
@@ -892,6 +900,13 @@ export class DatabaseStorage implements IStorage {
       createdAt: user.createdAt || new Date(),
       updatedAt: user.updatedAt || new Date(),
     };
+
+    if (existingUserIndex > -1) {
+      demoUsers[existingUserIndex] = newUser;
+    } else {
+      demoUsers.push(newUser);
+    }
+    return newUser;
   }
 
   // Units
@@ -1803,27 +1818,91 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserWithPermissions(userId: string): Promise<UserWithPermissions | undefined> {
-    const user = demoUsers.find(u => u.id === userId);
-    if (!user) return undefined;
+    try {
+      // Check if it's a demo user first
+      const demoUsersData = [
+        { id: 'user-1', email: 'joao@edumanage.com', firstName: 'João', lastName: 'Silva', role: 'teacher' },
+        { id: 'user-2', email: 'maria@edumanage.com', firstName: 'Maria', lastName: 'Santos', role: 'teacher' },
+        { id: 'user-3', email: 'carlos@edumanage.com', firstName: 'Carlos', lastName: 'Oliveira', role: 'secretary' },
+        { id: 'user-4', email: 'ana@email.com', firstName: 'Ana', lastName: 'Aluno', role: 'student' },
+        { id: 'user-5', email: 'pedro@email.com', firstName: 'Pedro', lastName: 'Fernandes', role: 'student' },
+        { id: 'user-6', email: 'lucia@email.com', firstName: 'Lucia', lastName: 'Martins', role: 'student' },
+        { id: 'user-7', email: 'ana.teacher@edumanage.com', firstName: 'Ana', lastName: 'Costa', role: 'teacher' },
+        { id: 'user-8', email: 'felipe@edumanage.com', firstName: 'Felipe', lastName: 'Rodrigues', role: 'teacher' },
+        { id: 'user-9', email: 'patricia@edumanage.com', firstName: 'Patricia', lastName: 'Lima', role: 'teacher' },
+      ];
 
-    const role = user.roleId ? demoRoles.find(r => r.id === user.roleId) : null;
+      const demoUser = demoUsersData.find(u => u.id === userId);
 
-    const userPermissions = demoUserPermissions
-      .filter(up => up.userId === userId)
-      .map(up => {
-        const permission = demoPermissions.find(p => p.id === up.permissionId);
-        return {
-          ...up,
-          permission: permission!
+      if (demoUser) {
+        // Get role-based permissions for demo user
+        const rolePermissionMap: { [key: string]: string[] } = {
+          admin: ['1', '2', '3', '4', '5', '6', '7', '9'], // All permissions except student area
+          developer: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], // All permissions
+          teacher: ['1', '4', '5', '6'], // Dashboard, Students, Courses, Schedule
+          secretary: ['1', '2', '4', '5', '6'], // Dashboard, Units, Students, Courses, Schedule
+          student: ['1', '8'], // Dashboard and Student area
+          financial: ['1', '7'] // Dashboard and Financial
         };
-      })
-      .filter(up => up.permission); // Only include valid permissions
 
-    return {
-      ...user,
-      role,
-      userPermissions
-    };
+        const rolePermissionIds = rolePermissionMap[demoUser.role] || [];
+
+        const userPermissions = demoPermissions
+          .filter(perm => rolePermissionIds.includes(perm.id))
+          .map(perm => ({
+            permission: perm,
+            isGranted: true
+          }));
+
+        // Find the corresponding role object for displayName
+        const role = demoRoles.find(r => r.name === demoUser.role);
+
+        return {
+          id: demoUser.id,
+          email: demoUser.email,
+          firstName: demoUser.firstName,
+          lastName: demoUser.lastName,
+          profileImageUrl: null, // Assuming demo users don't have images set here
+          role: role || { name: demoUser.role, displayName: demoUser.role, isSystemRole: false, isActive: true, createdAt: new Date(), updatedAt: new Date() }, // Fallback role
+          roleId: role ? role.id : null,
+          isActive: true, // Assuming demo users are active
+          createdAt: new Date(), // Placeholder
+          updatedAt: new Date(), // Placeholder
+          userPermissions,
+        };
+      }
+
+      // If not a demo user, try to find in demoUsers array (this part might need adjustment if demoUsers are not real users)
+      const user = demoUsers.find(u => u.id === userId);
+      if (!user) {
+         return undefined; // Or throw an error if user not found
+      }
+
+      // Get user permissions from the demoUserPermissions array
+      const userPermissions = demoUserPermissions
+        .filter(up => up.userId === userId)
+        .map(up => {
+          const permission = demoPermissions.find(p => p.id === up.permissionId);
+          return {
+            ...up,
+            permission: permission!
+          };
+        })
+        .filter(up => up.permission); // Only include valid permissions
+
+      // Get the role object
+      const role = user.roleId ? demoRoles.find(r => r.id === user.roleId) : null;
+
+
+      return {
+        ...user,
+        role,
+        userPermissions
+      };
+    } catch (error) {
+      console.error("Error fetching user with permissions:", error);
+      throw error;
+    }
   }
 
   async grantUserPermission(userId: string, permissionId: string): Promise<UserPermission> {
