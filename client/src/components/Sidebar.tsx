@@ -26,9 +26,9 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
   };
 
   const canAccess = (permissionName: string) => {
-    // If user permissions are loading, show skeleton/allow basic access
+    // If user permissions are loading, allow basic access for now
     if (permissionsLoading) {
-      return false;
+      return true;
     }
     
     // If user permissions haven't loaded yet or are empty, deny access

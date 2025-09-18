@@ -613,36 +613,53 @@ let demoRoles: Role[] = [
   { id: '2', name: 'teacher', displayName: 'Professor', description: 'Acesso a turmas e agenda', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '3', name: 'secretary', displayName: 'Secretaria', description: 'Gestão de alunos e unidades', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '4', name: 'student', displayName: 'Aluno', description: 'Acesso à área do aluno', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '5', name: 'financial', displayName: 'Financeiro', description: 'Acesso a funcionalidades financeiras', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '6', name: 'developer', displayName: 'Desenvolvedor', description: 'Acesso total ao sistema', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
 ];
 
 // Role permissions demo data
 let demoRolePermissions: RolePermission[] = [
   // Admin - acesso total
-  { id: '1', roleId: '1', permissionId: '1', createdAt: new Date() }, // dashboard
-  { id: '2', roleId: '1', permissionId: '2', createdAt: new Date() }, // unidades
-  { id: '3', roleId: '1', permissionId: '3', createdAt: new Date() }, // colaboradores
-  { id: '4', roleId: '1', permissionId: '4', createdAt: new Date() }, // alunos
-  { id: '5', roleId: '1', permissionId: '5', createdAt: new Date() }, // cursos
-  { id: '6', roleId: '1', permissionId: '6', createdAt: new Date() }, // agenda
-  { id: '7', roleId: '1', permissionId: '7', createdAt: new Date() }, // financeiro
-  { id: '8', roleId: '1', permissionId: '9', createdAt: new Date() }, // configurações
-  
-  // Professor - acesso a turmas e agenda
-  { id: '9', roleId: '2', permissionId: '1', createdAt: new Date() }, // dashboard
-  { id: '10', roleId: '2', permissionId: '4', createdAt: new Date() }, // alunos
-  { id: '11', roleId: '2', permissionId: '5', createdAt: new Date() }, // cursos
-  { id: '12', roleId: '2', permissionId: '6', createdAt: new Date() }, // agenda
-  
-  // Secretaria - gestão de alunos e unidades
-  { id: '13', roleId: '3', permissionId: '1', createdAt: new Date() }, // dashboard
-  { id: '14', roleId: '3', permissionId: '2', createdAt: new Date() }, // unidades
-  { id: '15', roleId: '3', permissionId: '4', createdAt: new Date() }, // alunos
-  { id: '16', roleId: '3', permissionId: '5', createdAt: new Date() }, // cursos
-  { id: '17', roleId: '3', permissionId: '6', createdAt: new Date() }, // agenda
-  
-  // Aluno - apenas dashboard e área do aluno
-  { id: '18', roleId: '4', permissionId: '1', createdAt: new Date() }, // dashboard
-  { id: '19', roleId: '4', permissionId: '8', createdAt: new Date() }, // área do aluno
+  { id: '1', roleId: '1', permissionId: '1', createdAt: new Date() }, // Dashboard
+  { id: '2', roleId: '1', permissionId: '2', createdAt: new Date() }, // Unidades
+  { id: '3', roleId: '1', permissionId: '3', createdAt: new Date() }, // Colaboradores
+  { id: '4', roleId: '1', permissionId: '4', createdAt: new Date() }, // Alunos
+  { id: '5', roleId: '1', permissionId: '5', createdAt: new Date() }, // Cursos
+  { id: '6', roleId: '1', permissionId: '6', createdAt: new Date() }, // Agenda
+  { id: '7', roleId: '1', permissionId: '7', createdAt: new Date() }, // Financeiro
+  { id: '8', roleId: '1', permissionId: '8', createdAt: new Date() }, // Área do Aluno
+  { id: '9', roleId: '1', permissionId: '9', createdAt: new Date() }, // Configurações
+
+  // Teacher - acesso limitado
+  { id: '10', roleId: '2', permissionId: '1', createdAt: new Date() }, // Dashboard
+  { id: '11', roleId: '2', permissionId: '4', createdAt: new Date() }, // Alunos
+  { id: '12', roleId: '2', permissionId: '5', createdAt: new Date() }, // Cursos
+  { id: '13', roleId: '2', permissionId: '6', createdAt: new Date() }, // Agenda
+
+  // Secretary - gestão de alunos e unidades
+  { id: '14', roleId: '3', permissionId: '1', createdAt: new Date() }, // Dashboard
+  { id: '15', roleId: '3', permissionId: '2', createdAt: new Date() }, // Unidades
+  { id: '16', roleId: '3', permissionId: '4', createdAt: new Date() }, // Alunos
+  { id: '17', roleId: '3', permissionId: '5', createdAt: new Date() }, // Cursos
+  { id: '18', roleId: '3', permissionId: '6', createdAt: new Date() }, // Agenda
+
+  // Student - área do aluno apenas
+  { id: '19', roleId: '4', permissionId: '8', createdAt: new Date() }, // Área do Aluno
+
+  // Financial - financeiro e relatórios
+  { id: '20', roleId: '5', permissionId: '1', createdAt: new Date() }, // Dashboard
+  { id: '21', roleId: '5', permissionId: '7', createdAt: new Date() }, // Financeiro
+
+  // Developer - acesso total (igual admin)
+  { id: '22', roleId: '6', permissionId: '1', createdAt: new Date() }, // Dashboard
+  { id: '23', roleId: '6', permissionId: '2', createdAt: new Date() }, // Unidades
+  { id: '24', roleId: '6', permissionId: '3', createdAt: new Date() }, // Colaboradores
+  { id: '25', roleId: '6', permissionId: '4', createdAt: new Date() }, // Alunos
+  { id: '26', roleId: '6', permissionId: '5', createdAt: new Date() }, // Cursos
+  { id: '27', roleId: '6', permissionId: '6', createdAt: new Date() }, // Agenda
+  { id: '28', roleId: '6', permissionId: '7', createdAt: new Date() }, // Financeiro
+  { id: '29', roleId: '6', permissionId: '8', createdAt: new Date() }, // Área do Aluno
+  { id: '30', roleId: '6', permissionId: '9', createdAt: new Date() }, // Configurações
 ];
 
 // User permissions demo data - permissões individuais de usuário
@@ -1247,7 +1264,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Book with ID ${classData.bookId} not found`);
     }
     if (!book.isActive) {
-      throw new Error(`Cannot create class for inactive book: ${book.name}`);
+      throw new Error(`Cannot create class for inactive course: ${book.name}`);
     }
 
     // Validate that the teacher exists and has teacher role
@@ -1665,7 +1682,7 @@ export class DatabaseStorage implements IStorage {
     if (index === -1) throw new Error('Role not found');
 
     const currentRole = demoRoles[index];
-    
+
     // Prevent updating system roles
     if (currentRole.isSystemRole && (roleData.name || roleData.isSystemRole === false)) {
       throw new Error('Cannot modify name or system status of system roles');
@@ -1790,7 +1807,7 @@ export class DatabaseStorage implements IStorage {
     if (!user) return undefined;
 
     const role = user.roleId ? demoRoles.find(r => r.id === user.roleId) : null;
-    
+
     const userPermissions = demoUserPermissions
       .filter(up => up.userId === userId)
       .map(up => {
@@ -1890,51 +1907,51 @@ export class DatabaseStorage implements IStorage {
   // Migration function - sincronizar usuários com permissões baseadas no role atual
   async migrateUsersToIndividualPermissions(): Promise<void> {
     console.log('Iniciando migração de usuários para permissões individuais...');
-    
+
     // Limpar permissões existentes de usuários
     demoUserPermissions.length = 0;
 
     // Para cada usuário, criar permissões baseadas no seu role atual
     for (const user of demoUsers) {
       const userRole = user.role; // Role enum do usuário (mantido para compatibilidade)
-      
+
       if (!userRole) continue;
-      
+
       // Obter permissões do role correspondente
       let rolePermissionIds: string[] = [];
-      
+
       switch (userRole) {
         case 'admin':
         case 'developer':
           // Admin tem acesso a todas as páginas exceto área do aluno
           rolePermissionIds = ['1', '2', '3', '4', '5', '6', '7', '9']; // Dashboard, Unidades, Colaboradores, Alunos, Cursos, Agenda, Financeiro, Configurações
           break;
-          
+
         case 'teacher':
           // Professor tem acesso a dashboard, alunos, cursos e agenda
           rolePermissionIds = ['1', '4', '5', '6']; // Dashboard, Alunos, Cursos, Agenda
           break;
-          
+
         case 'secretary':
           // Secretária tem acesso a dashboard, unidades, alunos, cursos e agenda
           rolePermissionIds = ['1', '2', '4', '5', '6']; // Dashboard, Unidades, Alunos, Cursos, Agenda
           break;
-          
+
         case 'financial':
           // Financeiro tem acesso a dashboard e financeiro
           rolePermissionIds = ['1', '7']; // Dashboard, Financeiro
           break;
-          
+
         case 'student':
           // Aluno tem acesso a dashboard e área do aluno
           rolePermissionIds = ['1', '8']; // Dashboard, Área do Aluno
           break;
-          
+
         default:
           // Role desconhecido, dar apenas dashboard
           rolePermissionIds = ['1']; // Dashboard
       }
-      
+
       // Criar permissões individuais para o usuário
       for (const permissionId of rolePermissionIds) {
         const id = crypto.randomUUID();
@@ -1948,10 +1965,10 @@ export class DatabaseStorage implements IStorage {
         };
         demoUserPermissions.push(userPermission);
       }
-      
+
       console.log(`Usuário ${user.firstName} ${user.lastName} (${userRole}) migrado com ${rolePermissionIds.length} permissões`);
     }
-    
+
     console.log(`Migração concluída! ${demoUsers.length} usuários migrados com ${demoUserPermissions.length} permissões individuais`);
   }
 }
