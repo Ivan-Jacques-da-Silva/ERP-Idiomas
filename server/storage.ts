@@ -56,6 +56,17 @@ let demoUnits: Unit[] = [{
 }, ];
 
 let demoUsers: User[] = [{
+  id: '1', // Admin demo user
+  email: 'admin@demo.com',
+  firstName: 'Admin',
+  lastName: 'Sistema',
+  profileImageUrl: null,
+  role: 'admin',
+  roleId: null,
+  isActive: true,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+}, {
   id: 'user-1',
   email: 'joao@edumanage.com',
   firstName: 'João',
@@ -859,7 +870,13 @@ export class DatabaseStorage implements IStorage {
 
   // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise < User | undefined > {
-    // Demo mode - returning a dummy user for login demonstration
+    // Try to find the user in the demoUsers array (includes admin user with id '1')
+    const demoUser = demoUsers.find(u => u.id === id);
+    if (demoUser) {
+      return demoUser;
+    }
+
+    // Demo mode fallback - returning a dummy user for login demonstration
     if (id === 'demo-user-id') {
       return {
         id: 'demo-user-id',
@@ -867,17 +884,12 @@ export class DatabaseStorage implements IStorage {
         firstName: 'Demo',
         lastName: 'User',
         profileImageUrl: null,
-        role: 'student', // or 'teacher', 'admin'
+        role: 'student',
         roleId: null,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-    }
-    // Try to find the user in the demoUsers array
-    const demoUser = demoUsers.find(u => u.id === id);
-    if (demoUser) {
-      return demoUser;
     }
 
     return undefined;
@@ -1819,85 +1831,43 @@ export class DatabaseStorage implements IStorage {
 
   async getUserWithPermissions(userId: string): Promise<UserWithPermissions | undefined> {
     try {
-      // Check if it's a demo user first
-      const demoUsersData = [
-        { id: 'user-1', email: 'joao@edumanage.com', firstName: 'João', lastName: 'Silva', role: 'teacher' },
-        { id: 'user-2', email: 'maria@edumanage.com', firstName: 'Maria', lastName: 'Santos', role: 'teacher' },
-        { id: 'user-3', email: 'carlos@edumanage.com', firstName: 'Carlos', lastName: 'Oliveira', role: 'secretary' },
-        { id: 'user-4', email: 'ana@email.com', firstName: 'Ana', lastName: 'Aluno', role: 'student' },
-        { id: 'user-5', email: 'pedro@email.com', firstName: 'Pedro', lastName: 'Fernandes', role: 'student' },
-        { id: 'user-6', email: 'lucia@email.com', firstName: 'Lucia', lastName: 'Martins', role: 'student' },
-        { id: 'user-7', email: 'ana.teacher@edumanage.com', firstName: 'Ana', lastName: 'Costa', role: 'teacher' },
-        { id: 'user-8', email: 'felipe@edumanage.com', firstName: 'Felipe', lastName: 'Rodrigues', role: 'teacher' },
-        { id: 'user-9', email: 'patricia@edumanage.com', firstName: 'Patricia', lastName: 'Lima', role: 'teacher' },
-      ];
-
-      const demoUser = demoUsersData.find(u => u.id === userId);
-
-      if (demoUser) {
-        // Get role-based permissions for demo user
-        const rolePermissionMap: { [key: string]: string[] } = {
-          admin: ['1', '2', '3', '4', '5', '6', '7', '9'], // All permissions except student area
-          developer: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], // All permissions
-          teacher: ['1', '4', '5', '6'], // Dashboard, Students, Courses, Schedule
-          secretary: ['1', '2', '4', '5', '6'], // Dashboard, Units, Students, Courses, Schedule
-          student: ['1', '8'], // Dashboard and Student area
-          financial: ['1', '7'] // Dashboard and Financial
-        };
-
-        const rolePermissionIds = rolePermissionMap[demoUser.role] || [];
-
-        const userPermissions = demoPermissions
-          .filter(perm => rolePermissionIds.includes(perm.id))
-          .map(perm => ({
-            permission: perm,
-            isGranted: true
-          }));
-
-        // Find the corresponding role object for displayName
-        const role = demoRoles.find(r => r.name === demoUser.role);
-
-        return {
-          id: demoUser.id,
-          email: demoUser.email,
-          firstName: demoUser.firstName,
-          lastName: demoUser.lastName,
-          profileImageUrl: null, // Assuming demo users don't have images set here
-          role: role || { name: demoUser.role, displayName: demoUser.role, isSystemRole: false, isActive: true, createdAt: new Date(), updatedAt: new Date() }, // Fallback role
-          roleId: role ? role.id : null,
-          isActive: true, // Assuming demo users are active
-          createdAt: new Date(), // Placeholder
-          updatedAt: new Date(), // Placeholder
-          userPermissions,
-        };
-      }
-
-      // If not a demo user, try to find in demoUsers array (this part might need adjustment if demoUsers are not real users)
+      // Find user in demoUsers array (includes the admin user with id '1')
       const user = demoUsers.find(u => u.id === userId);
       if (!user) {
-         return undefined; // Or throw an error if user not found
+        return undefined;
       }
 
-      // Get user permissions from the demoUserPermissions array
-      const userPermissions = demoUserPermissions
-        .filter(up => up.userId === userId)
-        .map(up => {
-          const permission = demoPermissions.find(p => p.id === up.permissionId);
-          return {
-            ...up,
-            permission: permission!
-          };
-        })
-        .filter(up => up.permission); // Only include valid permissions
+      // Get role-based permissions for user
+      const rolePermissionMap: { [key: string]: string[] } = {
+        admin: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], // All permissions including settings
+        developer: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], // All permissions
+        teacher: ['1', '4', '5', '6'], // Dashboard, Students, Courses, Schedule
+        secretary: ['1', '2', '4', '5', '6'], // Dashboard, Units, Students, Courses, Schedule
+        student: ['1', '8'], // Dashboard and Student area
+        financial: ['1', '7'] // Dashboard and Financial
+      };
 
-      // Get the role object
-      const role = user.roleId ? demoRoles.find(r => r.id === user.roleId) : null;
+      const rolePermissionIds = rolePermissionMap[user.role] || [];
 
+      const userPermissions = demoPermissions
+        .filter(perm => rolePermissionIds.includes(perm.id))
+        .map(perm => ({
+          permission: perm,
+          isGranted: true,
+          id: crypto.randomUUID(),
+          userId: user.id,
+          permissionId: perm.id,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }));
+
+      // Find the corresponding role object
+      const role = demoRoles.find(r => r.name === user.role);
 
       return {
         ...user,
-        role,
-        userPermissions
+        role: role || null,
+        userPermissions,
       };
     } catch (error) {
       console.error("Error fetching user with permissions:", error);
@@ -2002,8 +1972,8 @@ export class DatabaseStorage implements IStorage {
       switch (userRole) {
         case 'admin':
         case 'developer':
-          // Admin tem acesso a todas as páginas exceto área do aluno
-          rolePermissionIds = ['1', '2', '3', '4', '5', '6', '7', '9']; // Dashboard, Unidades, Colaboradores, Alunos, Cursos, Agenda, Financeiro, Configurações
+          // Admin tem acesso a todas as páginas incluindo configurações
+          rolePermissionIds = ['1', '2', '3', '4', '5', '6', '7', '8', '9']; // Dashboard, Unidades, Colaboradores, Alunos, Cursos, Agenda, Financeiro, Área do Aluno, Configurações
           break;
 
         case 'teacher':
