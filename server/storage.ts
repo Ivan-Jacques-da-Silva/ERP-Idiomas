@@ -6,6 +6,9 @@ import type {
   InsertClass,
   InsertLesson,
   InsertBook,
+  InsertPermission,
+  InsertRole,
+  InsertRolePermission,
   Unit,
   Staff,
   Student,
@@ -18,7 +21,11 @@ import type {
   StaffWithUser,
   StudentWithUser,
   ClassWithDetails,
-  ClassWithRelations,
+  Permission,
+  Role,
+  RolePermission,
+  RoleWithPermissions,
+  PermissionsByCategory,
 } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
@@ -52,6 +59,7 @@ let demoUsers: User[] = [{
   lastName: 'Silva',
   profileImageUrl: null,
   role: 'teacher',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-01-20'),
   updatedAt: new Date('2024-01-20'),
@@ -62,6 +70,7 @@ let demoUsers: User[] = [{
   lastName: 'Santos',
   profileImageUrl: null,
   role: 'teacher',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-01-22'),
   updatedAt: new Date('2024-01-22'),
@@ -72,6 +81,7 @@ let demoUsers: User[] = [{
   lastName: 'Oliveira',
   profileImageUrl: null,
   role: 'secretary',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-02-01'),
   updatedAt: new Date('2024-02-01'),
@@ -82,6 +92,7 @@ let demoUsers: User[] = [{
   lastName: 'Costa',
   profileImageUrl: null,
   role: 'teacher',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-15'),
@@ -92,6 +103,7 @@ let demoUsers: User[] = [{
   lastName: 'Rodrigues',
   profileImageUrl: null,
   role: 'teacher',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-02-05'),
   updatedAt: new Date('2024-02-05'),
@@ -102,6 +114,7 @@ let demoUsers: User[] = [{
   lastName: 'Lima',
   profileImageUrl: null,
   role: 'teacher',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-01-18'),
   updatedAt: new Date('2024-01-18'),
@@ -112,6 +125,7 @@ let demoUsers: User[] = [{
   lastName: 'Aluno',
   profileImageUrl: null,
   role: 'student',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-01-15'),
@@ -122,6 +136,7 @@ let demoUsers: User[] = [{
   lastName: 'Fernandes',
   profileImageUrl: null,
   role: 'student',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-02-01'),
   updatedAt: new Date('2024-02-01'),
@@ -132,6 +147,7 @@ let demoUsers: User[] = [{
   lastName: 'Martins',
   profileImageUrl: null,
   role: 'student',
+  roleId: null,
   isActive: true,
   createdAt: new Date('2024-01-20'),
   updatedAt: new Date('2024-01-20'),
@@ -574,6 +590,86 @@ let demoLessons: Lesson[] = [{
   updatedAt: new Date('2024-02-27'),
 }, ];
 
+// Permissions demo data
+let demoPermissions: Permission[] = [
+  // Dashboard permissions
+  { id: '1', name: 'access_dashboard', displayName: 'Acesso ao Dashboard', description: 'Visualizar dashboard principal', category: 'dashboard', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  
+  // Units permissions
+  { id: '2', name: 'access_units', displayName: 'Acesso a Unidades', description: 'Visualizar unidades', category: 'units', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '3', name: 'manage_units', displayName: 'Gerenciar Unidades', description: 'Criar, editar e excluir unidades', category: 'units', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  
+  // Staff permissions
+  { id: '4', name: 'access_staff', displayName: 'Acesso a Colaboradores', description: 'Visualizar colaboradores', category: 'staff', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '5', name: 'manage_staff', displayName: 'Gerenciar Colaboradores', description: 'Criar, editar e excluir colaboradores', category: 'staff', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  
+  // Students permissions
+  { id: '6', name: 'access_students', displayName: 'Acesso a Alunos', description: 'Visualizar alunos', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '7', name: 'manage_students', displayName: 'Gerenciar Alunos', description: 'Criar, editar e excluir alunos', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  
+  // Courses permissions
+  { id: '8', name: 'access_courses', displayName: 'Acesso a Cursos', description: 'Visualizar cursos', category: 'courses', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '9', name: 'manage_courses', displayName: 'Gerenciar Cursos', description: 'Criar, editar e excluir cursos', category: 'courses', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  
+  // Schedule permissions
+  { id: '10', name: 'access_schedule', displayName: 'Acesso a Agenda', description: 'Visualizar agenda e aulas', category: 'schedule', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '11', name: 'manage_schedule', displayName: 'Gerenciar Agenda', description: 'Criar, editar e excluir aulas', category: 'schedule', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  
+  // Financial permissions
+  { id: '12', name: 'access_financial', displayName: 'Acesso ao Financeiro', description: 'Visualizar dados financeiros', category: 'financial', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '13', name: 'manage_financial', displayName: 'Gerenciar Financeiro', description: 'Gerenciar dados financeiros', category: 'financial', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  
+  // System permissions
+  { id: '14', name: 'access_permissions', displayName: 'Acesso a Permissões', description: 'Visualizar sistema de permissões', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '15', name: 'manage_permissions', displayName: 'Gerenciar Permissões', description: 'Configurar permissões e roles', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+];
+
+// Roles demo data - roles fixos conforme solicitado
+let demoRoles: Role[] = [
+  { id: '1', name: 'admin', displayName: 'Administrativo', description: 'Acesso total ao sistema', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '2', name: 'teacher', displayName: 'Professor', description: 'Acesso a turmas e agenda', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '3', name: 'secretary', displayName: 'Secretaria', description: 'Gestão de alunos e unidades', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '4', name: 'student', displayName: 'Aluno', description: 'Acesso à área do aluno', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+];
+
+// Role permissions demo data
+let demoRolePermissions: RolePermission[] = [
+  // Admin - acesso total
+  { id: '1', roleId: '1', permissionId: '1', createdAt: new Date() },
+  { id: '2', roleId: '1', permissionId: '2', createdAt: new Date() },
+  { id: '3', roleId: '1', permissionId: '3', createdAt: new Date() },
+  { id: '4', roleId: '1', permissionId: '4', createdAt: new Date() },
+  { id: '5', roleId: '1', permissionId: '5', createdAt: new Date() },
+  { id: '6', roleId: '1', permissionId: '6', createdAt: new Date() },
+  { id: '7', roleId: '1', permissionId: '7', createdAt: new Date() },
+  { id: '8', roleId: '1', permissionId: '8', createdAt: new Date() },
+  { id: '9', roleId: '1', permissionId: '9', createdAt: new Date() },
+  { id: '10', roleId: '1', permissionId: '10', createdAt: new Date() },
+  { id: '11', roleId: '1', permissionId: '11', createdAt: new Date() },
+  { id: '12', roleId: '1', permissionId: '12', createdAt: new Date() },
+  { id: '13', roleId: '1', permissionId: '13', createdAt: new Date() },
+  { id: '14', roleId: '1', permissionId: '14', createdAt: new Date() },
+  { id: '15', roleId: '1', permissionId: '15', createdAt: new Date() },
+  
+  // Professor - acesso a turmas e agenda
+  { id: '16', roleId: '2', permissionId: '1', createdAt: new Date() }, // dashboard
+  { id: '17', roleId: '2', permissionId: '6', createdAt: new Date() }, // access_students
+  { id: '18', roleId: '2', permissionId: '8', createdAt: new Date() }, // access_courses
+  { id: '19', roleId: '2', permissionId: '10', createdAt: new Date() }, // access_schedule
+  { id: '20', roleId: '2', permissionId: '11', createdAt: new Date() }, // manage_schedule
+  
+  // Secretaria - gestão de alunos e unidades
+  { id: '21', roleId: '3', permissionId: '1', createdAt: new Date() }, // dashboard
+  { id: '22', roleId: '3', permissionId: '2', createdAt: new Date() }, // access_units
+  { id: '23', roleId: '3', permissionId: '6', createdAt: new Date() }, // access_students
+  { id: '24', roleId: '3', permissionId: '7', createdAt: new Date() }, // manage_students
+  { id: '25', roleId: '3', permissionId: '8', createdAt: new Date() }, // access_courses
+  { id: '26', roleId: '3', permissionId: '10', createdAt: new Date() }, // access_schedule
+  
+  // Aluno - apenas dashboard básico
+  { id: '27', roleId: '4', permissionId: '1', createdAt: new Date() }, // dashboard
+];
+
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise < User | undefined > ;
@@ -617,7 +713,7 @@ export interface IStorage {
   // Classes
   getClasses(): Promise < ClassWithDetails[] > ;
   getClass(id: string): Promise < ClassWithDetails | undefined > ;
-  getClassesByTeacher(teacherId: string): Promise < ClassWithRelations[] > ;
+  getClassesByTeacher(teacherId: string): Promise < ClassWithDetails[] > ;
   createClass(classData: InsertClass): Promise < Class > ;
   updateClass(id: string, classData: Partial < InsertClass > ): Promise < Class > ;
   deleteClass(id: string): Promise < void > ;
@@ -640,6 +736,28 @@ export interface IStorage {
     todaysClasses: number;
     monthlyRevenue: number;
   } > ;
+
+  // Permissions
+  getPermissions(): Promise<Permission[]>;
+  getPermission(id: string): Promise<Permission | undefined>;
+  getPermissionsByCategory(): Promise<PermissionsByCategory>;
+  createPermission(permission: InsertPermission): Promise<Permission>;
+  updatePermission(id: string, permission: Partial<InsertPermission>): Promise<Permission>;
+  deletePermission(id: string): Promise<void>;
+
+  // Roles
+  getRoles(): Promise<Role[]>;
+  getRole(id: string): Promise<Role | undefined>;
+  getRoleWithPermissions(id: string): Promise<RoleWithPermissions | undefined>;
+  createRole(role: InsertRole): Promise<Role>;
+  updateRole(id: string, role: Partial<InsertRole>): Promise<Role>;
+  deleteRole(id: string): Promise<void>;
+
+  // Role Permissions
+  getRolePermissions(roleId: string): Promise<RolePermission[]>;
+  addPermissionToRole(roleId: string, permissionId: string): Promise<RolePermission>;
+  removePermissionFromRole(roleId: string, permissionId: string): Promise<void>;
+  updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -747,6 +865,7 @@ export class DatabaseStorage implements IStorage {
         lastName: 'User',
         profileImageUrl: null,
         role: 'student', // or 'teacher', 'admin'
+        roleId: null,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -765,6 +884,7 @@ export class DatabaseStorage implements IStorage {
       lastName: user.lastName || null,
       profileImageUrl: user.profileImageUrl || null,
       role: user.role || 'student',
+      roleId: user.roleId || null,
       isActive: user.isActive ?? true,
       createdAt: user.createdAt || new Date(),
       updatedAt: user.updatedAt || new Date(),
@@ -1115,7 +1235,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getClassesByTeacher(teacherId: string): Promise < ClassWithRelations[] > {
+  async getClassesByTeacher(teacherId: string): Promise < ClassWithDetails[] > {
     const classes = demoClasses.filter(cls => cls.teacherId === teacherId && cls.isActive);
 
     return classes.map(cls => {
@@ -1126,9 +1246,10 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...cls,
-        book: book ? { ...book, course: course || demoCourses[0] } : demoBooks[0],
+        book: book ? { ...book, course: course || demoCourses[0] } : { ...demoBooks[0], course: demoCourses[0] },
         unit: unit || demoUnits[0],
-        teacher: teacher
+        teacher: teacher,
+        enrollments: []
       };
     });
   }
@@ -1395,6 +1516,282 @@ export class DatabaseStorage implements IStorage {
       todaysClasses: todaysLessons,
       monthlyRevenue: 47200, // Placeholder - would calculate from payments table
     };
+  }
+
+  // Permissions
+  async getPermissions(): Promise<Permission[]> {
+    return [...demoPermissions]
+      .filter(p => p.isActive)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  async getPermission(id: string): Promise<Permission | undefined> {
+    return demoPermissions.find(p => p.id === id);
+  }
+
+  async getPermissionsByCategory(): Promise<PermissionsByCategory> {
+    const permissions = await this.getPermissions();
+    const categorized: PermissionsByCategory = {
+      dashboard: [],
+      units: [],
+      staff: [],
+      students: [],
+      courses: [],
+      schedule: [],
+      financial: [],
+      system: []
+    };
+
+    permissions.forEach(permission => {
+      categorized[permission.category].push(permission);
+    });
+
+    return categorized;
+  }
+
+  async createPermission(permissionData: InsertPermission): Promise<Permission> {
+    // Check if permission name already exists (case-insensitive)
+    const existingPermission = demoPermissions.find(p => p.name.toLowerCase() === permissionData.name.toLowerCase());
+    if (existingPermission) {
+      throw new Error(`Permission with name "${permissionData.name}" already exists`);
+    }
+
+    const id = crypto.randomUUID();
+    const newPermission: Permission = {
+      id,
+      name: permissionData.name,
+      displayName: permissionData.displayName,
+      description: permissionData.description || null,
+      category: permissionData.category,
+      isActive: permissionData.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    demoPermissions.push(newPermission);
+    return newPermission;
+  }
+
+  async updatePermission(id: string, permissionData: Partial<InsertPermission>): Promise<Permission> {
+    const index = demoPermissions.findIndex(p => p.id === id);
+    if (index === -1) throw new Error('Permission not found');
+
+    // Check if name is being updated and already exists in another permission (case-insensitive)
+    if (permissionData.name) {
+      const existingPermission = demoPermissions.find(p => p.name.toLowerCase() === permissionData.name!.toLowerCase() && p.id !== id);
+      if (existingPermission) {
+        throw new Error(`Permission with name "${permissionData.name}" already exists`);
+      }
+    }
+
+    const updatedPermission = {
+      ...demoPermissions[index],
+      ...permissionData,
+      updatedAt: new Date(),
+    };
+    demoPermissions[index] = updatedPermission;
+    return updatedPermission;
+  }
+
+  async deletePermission(id: string): Promise<void> {
+    const permission = demoPermissions.find(p => p.id === id);
+    if (!permission) throw new Error('Permission not found');
+
+    // Check if permission is referenced by any role
+    const referencingRolePermissions = demoRolePermissions.filter(rp => rp.permissionId === id);
+    if (referencingRolePermissions.length > 0) {
+      const roles = referencingRolePermissions.map(rp => {
+        const role = demoRoles.find(r => r.id === rp.roleId);
+        return role ? role.displayName : 'Unknown Role';
+      }).join(', ');
+      throw new Error(`Cannot delete permission: it is assigned to the following roles: ${roles}`);
+    }
+
+    // Remove permission from all roles (cascade cleanup)
+    demoRolePermissions = demoRolePermissions.filter(rp => rp.permissionId !== id);
+
+    const index = demoPermissions.findIndex(p => p.id === id);
+    if (index !== -1) {
+      demoPermissions.splice(index, 1);
+    }
+  }
+
+  // Roles
+  async getRoles(): Promise<Role[]> {
+    return [...demoRoles]
+      .filter(r => r.isActive)
+      .sort((a, b) => {
+        // System roles first, then custom roles, both alphabetically
+        if (a.isSystemRole && !b.isSystemRole) return -1;
+        if (!a.isSystemRole && b.isSystemRole) return 1;
+        return a.displayName.localeCompare(b.displayName);
+      });
+  }
+
+  async getRole(id: string): Promise<Role | undefined> {
+    return demoRoles.find(r => r.id === id);
+  }
+
+  async getRoleWithPermissions(id: string): Promise<RoleWithPermissions | undefined> {
+    const role = demoRoles.find(r => r.id === id);
+    if (!role) return undefined;
+
+    const rolePermissions = demoRolePermissions
+      .filter(rp => rp.roleId === id)
+      .map(rp => {
+        const permission = demoPermissions.find(p => p.id === rp.permissionId);
+        return {
+          ...rp,
+          permission: permission!
+        };
+      })
+      .filter(rp => rp.permission); // Only include valid permissions
+
+    return {
+      ...role,
+      rolePermissions
+    };
+  }
+
+  async createRole(roleData: InsertRole): Promise<Role> {
+    // Check if role name already exists (case-insensitive)
+    const existingRole = demoRoles.find(r => r.name.toLowerCase() === roleData.name.toLowerCase());
+    if (existingRole) {
+      throw new Error(`Role with name "${roleData.name}" already exists`);
+    }
+
+    const id = crypto.randomUUID();
+    const newRole: Role = {
+      id,
+      name: roleData.name,
+      displayName: roleData.displayName,
+      description: roleData.description || null,
+      isSystemRole: roleData.isSystemRole ?? false,
+      isActive: roleData.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    demoRoles.push(newRole);
+    return newRole;
+  }
+
+  async updateRole(id: string, roleData: Partial<InsertRole>): Promise<Role> {
+    const index = demoRoles.findIndex(r => r.id === id);
+    if (index === -1) throw new Error('Role not found');
+
+    const currentRole = demoRoles[index];
+    
+    // Prevent updating system roles
+    if (currentRole.isSystemRole && (roleData.name || roleData.isSystemRole === false)) {
+      throw new Error('Cannot modify name or system status of system roles');
+    }
+
+    // Check if name is being updated and already exists in another role (case-insensitive)
+    if (roleData.name) {
+      const existingRole = demoRoles.find(r => r.name.toLowerCase() === roleData.name!.toLowerCase() && r.id !== id);
+      if (existingRole) {
+        throw new Error(`Role with name "${roleData.name}" already exists`);
+      }
+    }
+
+    const updatedRole = {
+      ...currentRole,
+      ...roleData,
+      updatedAt: new Date(),
+    };
+    demoRoles[index] = updatedRole;
+    return updatedRole;
+  }
+
+  async deleteRole(id: string): Promise<void> {
+    const role = demoRoles.find(r => r.id === id);
+    if (!role) throw new Error('Role not found');
+
+    // Prevent deleting system roles
+    if (role.isSystemRole) {
+      throw new Error('Cannot delete system roles');
+    }
+
+    // Set roleId to null for users assigned to this role (cascade cleanup)
+    demoUsers.forEach(user => {
+      if (user.roleId === id) {
+        user.roleId = null;
+        user.updatedAt = new Date();
+      }
+    });
+
+    // Remove all role permissions (cascade cleanup)
+    demoRolePermissions = demoRolePermissions.filter(rp => rp.roleId !== id);
+
+    // Remove the role
+    const index = demoRoles.findIndex(r => r.id === id);
+    if (index !== -1) {
+      demoRoles.splice(index, 1);
+    }
+  }
+
+  // Role Permissions
+  async getRolePermissions(roleId: string): Promise<RolePermission[]> {
+    return demoRolePermissions.filter(rp => rp.roleId === roleId);
+  }
+
+  async addPermissionToRole(roleId: string, permissionId: string): Promise<RolePermission> {
+    // Check if role exists
+    const role = demoRoles.find(r => r.id === roleId);
+    if (!role) throw new Error('Role not found');
+
+    // Check if permission exists
+    const permission = demoPermissions.find(p => p.id === permissionId);
+    if (!permission) throw new Error('Permission not found');
+
+    // Check if permission is already assigned to role
+    const existingRolePermission = demoRolePermissions.find(rp => rp.roleId === roleId && rp.permissionId === permissionId);
+    if (existingRolePermission) {
+      throw new Error('Permission is already assigned to this role');
+    }
+
+    const id = crypto.randomUUID();
+    const newRolePermission: RolePermission = {
+      id,
+      roleId,
+      permissionId,
+      createdAt: new Date(),
+    };
+    demoRolePermissions.push(newRolePermission);
+    return newRolePermission;
+  }
+
+  async removePermissionFromRole(roleId: string, permissionId: string): Promise<void> {
+    const index = demoRolePermissions.findIndex(rp => rp.roleId === roleId && rp.permissionId === permissionId);
+    if (index !== -1) {
+      demoRolePermissions.splice(index, 1);
+    }
+  }
+
+  async updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
+    // Check if role exists
+    const role = demoRoles.find(r => r.id === roleId);
+    if (!role) throw new Error('Role not found');
+
+    // Check if all permissions exist
+    for (const permissionId of permissionIds) {
+      const permission = demoPermissions.find(p => p.id === permissionId);
+      if (!permission) throw new Error(`Permission with id ${permissionId} not found`);
+    }
+
+    // Remove all current permissions for this role
+    demoRolePermissions = demoRolePermissions.filter(rp => rp.roleId !== roleId);
+
+    // Add new permissions
+    for (const permissionId of permissionIds) {
+      const id = crypto.randomUUID();
+      const newRolePermission: RolePermission = {
+        id,
+        roleId,
+        permissionId,
+        createdAt: new Date(),
+      };
+      demoRolePermissions.push(newRolePermission);
+    }
   }
 }
 
