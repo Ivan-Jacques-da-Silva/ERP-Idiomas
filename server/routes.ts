@@ -24,6 +24,10 @@ const updateRolePermissionsSchema = z.object({
   permissionIds: z.array(z.string().uuid("Invalid permission ID format"))
 });
 
+const updateUserPermissionsSchema = z.object({
+  permissionIds: z.array(z.string())
+});
+
 // Simple demo users for login
 const demoUsers = [
   { id: '1', email: 'admin@demo.com', password: 'admin123', firstName: 'Ivan', lastName: 'Silva', role: 'admin' },
@@ -55,6 +59,14 @@ const requireAdmin = (req: any, res: any, next: any) => {
     return next();
   }
   return res.status(403).json({ message: "Forbidden - Admin role required" });
+};
+
+// Middleware to check if user has admin or developer role
+const requireAdminOrDeveloper = (req: any, res: any, next: any) => {
+  if (req.session?.user?.role === 'admin' || req.session?.user?.role === 'developer') {
+    return next();
+  }
+  return res.status(403).json({ message: "Forbidden - Admin or Developer role required" });
 };
 
 // Configure multer for file uploads
@@ -716,7 +728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Permissions routes
-  app.get("/api/permissions", isAuthenticated, requireAdmin, async (req, res) => {
+  app.get("/api/permissions", isAuthenticated, requireAdminOrDeveloper, async (req, res) => {
     try {
       const permissions = await storage.getPermissions();
       res.json(permissions);
@@ -963,6 +975,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Role permission not found" });
       }
       res.status(500).json({ message: "Failed to remove role permission" });
+    }
+  });
+
+  // User permissions routes - individual user permissions management
+  app.get("/api/users/:id/permissions", isAuthenticated, requireAdminOrDeveloper, async (req, res) => {
+    try {
+      const userWithPermissions = await storage.getUserWithPermissions(req.params.id);
+      if (!userWithPermissions) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(userWithPermissions);
+    } catch (error) {
+      console.error("Error fetching user permissions:", error);
+      res.status(500).json({ message: "Failed to fetch user permissions" });
+    }
+  });
+
+  app.put("/api/users/:id/permissions", isAuthenticated, requireAdminOrDeveloper, async (req, res) => {
+    try {
+      const { permissionIds } = updateUserPermissionsSchema.parse(req.body);
+      
+      // Validate that all permission IDs exist
+      if (permissionIds.length > 0) {
+        const allPermissions = await storage.getPermissions();
+        const validPermissionIds = allPermissions.map(p => p.id);
+        const invalidIds = permissionIds.filter(id => !validPermissionIds.includes(id));
+        
+        if (invalidIds.length > 0) {
+          return res.status(400).json({ 
+            message: "Invalid permission IDs provided", 
+            invalidIds 
+          });
+        }
+      }
+      
+      await storage.updateUserPermissions(req.params.id, permissionIds);
+      
+      // Return updated user permissions
+      const updatedUserPermissions = await storage.getUserWithPermissions(req.params.id);
+      res.json(updatedUserPermissions);
+    } catch (error: any) {
+      console.error("Error updating user permissions:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.status(500).json({ message: "Failed to update user permissions" });
     }
   });
 

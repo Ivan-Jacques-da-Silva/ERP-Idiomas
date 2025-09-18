@@ -216,9 +216,22 @@ export const lessons = pgTable("lessons", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// User permissions table - permissões individuais por usuário baseadas nas páginas do menu
+export const userPermissions = pgTable("user_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  permissionId: varchar("permission_id").references(() => permissions.id, { onDelete: 'cascade' }).notNull(),
+  isGranted: boolean("is_granted").default(true).notNull(), // permite negação explícita de permissão
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("UQ_user_permission").on(table.userId, table.permissionId),
+]);
+
 // Relations
 export const permissionsRelations = relations(permissions, ({ many }) => ({
   rolePermissions: many(rolePermissions),
+  userPermissions: many(userPermissions),
 }));
 
 export const rolesRelations = relations(roles, ({ many }) => ({
@@ -233,6 +246,17 @@ export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => 
   }),
   permission: one(permissions, {
     fields: [rolePermissions.permissionId],
+    references: [permissions.id],
+  }),
+}));
+
+export const userPermissionsRelations = relations(userPermissions, ({ one }) => ({
+  user: one(users, {
+    fields: [userPermissions.userId],
+    references: [users.id],
+  }),
+  permission: one(permissions, {
+    fields: [userPermissions.permissionId],
     references: [permissions.id],
   }),
 }));
@@ -252,6 +276,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
   teachingClasses: many(classes),
   managedUnits: many(units),
+  userPermissions: many(userPermissions),
 }));
 
 export const unitsRelations = relations(units, ({ one, many }) => ({
@@ -401,6 +426,12 @@ export const insertRolePermissionSchema = createInsertSchema(rolePermissions).om
   createdAt: true,
 });
 
+export const insertUserPermissionSchema = createInsertSchema(userPermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -415,6 +446,7 @@ export type InsertBook = z.infer<typeof insertBookSchema>;
 export type InsertPermission = z.infer<typeof insertPermissionSchema>;
 export type InsertRole = z.infer<typeof insertRoleSchema>;
 export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
+export type InsertUserPermission = z.infer<typeof insertUserPermissionSchema>;
 
 export type Unit = typeof units.$inferSelect;
 export type Staff = typeof staff.$inferSelect;
@@ -427,9 +459,14 @@ export type ClassEnrollment = typeof classEnrollments.$inferSelect;
 export type Permission = typeof permissions.$inferSelect;
 export type Role = typeof roles.$inferSelect;
 export type RolePermission = typeof rolePermissions.$inferSelect;
+export type UserPermission = typeof userPermissions.$inferSelect;
 
 // Extended types with relations
 export type UserWithRole = User & { role: Role | null };
+export type UserWithPermissions = User & { 
+  role: Role | null;
+  userPermissions: (UserPermission & { permission: Permission })[];
+};
 export type StaffWithUser = Staff & { user: User };
 export type StudentWithUser = Student & { user: User };
 export type ClassWithDetails = Class & { 

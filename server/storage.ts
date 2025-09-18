@@ -9,6 +9,7 @@ import type {
   InsertPermission,
   InsertRole,
   InsertRolePermission,
+  InsertUserPermission,
   Unit,
   Staff,
   Student,
@@ -24,7 +25,9 @@ import type {
   Permission,
   Role,
   RolePermission,
+  UserPermission,
   RoleWithPermissions,
+  UserWithPermissions,
   PermissionsByCategory,
 } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -590,38 +593,18 @@ let demoLessons: Lesson[] = [{
   updatedAt: new Date('2024-02-27'),
 }, ];
 
-// Permissions demo data
+// Permissions demo data - baseado nas páginas do menu
 let demoPermissions: Permission[] = [
-  // Dashboard permissions
-  { id: '1', name: 'access_dashboard', displayName: 'Acesso ao Dashboard', description: 'Visualizar dashboard principal', category: 'dashboard', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  
-  // Units permissions
-  { id: '2', name: 'access_units', displayName: 'Acesso a Unidades', description: 'Visualizar unidades', category: 'units', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '3', name: 'manage_units', displayName: 'Gerenciar Unidades', description: 'Criar, editar e excluir unidades', category: 'units', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  
-  // Staff permissions
-  { id: '4', name: 'access_staff', displayName: 'Acesso a Colaboradores', description: 'Visualizar colaboradores', category: 'staff', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '5', name: 'manage_staff', displayName: 'Gerenciar Colaboradores', description: 'Criar, editar e excluir colaboradores', category: 'staff', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  
-  // Students permissions
-  { id: '6', name: 'access_students', displayName: 'Acesso a Alunos', description: 'Visualizar alunos', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '7', name: 'manage_students', displayName: 'Gerenciar Alunos', description: 'Criar, editar e excluir alunos', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  
-  // Courses permissions
-  { id: '8', name: 'access_courses', displayName: 'Acesso a Cursos', description: 'Visualizar cursos', category: 'courses', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '9', name: 'manage_courses', displayName: 'Gerenciar Cursos', description: 'Criar, editar e excluir cursos', category: 'courses', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  
-  // Schedule permissions
-  { id: '10', name: 'access_schedule', displayName: 'Acesso a Agenda', description: 'Visualizar agenda e aulas', category: 'schedule', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '11', name: 'manage_schedule', displayName: 'Gerenciar Agenda', description: 'Criar, editar e excluir aulas', category: 'schedule', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  
-  // Financial permissions
-  { id: '12', name: 'access_financial', displayName: 'Acesso ao Financeiro', description: 'Visualizar dados financeiros', category: 'financial', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '13', name: 'manage_financial', displayName: 'Gerenciar Financeiro', description: 'Gerenciar dados financeiros', category: 'financial', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  
-  // System permissions
-  { id: '14', name: 'access_permissions', displayName: 'Acesso a Permissões', description: 'Visualizar sistema de permissões', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '15', name: 'manage_permissions', displayName: 'Gerenciar Permissões', description: 'Configurar permissões e roles', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  // Páginas principais do menu
+  { id: '1', name: 'access_dashboard', displayName: 'Dashboard', description: 'Acesso à página Dashboard', category: 'dashboard', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '2', name: 'access_units', displayName: 'Unidades', description: 'Acesso à página de Unidades', category: 'units', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '3', name: 'access_staff', displayName: 'Colaboradores', description: 'Acesso à página de Colaboradores', category: 'staff', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '4', name: 'access_students', displayName: 'Alunos', description: 'Acesso à página de Alunos', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '5', name: 'access_courses', displayName: 'Cursos', description: 'Acesso à página de Cursos', category: 'courses', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '6', name: 'access_schedule', displayName: 'Agenda', description: 'Acesso à página de Agenda', category: 'schedule', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '7', name: 'access_financial', displayName: 'Financeiro', description: 'Acesso à página Financeiro', category: 'financial', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '8', name: 'access_student_area', displayName: 'Área do Aluno', description: 'Acesso à Área do Aluno', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '9', name: 'access_settings', displayName: 'Configurações', description: 'Acesso às Configurações do sistema', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
 ];
 
 // Roles demo data - roles fixos conforme solicitado
@@ -635,40 +618,35 @@ let demoRoles: Role[] = [
 // Role permissions demo data
 let demoRolePermissions: RolePermission[] = [
   // Admin - acesso total
-  { id: '1', roleId: '1', permissionId: '1', createdAt: new Date() },
-  { id: '2', roleId: '1', permissionId: '2', createdAt: new Date() },
-  { id: '3', roleId: '1', permissionId: '3', createdAt: new Date() },
-  { id: '4', roleId: '1', permissionId: '4', createdAt: new Date() },
-  { id: '5', roleId: '1', permissionId: '5', createdAt: new Date() },
-  { id: '6', roleId: '1', permissionId: '6', createdAt: new Date() },
-  { id: '7', roleId: '1', permissionId: '7', createdAt: new Date() },
-  { id: '8', roleId: '1', permissionId: '8', createdAt: new Date() },
-  { id: '9', roleId: '1', permissionId: '9', createdAt: new Date() },
-  { id: '10', roleId: '1', permissionId: '10', createdAt: new Date() },
-  { id: '11', roleId: '1', permissionId: '11', createdAt: new Date() },
-  { id: '12', roleId: '1', permissionId: '12', createdAt: new Date() },
-  { id: '13', roleId: '1', permissionId: '13', createdAt: new Date() },
-  { id: '14', roleId: '1', permissionId: '14', createdAt: new Date() },
-  { id: '15', roleId: '1', permissionId: '15', createdAt: new Date() },
+  { id: '1', roleId: '1', permissionId: '1', createdAt: new Date() }, // dashboard
+  { id: '2', roleId: '1', permissionId: '2', createdAt: new Date() }, // unidades
+  { id: '3', roleId: '1', permissionId: '3', createdAt: new Date() }, // colaboradores
+  { id: '4', roleId: '1', permissionId: '4', createdAt: new Date() }, // alunos
+  { id: '5', roleId: '1', permissionId: '5', createdAt: new Date() }, // cursos
+  { id: '6', roleId: '1', permissionId: '6', createdAt: new Date() }, // agenda
+  { id: '7', roleId: '1', permissionId: '7', createdAt: new Date() }, // financeiro
+  { id: '8', roleId: '1', permissionId: '9', createdAt: new Date() }, // configurações
   
   // Professor - acesso a turmas e agenda
-  { id: '16', roleId: '2', permissionId: '1', createdAt: new Date() }, // dashboard
-  { id: '17', roleId: '2', permissionId: '6', createdAt: new Date() }, // access_students
-  { id: '18', roleId: '2', permissionId: '8', createdAt: new Date() }, // access_courses
-  { id: '19', roleId: '2', permissionId: '10', createdAt: new Date() }, // access_schedule
-  { id: '20', roleId: '2', permissionId: '11', createdAt: new Date() }, // manage_schedule
+  { id: '9', roleId: '2', permissionId: '1', createdAt: new Date() }, // dashboard
+  { id: '10', roleId: '2', permissionId: '4', createdAt: new Date() }, // alunos
+  { id: '11', roleId: '2', permissionId: '5', createdAt: new Date() }, // cursos
+  { id: '12', roleId: '2', permissionId: '6', createdAt: new Date() }, // agenda
   
   // Secretaria - gestão de alunos e unidades
-  { id: '21', roleId: '3', permissionId: '1', createdAt: new Date() }, // dashboard
-  { id: '22', roleId: '3', permissionId: '2', createdAt: new Date() }, // access_units
-  { id: '23', roleId: '3', permissionId: '6', createdAt: new Date() }, // access_students
-  { id: '24', roleId: '3', permissionId: '7', createdAt: new Date() }, // manage_students
-  { id: '25', roleId: '3', permissionId: '8', createdAt: new Date() }, // access_courses
-  { id: '26', roleId: '3', permissionId: '10', createdAt: new Date() }, // access_schedule
+  { id: '13', roleId: '3', permissionId: '1', createdAt: new Date() }, // dashboard
+  { id: '14', roleId: '3', permissionId: '2', createdAt: new Date() }, // unidades
+  { id: '15', roleId: '3', permissionId: '4', createdAt: new Date() }, // alunos
+  { id: '16', roleId: '3', permissionId: '5', createdAt: new Date() }, // cursos
+  { id: '17', roleId: '3', permissionId: '6', createdAt: new Date() }, // agenda
   
-  // Aluno - apenas dashboard básico
-  { id: '27', roleId: '4', permissionId: '1', createdAt: new Date() }, // dashboard
+  // Aluno - apenas dashboard e área do aluno
+  { id: '18', roleId: '4', permissionId: '1', createdAt: new Date() }, // dashboard
+  { id: '19', roleId: '4', permissionId: '8', createdAt: new Date() }, // área do aluno
 ];
+
+// User permissions demo data - permissões individuais de usuário
+let demoUserPermissions: UserPermission[] = [];
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -758,6 +736,14 @@ export interface IStorage {
   addPermissionToRole(roleId: string, permissionId: string): Promise<RolePermission>;
   removePermissionFromRole(roleId: string, permissionId: string): Promise<void>;
   updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void>;
+
+  // User Permissions - permissões individuais por usuário
+  getUserPermissions(userId: string): Promise<UserPermission[]>;
+  getUserWithPermissions(userId: string): Promise<UserWithPermissions | undefined>;
+  grantUserPermission(userId: string, permissionId: string): Promise<UserPermission>;
+  revokeUserPermission(userId: string, permissionId: string): Promise<void>;
+  updateUserPermissions(userId: string, permissionIds: string[]): Promise<void>;
+  getUsersWithPermissions(): Promise<UserWithPermissions[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1793,6 +1779,190 @@ export class DatabaseStorage implements IStorage {
       demoRolePermissions.push(newRolePermission);
     }
   }
+
+  // User Permissions - permissões individuais por usuário
+  async getUserPermissions(userId: string): Promise<UserPermission[]> {
+    return demoUserPermissions.filter(up => up.userId === userId);
+  }
+
+  async getUserWithPermissions(userId: string): Promise<UserWithPermissions | undefined> {
+    const user = demoUsers.find(u => u.id === userId);
+    if (!user) return undefined;
+
+    const role = user.roleId ? demoRoles.find(r => r.id === user.roleId) : null;
+    
+    const userPermissions = demoUserPermissions
+      .filter(up => up.userId === userId)
+      .map(up => {
+        const permission = demoPermissions.find(p => p.id === up.permissionId);
+        return {
+          ...up,
+          permission: permission!
+        };
+      })
+      .filter(up => up.permission); // Only include valid permissions
+
+    return {
+      ...user,
+      role,
+      userPermissions
+    };
+  }
+
+  async grantUserPermission(userId: string, permissionId: string): Promise<UserPermission> {
+    // Check if user exists
+    const user = demoUsers.find(u => u.id === userId);
+    if (!user) throw new Error('User not found');
+
+    // Check if permission exists
+    const permission = demoPermissions.find(p => p.id === permissionId);
+    if (!permission) throw new Error('Permission not found');
+
+    // Check if permission is already granted to user
+    const existingUserPermission = demoUserPermissions.find(up => up.userId === userId && up.permissionId === permissionId);
+    if (existingUserPermission) {
+      // Update existing permission to granted
+      existingUserPermission.isGranted = true;
+      existingUserPermission.updatedAt = new Date();
+      return existingUserPermission;
+    }
+
+    const id = crypto.randomUUID();
+    const newUserPermission: UserPermission = {
+      id,
+      userId,
+      permissionId,
+      isGranted: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    demoUserPermissions.push(newUserPermission);
+    return newUserPermission;
+  }
+
+  async revokeUserPermission(userId: string, permissionId: string): Promise<void> {
+    const existingUserPermission = demoUserPermissions.find(up => up.userId === userId && up.permissionId === permissionId);
+    if (existingUserPermission) {
+      // Set to revoked instead of deleting to maintain audit trail
+      existingUserPermission.isGranted = false;
+      existingUserPermission.updatedAt = new Date();
+    }
+  }
+
+  async updateUserPermissions(userId: string, permissionIds: string[]): Promise<void> {
+    // Check if user exists
+    const user = demoUsers.find(u => u.id === userId);
+    if (!user) throw new Error('User not found');
+
+    // Check if all permissions exist
+    for (const permissionId of permissionIds) {
+      const permission = demoPermissions.find(p => p.id === permissionId);
+      if (!permission) throw new Error(`Permission with id ${permissionId} not found`);
+    }
+
+    // Remove all current permissions for this user
+    demoUserPermissions = demoUserPermissions.filter(up => up.userId !== userId);
+
+    // Add new permissions
+    for (const permissionId of permissionIds) {
+      const id = crypto.randomUUID();
+      const newUserPermission: UserPermission = {
+        id,
+        userId,
+        permissionId,
+        isGranted: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoUserPermissions.push(newUserPermission);
+    }
+  }
+
+  async getUsersWithPermissions(): Promise<UserWithPermissions[]> {
+    return Promise.all(
+      demoUsers.map(async (user) => {
+        const userWithPermissions = await this.getUserWithPermissions(user.id);
+        return userWithPermissions!;
+      })
+    );
+  }
+
+  // Migration function - sincronizar usuários com permissões baseadas no role atual
+  async migrateUsersToIndividualPermissions(): Promise<void> {
+    console.log('Iniciando migração de usuários para permissões individuais...');
+    
+    // Limpar permissões existentes de usuários
+    demoUserPermissions.length = 0;
+
+    // Para cada usuário, criar permissões baseadas no seu role atual
+    for (const user of demoUsers) {
+      const userRole = user.role; // Role enum do usuário (mantido para compatibilidade)
+      
+      if (!userRole) continue;
+      
+      // Obter permissões do role correspondente
+      let rolePermissionIds: string[] = [];
+      
+      switch (userRole) {
+        case 'admin':
+        case 'developer':
+          // Admin tem acesso a todas as páginas exceto área do aluno
+          rolePermissionIds = ['1', '2', '3', '4', '5', '6', '7', '9']; // Dashboard, Unidades, Colaboradores, Alunos, Cursos, Agenda, Financeiro, Configurações
+          break;
+          
+        case 'teacher':
+          // Professor tem acesso a dashboard, alunos, cursos e agenda
+          rolePermissionIds = ['1', '4', '5', '6']; // Dashboard, Alunos, Cursos, Agenda
+          break;
+          
+        case 'secretary':
+          // Secretária tem acesso a dashboard, unidades, alunos, cursos e agenda
+          rolePermissionIds = ['1', '2', '4', '5', '6']; // Dashboard, Unidades, Alunos, Cursos, Agenda
+          break;
+          
+        case 'financial':
+          // Financeiro tem acesso a dashboard e financeiro
+          rolePermissionIds = ['1', '7']; // Dashboard, Financeiro
+          break;
+          
+        case 'student':
+          // Aluno tem acesso a dashboard e área do aluno
+          rolePermissionIds = ['1', '8']; // Dashboard, Área do Aluno
+          break;
+          
+        default:
+          // Role desconhecido, dar apenas dashboard
+          rolePermissionIds = ['1']; // Dashboard
+      }
+      
+      // Criar permissões individuais para o usuário
+      for (const permissionId of rolePermissionIds) {
+        const id = crypto.randomUUID();
+        const userPermission: UserPermission = {
+          id,
+          userId: user.id,
+          permissionId,
+          isGranted: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        demoUserPermissions.push(userPermission);
+      }
+      
+      console.log(`Usuário ${user.firstName} ${user.lastName} (${userRole}) migrado com ${rolePermissionIds.length} permissões`);
+    }
+    
+    console.log(`Migração concluída! ${demoUsers.length} usuários migrados com ${demoUserPermissions.length} permissões individuais`);
+  }
 }
 
 export const storage = new DatabaseStorage();
+
+// Executar migração automaticamente na inicialização
+(async () => {
+  try {
+    await storage.migrateUsersToIndividualPermissions();
+  } catch (error) {
+    console.error('Erro durante a migração de usuários:', error);
+  }
+})();
