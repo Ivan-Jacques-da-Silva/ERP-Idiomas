@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarProps {
@@ -11,14 +12,34 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
   const { user } = useAuth();
   const [location] = useLocation();
 
+  // Get user permissions for access control
+  const { data: userPermissions, isLoading: permissionsLoading } = useQuery({
+    queryKey: [`/api/users/${user?.id}/permissions`],
+    enabled: !!user?.id,
+    retry: false,
+  });
+
   const isActive = (path: string) => {
     if (path === "/" && location === "/") return true;
     if (path !== "/" && location.startsWith(path)) return true;
     return false;
   };
 
-  const canAccess = (roles: string[]) => {
-    return user?.role && roles.includes(user.role);
+  const canAccess = (permissionName: string) => {
+    // If user permissions are loading, show skeleton/allow basic access
+    if (permissionsLoading) {
+      return false;
+    }
+    
+    // If user permissions haven't loaded yet or are empty, deny access
+    if (!userPermissions || !Array.isArray((userPermissions as any)?.userPermissions)) {
+      return false;
+    }
+    
+    // Check if user has the specific permission and it's granted
+    return (userPermissions as any).userPermissions.some((up: any) => 
+      up.permission.name === permissionName && up.isGranted
+    );
   };
 
   const menuItems = [
@@ -26,64 +47,58 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       path: "/",
       icon: "fas fa-chart-line",
       label: "Dashboard",
-      roles: ["admin", "teacher", "secretary", "financial", "student", "developer"]
+      permission: "access_dashboard"
     },
     {
       path: "/units",
       icon: "fas fa-building",
       label: "Unidades",
-      roles: ["admin", "developer", "secretary"]
+      permission: "access_units"
     },
     {
       path: "/staff",
       icon: "fas fa-users",
       label: "Colaboradores", 
-      roles: ["admin", "developer"]
+      permission: "access_staff"
     },
     {
       path: "/students",
       icon: "fas fa-user-graduate",
       label: "Alunos",
-      roles: ["admin", "secretary", "teacher", "developer"]
+      permission: "access_students"
     },
     {
       path: "/courses",
       icon: "fas fa-book",
       label: "Cursos",
-      roles: ["admin", "developer", "secretary"]
+      permission: "access_courses"
     },
     {
       path: "/schedule",
       icon: "fas fa-calendar-alt",
       label: "Agenda",
-      roles: ["admin", "teacher", "secretary", "developer"]
+      permission: "access_schedule"
     },
     {
       path: "/financial",
       icon: "fas fa-dollar-sign",
       label: "Financeiro",
-      roles: ["admin", "financial", "developer"]
+      permission: "access_financial"
     },
     {
       path: "/student-area",
       icon: "fas fa-book-open",
       label: "Área do Aluno",
-      roles: ["student"]
+      permission: "access_student_area"
     }
   ];
 
   const systemMenuItems = [
     {
-      path: "/permissions",
-      icon: "fas fa-shield-alt",
-      label: "Permissões",
-      roles: ["admin", "developer"]
-    },
-    {
       path: "/settings",
       icon: "fas fa-cog",
       label: "Configurações",
-      roles: ["admin", "developer"]
+      permission: "access_settings"
     }
   ];
 
@@ -119,7 +134,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
         <div className="space-y-2">
           {/* Main Menu Items */}
           {menuItems
-            .filter(item => canAccess(item.roles))
+            .filter(item => canAccess(item.permission))
             .map((item) => (
               <Link key={item.path} href={item.path}>
                 <a
@@ -143,7 +158,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
             ))}
 
           {/* Sistema Section */}
-          {systemMenuItems.some(item => canAccess(item.roles)) && (
+          {systemMenuItems.some(item => canAccess(item.permission)) && (
             <div className="pt-4">
               {expanded && (
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -152,7 +167,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
               )}
               <div className="space-y-1">
                 {systemMenuItems
-                  .filter(item => canAccess(item.roles))
+                  .filter(item => canAccess(item.permission))
                   .map((item) => (
                     <Link key={item.path} href={item.path}>
                       <a
