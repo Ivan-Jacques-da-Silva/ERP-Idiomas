@@ -16,7 +16,6 @@ import Schedule from "@/pages/Schedule";
 import StudentArea from "@/pages/StudentArea";
 import TeacherArea from "@/pages/TeacherArea";
 import Financial from "@/pages/Financial";
-import Permissions from "@/pages/Permissions";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -50,7 +49,6 @@ function Router() {
           <Route path="/schedule" component={Schedule} />
           <Route path="/professor" component={TeacherArea} />
           <Route path="/financial" component={Financial} />
-          <Route path="/permissions" component={Permissions} />
         </>
       )}
       <Route component={NotFound} />
