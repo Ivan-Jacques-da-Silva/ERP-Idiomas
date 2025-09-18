@@ -59,6 +59,12 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       roles: ["admin", "teacher", "secretary", "developer"]
     },
     {
+      path: "/financial",
+      icon: "fas fa-dollar-sign",
+      label: "Financeiro",
+      roles: ["admin", "financial", "developer"]
+    },
+    {
       path: "/student-area",
       icon: "fas fa-book-open",
       label: "Área do Aluno",
