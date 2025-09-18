@@ -25,7 +25,7 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User roles enum
+// User roles enum - mantendo para compatibilidade
 export const userRoleEnum = pgEnum('user_role', [
   'developer',
   'admin', 
@@ -35,6 +35,52 @@ export const userRoleEnum = pgEnum('user_role', [
   'student'
 ]);
 
+// Permission categories enum
+export const permissionCategoryEnum = pgEnum('permission_category', [
+  'dashboard',
+  'units',
+  'staff',
+  'students',
+  'courses', 
+  'schedule',
+  'financial',
+  'system'
+]);
+
+// Permissions table - todas as permissões disponíveis no sistema
+export const permissions = pgTable("permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(), // ex: "access_units", "access_schedule"
+  displayName: varchar("display_name").notNull(), // ex: "Acesso a Unidades", "Acesso a Agenda"
+  description: text("description"),
+  category: permissionCategoryEnum("category").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Roles table - roles fixos e personalizados
+export const roles = pgTable("roles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(), // ex: "admin", "teacher", "custom_role_1"
+  displayName: varchar("display_name").notNull(), // ex: "Administrativo", "Professor"
+  description: text("description"),
+  isSystemRole: boolean("is_system_role").default(false), // true para roles fixos
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Role permissions relationship - quais permissões cada role tem
+export const rolePermissions = pgTable("role_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roleId: varchar("role_id").references(() => roles.id, { onDelete: 'cascade' }).notNull(),
+  permissionId: varchar("permission_id").references(() => permissions.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("UQ_role_permission").on(table.roleId, table.permissionId),
+]);
+
 // User storage table (mandatory for Replit Auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -42,7 +88,8 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: userRoleEnum("role").default('student'),
+  role: userRoleEnum("role").default('student'), // DEPRECATED: mantendo para compatibilidade temporária
+  roleId: varchar("role_id").references(() => roles.id, { onDelete: 'set null' }), // novo sistema de roles - fonte única de verdade
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -170,6 +217,26 @@ export const lessons = pgTable("lessons", {
 });
 
 // Relations
+export const permissionsRelations = relations(permissions, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+}));
+
+export const rolesRelations = relations(roles, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+  users: many(users),
+}));
+
+export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
+  role: one(roles, {
+    fields: [rolePermissions.roleId],
+    references: [roles.id],
+  }),
+  permission: one(permissions, {
+    fields: [rolePermissions.permissionId],
+    references: [permissions.id],
+  }),
+}));
+
 export const usersRelations = relations(users, ({ one, many }) => ({
   staff: one(staff, {
     fields: [users.id],
@@ -178,6 +245,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   student: one(students, {
     fields: [users.id],
     references: [students.userId],
+  }),
+  role: one(roles, {
+    fields: [users.roleId],
+    references: [roles.id],
   }),
   teachingClasses: many(classes),
   managedUnits: many(units),
@@ -313,6 +384,23 @@ export const insertBookSchema = createInsertSchema(books).omit({
   updatedAt: true,
 });
 
+export const insertPermissionSchema = createInsertSchema(permissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRoleSchema = createInsertSchema(roles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRolePermissionSchema = createInsertSchema(rolePermissions).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -324,6 +412,9 @@ export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type InsertClass = z.infer<typeof insertClassSchema>;
 export type InsertLesson = z.infer<typeof insertLessonSchema>;
 export type InsertBook = z.infer<typeof insertBookSchema>;
+export type InsertPermission = z.infer<typeof insertPermissionSchema>;
+export type InsertRole = z.infer<typeof insertRoleSchema>;
+export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
 
 export type Unit = typeof units.$inferSelect;
 export type Staff = typeof staff.$inferSelect;
@@ -333,9 +424,12 @@ export type Book = typeof books.$inferSelect;
 export type Class = typeof classes.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type ClassEnrollment = typeof classEnrollments.$inferSelect;
+export type Permission = typeof permissions.$inferSelect;
+export type Role = typeof roles.$inferSelect;
+export type RolePermission = typeof rolePermissions.$inferSelect;
 
 // Extended types with relations
-export type UserWithRole = User;
+export type UserWithRole = User & { role: Role | null };
 export type StaffWithUser = Staff & { user: User };
 export type StudentWithUser = Student & { user: User };
 export type ClassWithDetails = Class & { 
@@ -354,4 +448,13 @@ export type BookWithDetails = Book & {
 // Novo tipo para cursos com todos os detalhes
 export type CourseWithDetails = Course & {
   books: (Book & { classes: Class[] })[];
+};
+
+// Tipos para sistema de permissões
+export type RoleWithPermissions = Role & {
+  rolePermissions: (RolePermission & { permission: Permission })[];
+};
+
+export type PermissionsByCategory = {
+  [K in 'dashboard' | 'units' | 'staff' | 'students' | 'courses' | 'schedule' | 'financial' | 'system']: Permission[];
 };
