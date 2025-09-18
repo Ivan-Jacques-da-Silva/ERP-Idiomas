@@ -727,8 +727,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User permissions routes - individual user permissions management
-  app.get("/api/users/:id/permissions", isAuthenticated, requireAdminOrDeveloper, async (req, res) => {
+  app.get("/api/users/:id/permissions", isAuthenticated, async (req: any, res) => {
     try {
+      // Users can access their own permissions, admin/developer can access anyone's
+      const currentUserId = req.session.user.id;
+      const requestedUserId = req.params.id;
+      const userRole = req.session.user.role;
+      
+      if (currentUserId !== requestedUserId && userRole !== 'admin' && userRole !== 'developer') {
+        return res.status(403).json({ message: "Forbidden - Can only access your own permissions" });
+      }
+      
       const userWithPermissions = await storage.getUserWithPermissions(req.params.id);
       if (!userWithPermissions) {
         return res.status(404).json({ message: "User not found" });
