@@ -13,7 +13,10 @@ import {
   insertCourseSchema,
   insertClassSchema,
   insertLessonSchema,
-  insertBookSchema
+  insertBookSchema,
+  insertPermissionSchema,
+  insertRoleSchema,
+  insertRolePermissionSchema
 } from "@shared/schema";
 
 // Simple demo users for login
@@ -38,6 +41,14 @@ const requireAdminOrSecretary = (req: any, res: any, next: any) => {
     return next();
   }
   return res.status(403).json({ message: "Forbidden - Admin or Secretary role required" });
+};
+
+// Middleware to check if user has admin role only
+const requireAdmin = (req: any, res: any, next: any) => {
+  if (req.session?.user?.role === 'admin') {
+    return next();
+  }
+  return res.status(403).json({ message: "Forbidden - Admin role required" });
 };
 
 // Configure multer for file uploads
@@ -695,6 +706,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching teacher schedule:", error);
       res.status(500).json({ message: "Failed to fetch teacher schedule" });
+    }
+  });
+
+  // Permissions routes
+  app.get("/api/permissions", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const permissions = await storage.getPermissions();
+      res.json(permissions);
+    } catch (error) {
+      console.error("Error fetching permissions:", error);
+      res.status(500).json({ message: "Failed to fetch permissions" });
+    }
+  });
+
+  app.get("/api/permissions/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const permission = await storage.getPermission(req.params.id);
+      if (!permission) {
+        return res.status(404).json({ message: "Permission not found" });
+      }
+      res.json(permission);
+    } catch (error) {
+      console.error("Error fetching permission:", error);
+      res.status(500).json({ message: "Failed to fetch permission" });
+    }
+  });
+
+  app.post("/api/permissions", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const permissionData = insertPermissionSchema.parse(req.body);
+      const permission = await storage.createPermission(permissionData);
+      res.status(201).json(permission);
+    } catch (error: any) {
+      console.error("Error creating permission:", error);
+      if (error.message?.includes("already exists")) {
+        return res.status(409).json({ message: error.message });
+      }
+      res.status(400).json({ message: "Invalid permission data" });
+    }
+  });
+
+  app.put("/api/permissions/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const permissionData = insertPermissionSchema.partial().parse(req.body);
+      const permission = await storage.updatePermission(req.params.id, permissionData);
+      res.json(permission);
+    } catch (error: any) {
+      console.error("Error updating permission:", error);
+      if (error.message?.includes("already exists")) {
+        return res.status(409).json({ message: error.message });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Permission not found" });
+      }
+      res.status(400).json({ message: "Invalid permission data" });
+    }
+  });
+
+  app.delete("/api/permissions/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      await storage.deletePermission(req.params.id);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting permission:", error);
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Permission not found" });
+      }
+      res.status(500).json({ message: "Failed to delete permission" });
+    }
+  });
+
+  // Roles routes
+  app.get("/api/roles", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const roles = await storage.getRoles();
+      res.json(roles);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      res.status(500).json({ message: "Failed to fetch roles" });
+    }
+  });
+
+  app.get("/api/roles/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const role = await storage.getRole(req.params.id);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.json(role);
+    } catch (error) {
+      console.error("Error fetching role:", error);
+      res.status(500).json({ message: "Failed to fetch role" });
+    }
+  });
+
+  app.get("/api/roles/:id/with-permissions", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const roleWithPermissions = await storage.getRoleWithPermissions(req.params.id);
+      if (!roleWithPermissions) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.json(roleWithPermissions);
+    } catch (error) {
+      console.error("Error fetching role with permissions:", error);
+      res.status(500).json({ message: "Failed to fetch role with permissions" });
+    }
+  });
+
+  app.post("/api/roles", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const roleData = insertRoleSchema.parse(req.body);
+      const role = await storage.createRole(roleData);
+      res.status(201).json(role);
+    } catch (error: any) {
+      console.error("Error creating role:", error);
+      if (error.message?.includes("already exists")) {
+        return res.status(409).json({ message: error.message });
+      }
+      res.status(400).json({ message: "Invalid role data" });
+    }
+  });
+
+  app.put("/api/roles/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      // Check if role is a system role before allowing updates
+      const existingRole = await storage.getRole(req.params.id);
+      if (!existingRole) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      
+      if (existingRole.isSystemRole) {
+        // For system roles, only allow updates to displayName, description, and isActive
+        const allowedFields = ['displayName', 'description', 'isActive'];
+        const requestedFields = Object.keys(req.body);
+        const invalidFields = requestedFields.filter(field => !allowedFields.includes(field));
+        
+        if (invalidFields.length > 0) {
+          return res.status(403).json({ 
+            message: `Cannot modify ${invalidFields.join(', ')} for system roles. Only displayName, description, and isActive are allowed.` 
+          });
+        }
+      }
+
+      const roleData = insertRoleSchema.partial().parse(req.body);
+      const role = await storage.updateRole(req.params.id, roleData);
+      res.json(role);
+    } catch (error: any) {
+      console.error("Error updating role:", error);
+      if (error.message?.includes("already exists")) {
+        return res.status(409).json({ message: error.message });
+      }
+      if (error.message?.includes("Cannot modify")) {
+        return res.status(403).json({ message: error.message });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.status(400).json({ message: "Invalid role data" });
+    }
+  });
+
+  app.delete("/api/roles/:id", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      // Check if role is a system role before allowing deletion
+      const existingRole = await storage.getRole(req.params.id);
+      if (!existingRole) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      
+      if (existingRole.isSystemRole) {
+        return res.status(403).json({ 
+          message: "Cannot delete system roles. System roles are protected and cannot be removed." 
+        });
+      }
+
+      await storage.deleteRole(req.params.id);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting role:", error);
+      if (error.message?.includes("Cannot delete system role")) {
+        return res.status(403).json({ message: error.message });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.status(500).json({ message: "Failed to delete role" });
+    }
+  });
+
+  // Role Permissions routes
+  app.post("/api/roles/:roleId/permissions", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { permissionId } = req.body;
+      if (!permissionId) {
+        return res.status(400).json({ message: "Permission ID is required" });
+      }
+
+      const rolePermission = await storage.addPermissionToRole(req.params.roleId, permissionId);
+      res.status(201).json(rolePermission);
+    } catch (error: any) {
+      console.error("Error adding role permission:", error);
+      if (error.message?.includes("already exists")) {
+        return res.status(409).json({ message: "Permission already assigned to this role" });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Role or permission not found" });
+      }
+      res.status(400).json({ message: "Invalid role permission data" });
+    }
+  });
+
+  app.delete("/api/roles/:roleId/permissions/:permissionId", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      await storage.removePermissionFromRole(req.params.roleId, req.params.permissionId);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error removing role permission:", error);
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Role permission not found" });
+      }
+      res.status(500).json({ message: "Failed to remove role permission" });
     }
   });
 
