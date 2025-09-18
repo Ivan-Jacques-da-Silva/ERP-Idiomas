@@ -18,6 +18,11 @@ import {
   insertRoleSchema,
   insertRolePermissionSchema
 } from "@shared/schema";
+import { z } from "zod";
+
+const updateRolePermissionsSchema = z.object({
+  permissionIds: z.array(z.string().uuid("Invalid permission ID format"))
+});
 
 // Simple demo users for login
 const demoUsers = [
@@ -25,6 +30,7 @@ const demoUsers = [
   { id: '2', email: 'teacher@demo.com', password: 'teacher123', firstName: 'Ivan', lastName: 'Silva', role: 'teacher' },
   { id: '3', email: 'secretary@demo.com', password: 'secretary123', firstName: 'Ivan', lastName: 'Silva', role: 'secretary' },
   { id: '4', email: 'student@demo.com', password: 'student123', firstName: 'Ivan', lastName: 'Silva', role: 'student' },
+  { id: '5', email: 'developer@demo.com', password: 'dev123', firstName: 'Ivan', lastName: 'Silva', role: 'developer' },
 ];
 
 // Simple middleware to check if user is logged in
@@ -814,6 +820,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/roles/:id/permissions", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const roleWithPermissions = await storage.getRoleWithPermissions(req.params.id);
+      if (!roleWithPermissions) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.json(roleWithPermissions);
+    } catch (error) {
+      console.error("Error fetching role permissions:", error);
+      res.status(500).json({ message: "Failed to fetch role permissions" });
+    }
+  });
+
   app.post("/api/roles", isAuthenticated, requireAdmin, async (req, res) => {
     try {
       const roleData = insertRoleSchema.parse(req.body);
@@ -896,6 +915,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Role Permissions routes
+  app.put("/api/roles/:roleId/permissions", isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { permissionIds } = updateRolePermissionsSchema.parse(req.body);
+      await storage.updateRolePermissions(req.params.roleId, permissionIds);
+      res.json({ message: "Role permissions updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating role permissions:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.status(500).json({ message: "Failed to update role permissions" });
+    }
+  });
+
   app.post("/api/roles/:roleId/permissions", isAuthenticated, requireAdmin, async (req, res) => {
     try {
       const { permissionId } = req.body;
