@@ -13,8 +13,8 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
   const [location] = useLocation();
 
   // Get user permissions for access control
-  const { data: userPermissions, isLoading: permissionsLoading } = useQuery({
-    queryKey: [`/api/users/${user?.id}/permissions`],
+  const { data: userPermissions, isLoading: permissionsLoading, isSuccess: permissionsSuccess } = useQuery({
+    queryKey: ['/api/users', user?.id, 'permissions'],
     enabled: !!user?.id,
     retry: false,
   });
@@ -26,12 +26,12 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
   };
 
   const canAccess = (permissionName: string) => {
-    // If user permissions are still loading, show loading state (allow access temporarily)
+    // If user permissions are still loading, don't show any menu items (eliminates flicker)
     if (permissionsLoading) {
-      return true;
+      return false;
     }
     
-    // If user permissions haven't loaded yet or are empty, deny access
+    // If user permissions haven't loaded yet or are empty, use fallback for admin and developer only
     if (!userPermissions || !Array.isArray((userPermissions as any)?.userPermissions)) {
       // For admin and developer roles, allow all access as fallback
       if (user?.role === 'admin' || user?.role === 'developer') {
@@ -103,6 +103,12 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       icon: "fas fa-cog",
       label: "Configurações",
       permission: "access_settings"
+    },
+    {
+      path: "/permissions",
+      icon: "fas fa-shield-alt",
+      label: "Permissões",
+      permission: "access_permissions"
     }
   ];
 

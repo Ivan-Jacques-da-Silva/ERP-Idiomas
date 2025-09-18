@@ -616,6 +616,7 @@ let demoPermissions: Permission[] = [
   { id: '7', name: 'access_financial', displayName: 'Financeiro', description: 'Acesso à página Financeiro', category: 'financial', isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '8', name: 'access_student_area', displayName: 'Área do Aluno', description: 'Acesso à Área do Aluno', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '9', name: 'access_settings', displayName: 'Configurações', description: 'Acesso às Configurações do sistema', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '10', name: 'access_permissions', displayName: 'Permissões', description: 'Acesso ao gerenciamento de Permissões', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
 ];
 
 // Roles demo data - roles fixos conforme solicitado
@@ -1831,16 +1832,24 @@ export class DatabaseStorage implements IStorage {
 
   async getUserWithPermissions(userId: string): Promise<UserWithPermissions | undefined> {
     try {
-      // Find user in demoUsers array (includes the admin user with id '1')
-      const user = demoUsers.find(u => u.id === userId);
+      // Find user in the correct demo users array that matches the login IDs
+      const loginDemoUsers = [
+        { id: '1', email: 'admin@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'admin' },
+        { id: '2', email: 'teacher@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'teacher' },
+        { id: '3', email: 'secretary@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'secretary' },
+        { id: '4', email: 'student@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'student' },
+        { id: '5', email: 'developer@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'developer' },
+      ];
+      
+      const user = loginDemoUsers.find(u => u.id === userId);
       if (!user) {
         return undefined;
       }
 
       // Get role-based permissions for user
       const rolePermissionMap: { [key: string]: string[] } = {
-        admin: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], // All permissions including settings
-        developer: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], // All permissions
+        admin: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], // All permissions including settings and permissions
+        developer: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], // All permissions
         teacher: ['1', '4', '5', '6'], // Dashboard, Students, Courses, Schedule
         secretary: ['1', '2', '4', '5', '6'], // Dashboard, Units, Students, Courses, Schedule
         student: ['1', '8'], // Dashboard and Student area
