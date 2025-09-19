@@ -7,15 +7,15 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Crown, UserCog, GraduationCap, BookOpen, Shield, Settings, CheckCircle, Tag, Info } from "lucide-react";
 
 export default function Permissions() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedRole, setSelectedRole] = useState<any>(null);
   const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
@@ -35,9 +35,9 @@ export default function Permissions() {
     );
   }
 
-  // Buscar todos os usuários do sistema
-  const { data: staff, isLoading } = useQuery<any[]>({
-    queryKey: ["/api/staff"],
+  // Buscar todos os roles do sistema
+  const { data: roles, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/roles"],
     retry: false,
   });
 
@@ -47,33 +47,33 @@ export default function Permissions() {
     retry: false,
   });
 
-  // Buscar permissões do usuário selecionado
+  // Buscar permissões do role selecionado
   const { 
-    data: userWithPermissions, 
-    isLoading: userPermissionsLoading 
+    data: roleWithPermissions, 
+    isLoading: rolePermissionsLoading 
   } = useQuery({
-    queryKey: ["/api/users", selectedUser?.user?.id, "permissions"],
-    enabled: !!selectedUser?.user?.id && permissionsModalOpen,
+    queryKey: ["/api/roles", selectedRole?.id, "permissions"],
+    enabled: !!selectedRole?.id && permissionsModalOpen,
     retry: false,
   });
 
-  // Mutation para atualizar permissões
-  const updateUserPermissionsMutation = useMutation({
-    mutationFn: async (data: { userId: string; permissionIds: string[] }) => {
-      await apiRequest("PUT", `/api/users/${data.userId}/permissions`, { permissionIds: data.permissionIds });
+  // Mutation para atualizar permissões do role
+  const updateRolePermissionsMutation = useMutation({
+    mutationFn: async (data: { roleId: string; permissionIds: string[] }) => {
+      await apiRequest("PUT", `/api/roles/${data.roleId}/permissions`, { permissionIds: data.permissionIds });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", variables.userId, "permissions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roles", variables.roleId, "permissions"] });
       toast({
         title: "Sucesso!",
-        description: "Permissões atualizadas com sucesso.",
+        description: "Permissões do nível atualizadas com sucesso.",
       });
       setPermissionsModalOpen(false);
     },
     onError: () => {
       toast({
         title: "Erro",
-        description: "Erro ao atualizar permissões. Tente novamente.",
+        description: "Erro ao atualizar permissões do nível. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -84,31 +84,31 @@ export default function Permissions() {
     switch (role) {
       case 'admin':
         return { 
-          icon: 'fas fa-crown', 
+          icon: Crown, 
           color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
           displayName: 'Administrativo'
         };
       case 'secretary':
         return { 
-          icon: 'fas fa-user-tie', 
+          icon: UserCog, 
           color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
           displayName: 'Secretario'
         };
       case 'teacher':
         return { 
-          icon: 'fas fa-chalkboard-teacher', 
+          icon: BookOpen, 
           color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
           displayName: 'Professor'
         };
       case 'student':
         return { 
-          icon: 'fas fa-user-graduate', 
+          icon: GraduationCap, 
           color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
           displayName: 'Aluno'
         };
       default:
         return { 
-          icon: 'fas fa-user', 
+          icon: UserCog, 
           color: 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300',
           displayName: role
         };
@@ -116,36 +116,35 @@ export default function Permissions() {
   };
 
   // Abrir modal de permissões
-  const handleManagePermissions = (staffMember: any) => {
-    setSelectedUser(staffMember);
+  const handleManagePermissions = (role: any) => {
+    setSelectedRole(role);
     setPermissionsModalOpen(true);
   };
 
   // Salvar permissões
   const handleSavePermissions = () => {
-    if (!selectedUser?.user?.id) return;
+    if (!selectedRole?.id) return;
     
-    updateUserPermissionsMutation.mutate({
-      userId: selectedUser.user.id,
+    updateRolePermissionsMutation.mutate({
+      roleId: selectedRole.id,
       permissionIds: selectedPermissions
     });
   };
 
   // Inicializar permissões selecionadas quando modal abre
   useEffect(() => {
-    if (permissionsModalOpen && userWithPermissions && (userWithPermissions as any)?.userPermissions) {
-      const grantedPermissionIds = (userWithPermissions as any).userPermissions
-        .filter((up: any) => up.isGranted)
-        .map((up: any) => up.permission.id);
+    if (permissionsModalOpen && roleWithPermissions && (roleWithPermissions as any)?.rolePermissions) {
+      const grantedPermissionIds = (roleWithPermissions as any).rolePermissions
+        .map((rp: any) => rp.permission.id);
       setSelectedPermissions(grantedPermissionIds);
     }
-  }, [permissionsModalOpen, userWithPermissions]);
+  }, [permissionsModalOpen, roleWithPermissions]);
 
   // Limpar estados quando modal fecha
   useEffect(() => {
     if (!permissionsModalOpen) {
       setSelectedPermissions([]);
-      setSelectedUser(null);
+      setSelectedRole(null);
     }
   }, [permissionsModalOpen]);
 
@@ -164,29 +163,29 @@ export default function Permissions() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground" data-testid="text-permissions-title">
-              Gerenciamento de Permissões
+              Gerenciamento de Níveis de Acesso
             </h1>
             <p className="text-muted-foreground">
-              Gerencie as permissões de acesso de todos os usuários do sistema
+              Configure as permissões para cada nível de usuário do sistema
             </p>
           </div>
           
-          <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-lg">
-            <i className="fas fa-info-circle mr-2"></i>
-            Sistema com 4 roles fixos
+          <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-lg flex items-center">
+            <Info className="w-4 h-4 mr-2" />
+            Sistema baseado em níveis fixos
           </div>
         </div>
 
-        {/* Cards dos usuários */}
+        {/* Cards dos níveis/roles */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Array.from({ length: 4 }).map((_, index) => (
               <Card key={index} className="animate-pulse">
                 <CardHeader>
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-muted rounded-full"></div>
+                    <div className="w-16 h-16 bg-muted rounded-lg"></div>
                     <div className="flex-1 space-y-2">
-                      <div className="h-5 bg-muted rounded w-3/4"></div>
+                      <div className="h-6 bg-muted rounded w-3/4"></div>
                       <div className="h-4 bg-muted rounded w-1/2"></div>
                     </div>
                   </div>
@@ -194,69 +193,61 @@ export default function Permissions() {
               </Card>
             ))}
           </div>
-        ) : !staff || staff.length === 0 ? (
+        ) : !roles || roles.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <i className="fas fa-users text-muted-foreground text-6xl mb-4"></i>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum usuário encontrado</h3>
+              <Shield className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum nível encontrado</h3>
               <p className="text-muted-foreground">
-                Não há usuários cadastrados no sistema.
+                Não há níveis de acesso configurados no sistema.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {staff.map((staffMember: any) => {
-              const roleInfo = getRoleInfo(staffMember.user.role);
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {roles.map((role: any) => {
+              const roleInfo = getRoleInfo(role.name);
+              const IconComponent = roleInfo.icon;
               return (
-                <Card key={staffMember.id} className="hover:shadow-md transition-shadow">
+                <Card key={role.id} className="hover:shadow-md transition-shadow">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage 
-                            src={staffMember.user.profileImageUrl || undefined} 
-                            alt={`${staffMember.user.firstName} ${staffMember.user.lastName}`}
-                          />
-                          <AvatarFallback className="text-sm">
-                            {staffMember.user.firstName?.[0]}{staffMember.user.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <CardTitle className="text-lg">
-                            {staffMember.user.firstName} {staffMember.user.lastName}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            {staffMember.user.email}
-                          </p>
-                        </div>
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-16 h-16 rounded-lg flex items-center justify-center ${roleInfo.color}`}>
+                        <IconComponent className="w-8 h-8" />
+                      </div>
+                      <div className="flex-1">
+                        <CardTitle className="text-xl">
+                          {role.displayName ?? roleInfo.displayName}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {role.description ?? 'Nível de acesso do sistema'}
+                        </p>
                       </div>
                     </div>
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <Badge className={roleInfo.color}>
-                        <i className={`${roleInfo.icon} mr-2`}></i>
-                        {roleInfo.displayName}
+                      <Badge variant="outline" className="text-xs">
+                        <Tag className="w-3 h-3 mr-1" />
+                        {role.isSystemRole ? 'Sistema' : 'Personalizado'}
                       </Badge>
+                      {role.isActive && (
+                        <Badge variant="secondary" className="text-xs text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Ativo
+                        </Badge>
+                      )}
                     </div>
                     
-                    {staffMember.position && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Cargo:</span>
-                        <span className="ml-2">{staffMember.position}</span>
-                      </div>
-                    )}
-                    
                     <Button 
-                      onClick={() => handleManagePermissions(staffMember)}
+                      onClick={() => handleManagePermissions(role)}
                       className="w-full"
                       size="sm"
-                      data-testid={`button-manage-permissions-${staffMember.id}`}
+                      data-testid={`button-manage-permissions-${role.id}`}
                     >
-                      <i className="fas fa-shield-alt mr-2"></i>
-                      Gerenciar Permissões
+                      <Settings className="w-4 h-4 mr-2" />
+                      Configurar Permissões
                     </Button>
                   </CardContent>
                 </Card>
@@ -270,17 +261,17 @@ export default function Permissions() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                Gerenciar Permissões
+                Configurar Permissões do Nível
               </DialogTitle>
               <p className="text-sm text-muted-foreground">
-                {selectedUser?.user && 
-                  `${selectedUser.user.firstName} ${selectedUser.user.lastName} - ${getRoleInfo(selectedUser.user.role).displayName}`
+                {selectedRole && 
+                  `${selectedRole.displayName} - ${selectedRole.description}`
                 }
               </p>
             </DialogHeader>
             
             <div className="space-y-4">
-              {userPermissionsLoading ? (
+              {rolePermissionsLoading ? (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Carregando permissões...</Label>
                   <div className="space-y-2">
@@ -298,7 +289,7 @@ export default function Permissions() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">Selecione as permissões baseadas nas abas do menu:</Label>
+                  <Label className="text-sm font-medium">Selecione as permissões para este nível de acesso:</Label>
                   <div className="max-h-60 overflow-y-auto space-y-2">
                     {permissions.map((permission: any) => (
                       <div key={permission.id} className="flex items-center space-x-2">
@@ -312,7 +303,7 @@ export default function Permissions() {
                           htmlFor={permission.id} 
                           className="text-sm cursor-pointer flex-1"
                         >
-                          {permission.displayName}
+                          {permission.displayName ?? permission.name ?? 'Permissão'}
                         </Label>
                       </div>
                     ))}
@@ -331,10 +322,10 @@ export default function Permissions() {
               </Button>
               <Button 
                 onClick={handleSavePermissions}
-                disabled={updateUserPermissionsMutation.isPending}
+                disabled={updateRolePermissionsMutation.isPending}
                 data-testid="button-save-permissions"
               >
-                {updateUserPermissionsMutation.isPending ? 'Salvando...' : 'Salvar'}
+                {updateRolePermissionsMutation.isPending ? 'Salvando...' : 'Salvar'}
               </Button>
             </DialogFooter>
           </DialogContent>
