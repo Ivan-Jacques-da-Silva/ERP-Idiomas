@@ -7,8 +7,10 @@ import type {
   InsertLesson,
   InsertBook,
   InsertPermission,
+  InsertPermissionCategory,
   InsertRole,
   InsertRolePermission,
+  InsertUserPermission,
   InsertUserSettings,
   InsertSupportTicket,
   InsertSupportTicketResponse,
@@ -25,8 +27,11 @@ import type {
   StudentWithUser,
   ClassWithDetails,
   Permission,
+  PermissionCategory,
   Role,
   RolePermission,
+  UserPermission,
+  UserWithPermissions,
   RoleWithPermissions,
   PermissionsByCategory,
   UserSettings,
@@ -608,18 +613,29 @@ let demoLessons: Lesson[] = [{
   updatedAt: new Date('2024-02-27'),
 }, ];
 
+// Permission categories demo data - categorias fixas do sistema + possibilidade de adicionar novas
+let demoPermissionCategories: PermissionCategory[] = [
+  { id: 'cat-1', name: 'dashboard', displayName: 'Dashboard', description: 'Categoria para permissões do dashboard', isSystemCategory: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'cat-2', name: 'units', displayName: 'Unidades', description: 'Categoria para permissões de unidades', isSystemCategory: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'cat-3', name: 'staff', displayName: 'Colaboradores', description: 'Categoria para permissões de colaboradores', isSystemCategory: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'cat-4', name: 'students', displayName: 'Alunos', description: 'Categoria para permissões de alunos', isSystemCategory: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'cat-5', name: 'courses', displayName: 'Cursos', description: 'Categoria para permissões de cursos', isSystemCategory: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'cat-6', name: 'schedule', displayName: 'Agenda', description: 'Categoria para permissões de agenda', isSystemCategory: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: 'cat-7', name: 'system', displayName: 'Sistema', description: 'Categoria para permissões do sistema', isSystemCategory: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+];
+
 // Permissions demo data - baseado nas páginas do menu
 let demoPermissions: Permission[] = [
   // Páginas principais do menu
-  { id: '1', name: 'access_dashboard', displayName: 'Dashboard', description: 'Acesso à página Dashboard', category: 'dashboard', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '2', name: 'access_units', displayName: 'Unidades', description: 'Acesso à página de Unidades', category: 'units', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '3', name: 'access_staff', displayName: 'Colaboradores', description: 'Acesso à página de Colaboradores', category: 'staff', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '4', name: 'access_students', displayName: 'Alunos', description: 'Acesso à página de Alunos', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '5', name: 'access_courses', displayName: 'Cursos', description: 'Acesso à página de Cursos', category: 'courses', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '6', name: 'access_schedule', displayName: 'Agenda', description: 'Acesso à página de Agenda', category: 'schedule', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '8', name: 'access_student_area', displayName: 'Área do Aluno', description: 'Acesso à Área do Aluno', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '9', name: 'access_settings', displayName: 'Configurações', description: 'Acesso às Configurações do sistema', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '10', name: 'access_permissions', displayName: 'Permissões', description: 'Acesso ao gerenciamento de Permissões', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '1', name: 'access_dashboard', displayName: 'Dashboard', description: 'Acesso à página Dashboard', categoryId: 'cat-1', category: 'dashboard', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '2', name: 'access_units', displayName: 'Unidades', description: 'Acesso à página de Unidades', categoryId: 'cat-2', category: 'units', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '3', name: 'access_staff', displayName: 'Colaboradores', description: 'Acesso à página de Colaboradores', categoryId: 'cat-3', category: 'staff', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '4', name: 'access_students', displayName: 'Alunos', description: 'Acesso à página de Alunos', categoryId: 'cat-4', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '5', name: 'access_courses', displayName: 'Cursos', description: 'Acesso à página de Cursos', categoryId: 'cat-5', category: 'courses', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '6', name: 'access_schedule', displayName: 'Agenda', description: 'Acesso à página de Agenda', categoryId: 'cat-6', category: 'schedule', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '8', name: 'access_student_area', displayName: 'Área do Aluno', description: 'Acesso à Área do Aluno', categoryId: 'cat-4', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '9', name: 'access_settings', displayName: 'Configurações', description: 'Acesso às Configurações do sistema', categoryId: 'cat-7', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: '10', name: 'access_permissions', displayName: 'Permissões', description: 'Acesso ao gerenciamento de Permissões', categoryId: 'cat-7', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
 ];
 
 // Roles demo data - roles fixos conforme solicitado
@@ -673,6 +689,9 @@ let demoRolePermissions: RolePermission[] = [
   { id: '29', roleId: '6', permissionId: '8', createdAt: new Date() }, // Área do Aluno
   { id: '30', roleId: '6', permissionId: '9', createdAt: new Date() }, // Configurações
 ];
+
+// User permissions demo data - permissões individuais por usuário (inicialmente vazio)
+let demoUserPermissions: UserPermission[] = [];
 
 // User permissions demo data - permissões individuais de usuário
 
@@ -751,6 +770,13 @@ export interface IStorage {
     todaysClasses: number;
     monthlyRevenue: number;
   } > ;
+
+  // Permission Categories
+  getPermissionCategories(): Promise<PermissionCategory[]>;
+  getPermissionCategory(id: string): Promise<PermissionCategory | undefined>;
+  createPermissionCategory(category: InsertPermissionCategory): Promise<PermissionCategory>;
+  updatePermissionCategory(id: string, category: Partial<InsertPermissionCategory>): Promise<PermissionCategory>;
+  deletePermissionCategory(id: string): Promise<void>;
 
   // Permissions
   getPermissions(): Promise<Permission[]>;
@@ -1566,6 +1592,88 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  // Permission Categories
+  async getPermissionCategories(): Promise<PermissionCategory[]> {
+    return [...demoPermissionCategories]
+      .filter(c => c.isActive)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  async getPermissionCategory(id: string): Promise<PermissionCategory | undefined> {
+    return demoPermissionCategories.find(c => c.id === id);
+  }
+
+  async createPermissionCategory(categoryData: InsertPermissionCategory): Promise<PermissionCategory> {
+    // Check if category name already exists (case-insensitive)
+    const existingCategory = demoPermissionCategories.find(c => c.name.toLowerCase() === categoryData.name.toLowerCase());
+    if (existingCategory) {
+      throw new Error(`Permission category with name "${categoryData.name}" already exists`);
+    }
+
+    const id = crypto.randomUUID();
+    const newCategory: PermissionCategory = {
+      id,
+      name: categoryData.name,
+      displayName: categoryData.displayName,
+      description: categoryData.description || null,
+      isSystemCategory: categoryData.isSystemCategory ?? false,
+      isActive: categoryData.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    demoPermissionCategories.push(newCategory);
+    return newCategory;
+  }
+
+  async updatePermissionCategory(id: string, categoryData: Partial<InsertPermissionCategory>): Promise<PermissionCategory> {
+    const index = demoPermissionCategories.findIndex(c => c.id === id);
+    if (index === -1) throw new Error('Permission category not found');
+
+    const existingCategory = demoPermissionCategories[index];
+    
+    // Prevent editing system categories name
+    if (existingCategory.isSystemCategory && categoryData.name) {
+      throw new Error('Cannot modify name of system categories');
+    }
+
+    // Check if name is being updated and already exists in another category (case-insensitive)
+    if (categoryData.name) {
+      const duplicateCategory = demoPermissionCategories.find(c => c.name.toLowerCase() === categoryData.name!.toLowerCase() && c.id !== id);
+      if (duplicateCategory) {
+        throw new Error(`Permission category with name "${categoryData.name}" already exists`);
+      }
+    }
+
+    const updatedCategory = {
+      ...existingCategory,
+      ...categoryData,
+      updatedAt: new Date(),
+    };
+    demoPermissionCategories[index] = updatedCategory;
+    return updatedCategory;
+  }
+
+  async deletePermissionCategory(id: string): Promise<void> {
+    const category = demoPermissionCategories.find(c => c.id === id);
+    if (!category) throw new Error('Permission category not found');
+
+    // Prevent deleting system categories
+    if (category.isSystemCategory) {
+      throw new Error('Cannot delete system categories');
+    }
+
+    // Check if category has permissions assigned
+    const categoryPermissions = demoPermissions.filter(p => p.categoryId === id);
+    if (categoryPermissions.length > 0) {
+      throw new Error('Cannot delete category that has permissions assigned to it');
+    }
+
+    const index = demoPermissionCategories.findIndex(c => c.id === id);
+    if (index !== -1) {
+      demoPermissionCategories.splice(index, 1);
+    }
+  }
+
   // Permissions
   async getPermissions(): Promise<Permission[]> {
     return [...demoPermissions]
@@ -1579,17 +1687,12 @@ export class DatabaseStorage implements IStorage {
 
   async getPermissionsByCategory(): Promise<PermissionsByCategory> {
     const permissions = await this.getPermissions();
-    const categorized: PermissionsByCategory = {
-      dashboard: [],
-      units: [],
-      staff: [],
-      students: [],
-      courses: [],
-      schedule: [],
-      system: []
-    };
+    const categorized: PermissionsByCategory = {};
 
     permissions.forEach(permission => {
+      if (!categorized[permission.category]) {
+        categorized[permission.category] = [];
+      }
       categorized[permission.category].push(permission);
     });
 
@@ -1603,13 +1706,20 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Permission with name "${permissionData.name}" already exists`);
     }
 
+    // Validate that the category exists
+    const category = demoPermissionCategories.find(c => c.id === permissionData.categoryId);
+    if (!category) {
+      throw new Error(`Permission category with id "${permissionData.categoryId}" not found`);
+    }
+
     const id = crypto.randomUUID();
     const newPermission: Permission = {
       id,
       name: permissionData.name,
       displayName: permissionData.displayName,
       description: permissionData.description || null,
-      category: permissionData.category,
+      categoryId: permissionData.categoryId,
+      category: category.name, // Sync category name for backward compatibility
       isActive: permissionData.isActive ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -1783,6 +1893,18 @@ export class DatabaseStorage implements IStorage {
 
   // Get role permissions by role name (for demo users who use role names)
   async getRolePermissionsByName(roleName: string): Promise<(RolePermission & { permission: Permission })[]> {
+    // Admin has access to ALL permissions - total access as requested
+    if (roleName === 'admin') {
+      const allPermissions = await this.getPermissions();
+      return allPermissions.map(permission => ({
+        id: crypto.randomUUID(),
+        roleId: '1', // admin role ID
+        permissionId: permission.id,
+        createdAt: new Date(),
+        permission
+      }));
+    }
+
     // Find the role by name
     const role = demoRoles.find(r => r.name === roleName);
     if (!role) {

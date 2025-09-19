@@ -14,6 +14,8 @@ import {
   insertClassSchema,
   insertLessonSchema,
   insertBookSchema,
+  insertPermissionCategorySchema,
+  insertPermissionSchema,
   insertUserSettingsSchema,
   insertSupportTicketSchema,
   insertSupportTicketResponseSchema,
@@ -733,6 +735,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Permissions routes - read-only catalog for UI
+  // Permission Categories routes
+  app.get("/api/permission-categories", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const categories = await storage.getPermissionCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching permission categories:", error);
+      res.status(500).json({ message: "Failed to fetch permission categories" });
+    }
+  });
+
+  app.get("/api/permission-categories/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const category = await storage.getPermissionCategory(req.params.id);
+      if (!category) {
+        return res.status(404).json({ message: "Permission category not found" });
+      }
+      res.json(category);
+    } catch (error) {
+      console.error("Error fetching permission category:", error);
+      res.status(500).json({ message: "Failed to fetch permission category" });
+    }
+  });
+
+  app.post("/api/permission-categories", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const categoryData = insertPermissionCategorySchema.parse(req.body);
+      const category = await storage.createPermissionCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating permission category:", error);
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to create permission category" });
+    }
+  });
+
+  app.put("/api/permission-categories/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const categoryData = insertPermissionCategorySchema.partial().parse(req.body);
+      const category = await storage.updatePermissionCategory(req.params.id, categoryData);
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating permission category:", error);
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to update permission category" });
+    }
+  });
+
+  app.delete("/api/permission-categories/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      await storage.deletePermissionCategory(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting permission category:", error);
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to delete permission category" });
+    }
+  });
+
   app.get("/api/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
     try {
       const permissions = await storage.getPermissions();
@@ -740,6 +807,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching permissions:", error);
       res.status(500).json({ message: "Failed to fetch permissions" });
+    }
+  });
+
+  app.get("/api/permissions/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const permission = await storage.getPermission(req.params.id);
+      if (!permission) {
+        return res.status(404).json({ message: "Permission not found" });
+      }
+      res.json(permission);
+    } catch (error) {
+      console.error("Error fetching permission:", error);
+      res.status(500).json({ message: "Failed to fetch permission" });
+    }
+  });
+
+  app.post("/api/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const permissionData = insertPermissionSchema.parse(req.body);
+      const permission = await storage.createPermission(permissionData);
+      res.status(201).json(permission);
+    } catch (error) {
+      console.error("Error creating permission:", error);
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to create permission" });
+    }
+  });
+
+  app.put("/api/permissions/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const permissionData = insertPermissionSchema.partial().parse(req.body);
+      const permission = await storage.updatePermission(req.params.id, permissionData);
+      res.json(permission);
+    } catch (error) {
+      console.error("Error updating permission:", error);
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to update permission" });
+    }
+  });
+
+  app.delete("/api/permissions/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      await storage.deletePermission(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting permission:", error);
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to delete permission" });
     }
   });
 

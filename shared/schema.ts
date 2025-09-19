@@ -33,16 +33,17 @@ export const userRoleEnum = pgEnum('user_role', [
   'student'    // Aluno - apenas área do aluno
 ]);
 
-// Permission categories enum
-export const permissionCategoryEnum = pgEnum('permission_category', [
-  'dashboard',
-  'units',
-  'staff',
-  'students',
-  'courses', 
-  'schedule',
-  'system'
-]);
+// Permission categories table - for dynamic categories
+export const permissionCategories = pgTable("permission_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(), // ex: "dashboard", "units", "custom_reports"
+  displayName: varchar("display_name").notNull(), // ex: "Dashboard", "Unidades", "Relatórios Customizados"
+  description: text("description"),
+  isSystemCategory: boolean("is_system_category").default(false), // true for fixed categories
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 // Permissions table - todas as permissões disponíveis no sistema
 export const permissions = pgTable("permissions", {
@@ -50,7 +51,8 @@ export const permissions = pgTable("permissions", {
   name: varchar("name").notNull().unique(), // ex: "access_units", "access_schedule"
   displayName: varchar("display_name").notNull(), // ex: "Acesso a Unidades", "Acesso a Agenda"
   description: text("description"),
-  category: permissionCategoryEnum("category").notNull(),
+  categoryId: varchar("category_id").references(() => permissionCategories.id, { onDelete: 'cascade' }).notNull(),
+  category: varchar("category").notNull(), // Keep for backward compatibility, will be synced with categoryId
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -226,7 +228,15 @@ export const userPermissions = pgTable("user_permissions", {
 ]);
 
 // Relations - restauradas para manter compatibilidade
-export const permissionsRelations = relations(permissions, ({ many }) => ({
+export const permissionCategoriesRelations = relations(permissionCategories, ({ many }) => ({
+  permissions: many(permissions),
+}));
+
+export const permissionsRelations = relations(permissions, ({ one, many }) => ({
+  category: one(permissionCategories, {
+    fields: [permissions.categoryId],
+    references: [permissionCategories.id],
+  }),
   rolePermissions: many(rolePermissions),
   userPermissions: many(userPermissions),
 }));
@@ -406,6 +416,12 @@ export const insertBookSchema = createInsertSchema(books).omit({
   updatedAt: true,
 });
 
+export const insertPermissionCategorySchema = createInsertSchema(permissionCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertPermissionSchema = createInsertSchema(permissions).omit({
   id: true,
   createdAt: true,
@@ -440,6 +456,7 @@ export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type InsertClass = z.infer<typeof insertClassSchema>;
 export type InsertLesson = z.infer<typeof insertLessonSchema>;
 export type InsertBook = z.infer<typeof insertBookSchema>;
+export type InsertPermissionCategory = z.infer<typeof insertPermissionCategorySchema>;
 export type InsertPermission = z.infer<typeof insertPermissionSchema>;
 export type InsertRole = z.infer<typeof insertRoleSchema>;
 export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
@@ -453,6 +470,7 @@ export type Book = typeof books.$inferSelect;
 export type Class = typeof classes.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type ClassEnrollment = typeof classEnrollments.$inferSelect;
+export type PermissionCategory = typeof permissionCategories.$inferSelect;
 export type Permission = typeof permissions.$inferSelect;
 export type Role = typeof roles.$inferSelect;
 export type RolePermission = typeof rolePermissions.$inferSelect;
@@ -489,9 +507,7 @@ export type RoleWithPermissions = Role & {
   rolePermissions: (RolePermission & { permission: Permission })[];
 };
 
-export type PermissionsByCategory = {
-  [K in 'dashboard' | 'units' | 'staff' | 'students' | 'courses' | 'schedule' | 'system']: Permission[];
-};
+export type PermissionsByCategory = Record<string, Permission[]>;
 
 // User Settings table
 export const userSettings = pgTable("user_settings", {
