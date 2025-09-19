@@ -15,6 +15,7 @@ import Courses from "@/pages/Courses";
 import Schedule from "@/pages/Schedule";
 import StudentArea from "@/pages/StudentArea";
 import TeacherArea from "@/pages/TeacherArea";
+import Financial from "@/pages/Financial";
 import Permissions from "@/pages/Permissions";
 import Settings from "@/pages/Settings";
 import Support from "@/pages/Support";
@@ -51,6 +52,7 @@ function Router() {
           <Route path="/courses" component={Courses} />
           <Route path="/schedule" component={Schedule} />
           <Route path="/professor" component={TeacherArea} />
+          <Route path="/financial" component={Financial} />
           <Route path="/permissions" component={Permissions} />
           <Route path="/settings" component={Settings} />
           <Route path="/support" component={Support} />

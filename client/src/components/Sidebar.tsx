@@ -94,6 +94,12 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
 
   const systemMenuItems = [
     {
+      path: "/financial",
+      icon: "fas fa-dollar-sign",
+      label: "Financeiro",
+      permission: "access_financial"
+    },
+    {
       path: "/settings",
       icon: "fas fa-cog",
       label: "Configurações",
