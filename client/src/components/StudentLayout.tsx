@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { Menu, Settings, Bell, LogOut } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,7 @@ interface StudentLayoutProps {
 export default function StudentLayout({ children }: StudentLayoutProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const [location] = useLocation();
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -55,6 +57,45 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   if (!isAuthenticated) {
     return null; // Will be handled by the routing
   }
+
+  const studentMenuItems = [
+    {
+      path: "/",
+      label: "Dashboard",
+      icon: "fas fa-home",
+    },
+    {
+      path: "/aluno/workbook",
+      label: "Workbook",
+      icon: "fas fa-book",
+    },
+    {
+      path: "/aluno/provas",
+      label: "Provas",
+      icon: "fas fa-clipboard-check",
+    },
+    {
+      path: "/aluno/cronograma",
+      label: "Cronograma",
+      icon: "fas fa-calendar-alt",
+    },
+    {
+      path: "/aluno/progresso",
+      label: "Meu Progresso",
+      icon: "fas fa-chart-line",
+    },
+    {
+      path: "/support",
+      label: "Suporte",
+      icon: "fas fa-question-circle",
+    },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === "/" && (location === "/" || location === "/student-area")) return true;
+    if (path !== "/" && location.startsWith(path)) return true;
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -117,6 +158,31 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
           </div>
         </div>
       </header>
+
+      {/* Student Navigation Menu */}
+      <nav className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-b border-gray-200/30 dark:border-gray-700/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center py-4">
+            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto">
+              {studentMenuItems.map((item) => (
+                <Link key={item.path} href={item.path}>
+                  <a
+                    className={`flex items-center space-x-2 px-3 py-2 sm:px-4 sm:py-3 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                      isActive(item.path)
+                        ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transform scale-105"
+                        : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
+                    }`}
+                    data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <i className={`${item.icon} text-sm`}></i>
+                    <span className="hidden sm:inline">{item.label}</span>
+                  </a>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </nav>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

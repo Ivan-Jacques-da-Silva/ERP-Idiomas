@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import Layout from "@/components/Layout";
+import StudentLayout from "@/components/StudentLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -43,7 +43,7 @@ export default function StudentArea() {
   }
 
   return (
-    <Layout>
+    <StudentLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center mb-8">
@@ -341,6 +341,6 @@ export default function StudentArea() {
           </div>
         </div>
       </div>
-    </Layout>
+    </StudentLayout>
   );
 }
