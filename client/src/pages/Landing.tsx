@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 
@@ -73,7 +74,12 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row relative">
+      {/* Theme Toggle - Fixed top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       {/* Left Column - Welcome Section with Stars */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-purple-900 via-orange-900 to-purple-800 overflow-hidden">
         {/* Stars Animation */}
