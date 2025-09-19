@@ -565,7 +565,7 @@ export default function Support() {
                       Criar Primeiro Ticket
                     </Button>
                   </div>
-                )
+                )}
               </CardContent>
             </Card>
           </TabsContent>
