@@ -21,9 +21,6 @@ import {
 import { z } from "zod";
 
 
-const updateUserPermissionsSchema = z.object({
-  permissionIds: z.array(z.string())
-});
 
 const updateRolePermissionsSchema = z.object({
   permissionIds: z.array(z.string())
@@ -116,6 +113,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     res.json(req.session.user);
+  });
+
+  // Get effective permissions for current user based on their role
+  app.get('/api/auth/effective-permissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const rolePermissions = await storage.getRolePermissions(req.session.user.role);
+      res.json({ permissions: rolePermissions || [] });
+    } catch (error) {
+      console.error('Error getting effective permissions:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
   });
 
   // Logout endpoint
@@ -733,28 +741,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User permissions route - read-only effective permissions based on role
-  app.get("/api/users/:id/permissions", isAuthenticated, async (req: any, res) => {
-    try {
-      // Users can access their own permissions, admin can access anyone's
-      const currentUserId = req.session.user.id;
-      const requestedUserId = req.params.id;
-      const userRole = req.session.user.role;
-      
-      if (currentUserId !== requestedUserId && userRole !== 'admin') {
-        return res.status(403).json({ message: "Forbidden - Can only access your own permissions" });
-      }
-      
-      const userWithPermissions = await storage.getUserWithPermissions(req.params.id);
-      if (!userWithPermissions) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(userWithPermissions);
-    } catch (error) {
-      console.error("Error fetching user permissions:", error);
-      res.status(500).json({ message: "Failed to fetch user permissions" });
-    }
-  });
 
   // Roles routes - manage system roles
   app.get("/api/roles", isAuthenticated, requireAdminOnly, async (req, res) => {

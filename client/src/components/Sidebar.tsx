@@ -12,9 +12,9 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
   const { user } = useAuth();
   const [location] = useLocation();
 
-  // Get user permissions for access control
-  const { data: userPermissions, isLoading: permissionsLoading, isSuccess: permissionsSuccess } = useQuery({
-    queryKey: ['/api/users', user?.id, 'permissions'],
+  // Get role-based permissions for access control
+  const { data: rolePermissions, isLoading: permissionsLoading } = useQuery({
+    queryKey: ['/api/auth/effective-permissions'],
     enabled: !!user?.id,
     retry: false,
   });
@@ -26,23 +26,24 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
   };
 
   const canAccess = (permissionName: string) => {
-    // If user permissions are still loading, don't show any menu items (eliminates flicker)
+    // Admin role always has access (failsafe)
+    if (user?.role === 'admin') {
+      return true;
+    }
+
+    // If role permissions are still loading, don't show any menu items (eliminates flicker)
     if (permissionsLoading) {
       return false;
     }
     
-    // If user permissions haven't loaded yet or are empty, use fallback for admin only
-    if (!userPermissions || !Array.isArray((userPermissions as any)?.userPermissions)) {
-      // For admin role, allow all access as fallback
-      if (user?.role === 'admin') {
-        return true;
-      }
+    // If role permissions haven't loaded yet or are malformed, deny access
+    if (!rolePermissions || !Array.isArray((rolePermissions as any)?.permissions)) {
       return false;
     }
     
-    // Check if user has the specific permission and it's granted
-    return (userPermissions as any).userPermissions.some((up: any) => 
-      up.permission.name === permissionName && up.isGranted
+    // Check if user's role has the specific permission
+    return (rolePermissions as any).permissions.some((permission: any) => 
+      permission.name === permissionName
     );
   };
 

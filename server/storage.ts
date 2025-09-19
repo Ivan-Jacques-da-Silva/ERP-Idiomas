@@ -2174,11 +2174,3 @@ export class DatabaseStorage implements IStorage {
 
 export const storage = new DatabaseStorage();
 
-// Executar migração automaticamente na inicialização
-(async () => {
-  try {
-    await storage.migrateUsersToIndividualPermissions();
-  } catch (error) {
-    console.error('Erro durante a migração de usuários:', error);
-  }
-})();
