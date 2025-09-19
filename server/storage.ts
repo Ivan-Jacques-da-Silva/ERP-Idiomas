@@ -1781,6 +1781,36 @@ export class DatabaseStorage implements IStorage {
     return demoRolePermissions.filter(rp => rp.roleId === roleId);
   }
 
+  // Get role permissions by role name (for demo users who use role names)
+  async getRolePermissionsByName(roleName: string): Promise<(RolePermission & { permission: Permission })[]> {
+    // Find the role by name
+    const role = demoRoles.find(r => r.name === roleName);
+    if (!role) {
+      console.warn(`Role '${roleName}' not found`);
+      return [];
+    }
+
+    // Get role permissions for this role ID
+    const rolePermissions = demoRolePermissions.filter(rp => rp.roleId === role.id);
+    
+    // Join with permissions data to return complete permission information
+    const permissionsWithData: (RolePermission & { permission: Permission })[] = [];
+    
+    for (const rp of rolePermissions) {
+      const permission = demoPermissions.find(p => p.id === rp.permissionId && p.isActive);
+      if (permission) {
+        permissionsWithData.push({
+          ...rp,
+          permission
+        });
+      } else {
+        console.warn(`Permission ${rp.permissionId} not found or inactive for role ${roleName}`);
+      }
+    }
+
+    return permissionsWithData;
+  }
+
   async addPermissionToRole(roleId: string, permissionId: string): Promise<RolePermission> {
     // Check if role exists
     const role = demoRoles.find(r => r.id === roleId);

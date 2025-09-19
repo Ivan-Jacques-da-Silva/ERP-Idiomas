@@ -118,8 +118,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get effective permissions for current user based on their role
   app.get('/api/auth/effective-permissions', isAuthenticated, async (req: any, res) => {
     try {
-      const rolePermissions = await storage.getRolePermissions(req.session.user.role);
-      res.json({ permissions: rolePermissions || [] });
+      const rolePermissions = await storage.getRolePermissionsByName(req.session.user.role);
+      // Return permissions in the format expected by the frontend
+      const permissions = rolePermissions.map(rp => rp.permission);
+      res.json({ permissions: permissions || [] });
     } catch (error) {
       console.error('Error getting effective permissions:', error);
       res.status(500).json({ message: 'Internal server error' });
