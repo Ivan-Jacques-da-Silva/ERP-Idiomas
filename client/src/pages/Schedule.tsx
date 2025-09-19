@@ -42,37 +42,37 @@ function ClassDetailModal({ isOpen, onClose, classData }: ClassDetailModalProps)
           {/* Informações da Turma */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium text-gray-500">Professor</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Professor</Label>
               <p className="text-sm font-semibold">{classData.teacher}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Horário</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Horário</Label>
               <p className="text-sm">{classData.startTime} - {classData.endTime}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Sala</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Sala</Label>
               <p className="text-sm">{classData.room}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Livro</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Livro</Label>
               <p className="text-sm">{classData.book}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Progresso</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Progresso</Label>
               <p className="text-sm">Dia {classData.currentDay}/{classData.totalDays}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Alunos</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Alunos</Label>
               <p className="text-sm">{classData.studentsCount}/{classData.maxStudents}</p>
             </div>
           </div>
 
           {/* Lista de Alunos */}
           <div>
-            <Label className="text-sm font-medium text-gray-500 mb-3 block">Alunos Matriculados</Label>
+            <Label className="text-sm font-medium text-muted-foreground mb-3 block">Alunos Matriculados</Label>
             <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
               {classData.students?.map((student: any, index: number) => (
-                <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                <div key={index} className="flex items-center space-x-2 p-2 bg-muted rounded-lg">
                   <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                     <span className="text-xs text-white font-medium">
                       {student.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
@@ -87,7 +87,7 @@ function ClassDetailModal({ isOpen, onClose, classData }: ClassDetailModalProps)
                   { name: 'Pedro Lima' },
                   { name: 'Carla Oliveira' },
                 ].map((student, index) => (
-                  <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center space-x-2 p-2 bg-muted rounded-lg">
                     <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                       <span className="text-xs text-white font-medium">
                         {student.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
@@ -470,14 +470,14 @@ export default function Schedule() {
           </div>
         </div>
 
-        <div className="overflow-x-auto bg-white rounded-lg border shadow-sm">
+        <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
           <div className="grid grid-cols-8 gap-0 min-w-[900px]">
             {/* Header row */}
-            <div className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">Horário</div>
+            <div className="p-3 font-medium text-center bg-muted border-b border-r border-border text-sm">Horário</div>
             {weekDays.map((day) => (
-              <div key={day.toISOString()} className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">
+              <div key={day.toISOString()} className="p-3 font-medium text-center bg-muted border-b border-r border-border text-sm">
                 <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {format(day, "dd/MM", { locale: ptBR })}
                 </div>
               </div>
@@ -489,7 +489,7 @@ export default function Schedule() {
               return (
                 <>
                   {/* Time label */}
-                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
+                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground">
                     {timeSlot}
                   </div>
 
@@ -502,7 +502,7 @@ export default function Schedule() {
                     });
 
                     return (
-                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border-b border-r border-gray-100 relative">
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border-b border-r border-border relative">
                         <div className="space-y-1">
                           {dayClasses.map((classItem, index) => (
                             <div
@@ -511,7 +511,7 @@ export default function Schedule() {
                               style={{
                                 backgroundColor: adminCourseColors[classItem.title] + '20',
                                 borderColor: adminCourseColors[classItem.title],
-                                color: '#000'
+                                color: 'var(--foreground)'
                               }}
                               onClick={() => handleClassClick({
                                 ...classItem,
@@ -527,7 +527,7 @@ export default function Schedule() {
                         {/* Add class button for empty slots or when admin */}
                         {dayClasses.length === 0 && isAdminView && (
                           <div
-                            className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer bg-gray-50 bg-opacity-50"
+                            className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer bg-muted bg-opacity-50"
                             onClick={() => handleNewClass()}
                           >
                             <Button size="sm" variant="outline" className="text-xs">
@@ -545,7 +545,7 @@ export default function Schedule() {
         </div>
 
         {/* Legend */}
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-muted p-4 rounded-lg">
           <h4 className="font-medium mb-3">Legenda dos Cursos</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(adminCourseColors).map(([courseName, color]) => (
@@ -639,14 +639,14 @@ export default function Schedule() {
           </div>
         </div>
 
-        <div className="overflow-x-auto bg-white rounded-lg border shadow-sm">
+        <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
           <div className="grid grid-cols-8 gap-0 min-w-[900px]">
             {/* Header */}
-            <div className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">Horário</div>
+            <div className="p-3 font-medium text-center bg-muted border-b border-r border-border text-sm">Horário</div>
             {weekDays.map((day) => (
-              <div key={day.toISOString()} className="p-3 font-medium text-center bg-gray-50 border-b border-r text-sm">
+              <div key={day.toISOString()} className="p-3 font-medium text-center bg-muted border-b border-r border-border text-sm">
                 <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {format(day, "dd/MM", { locale: ptBR })}
                 </div>
               </div>
@@ -657,7 +657,7 @@ export default function Schedule() {
               const [hour] = timeSlot.split(':');
               return (
                 <>
-                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-gray-50 border-b border-r text-gray-600">
+                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground">
                     {timeSlot}
                   </div>
 
@@ -699,7 +699,7 @@ export default function Schedule() {
         </div>
 
         {/* Legenda de cores dos cursos */}
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-muted p-4 rounded-lg">
           <h4 className="font-medium mb-3">Legenda dos Cursos</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(teacherCourseColors).map(([courseName, color]) => (

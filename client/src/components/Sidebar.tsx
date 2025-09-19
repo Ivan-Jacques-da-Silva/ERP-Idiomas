@@ -109,6 +109,12 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       icon: "fas fa-shield-alt",
       label: "Permissões",
       permission: "access_permissions"
+    },
+    {
+      path: "/support",
+      icon: "fas fa-question-circle",
+      label: "Suporte",
+      permission: "access_support"
     }
   ];
 
@@ -205,23 +211,6 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Support Section */}
-      <div className={`${expanded ? 'p-4' : 'p-2'} border-t border-white/20 transition-all duration-300 overflow-hidden`}>
-        <a 
-          href="#" 
-          className={`flex items-center ${expanded ? 'space-x-3 px-4 py-3' : 'justify-center px-2 py-3'} rounded-xl sidebar-hover transition-smooth text-muted-foreground glassmorphism group relative`}
-          data-testid="link-support"
-          title={!expanded ? "Suporte" : undefined}
-        >
-          <i className="fas fa-question-circle w-5 flex-shrink-0"></i>
-          {expanded && <span className="text-sm whitespace-nowrap">Suporte</span>}
-          {!expanded && (
-            <div className="absolute left-16 bg-gray-900 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
-              Suporte
-            </div>
-          )}
-        </a>
-      </div>
     </aside>
   );
 }
