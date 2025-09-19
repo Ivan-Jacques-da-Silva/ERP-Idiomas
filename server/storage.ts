@@ -620,7 +620,6 @@ let demoPermissions: Permission[] = [
   { id: '4', name: 'access_students', displayName: 'Alunos', description: 'Acesso à página de Alunos', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '5', name: 'access_courses', displayName: 'Cursos', description: 'Acesso à página de Cursos', category: 'courses', isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '6', name: 'access_schedule', displayName: 'Agenda', description: 'Acesso à página de Agenda', category: 'schedule', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '7', name: 'access_financial', displayName: 'Financeiro', description: 'Acesso à página Financeiro', category: 'financial', isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '8', name: 'access_student_area', displayName: 'Área do Aluno', description: 'Acesso à Área do Aluno', category: 'students', isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '9', name: 'access_settings', displayName: 'Configurações', description: 'Acesso às Configurações do sistema', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '10', name: 'access_permissions', displayName: 'Permissões', description: 'Acesso ao gerenciamento de Permissões', category: 'system', isActive: true, createdAt: new Date(), updatedAt: new Date() },
@@ -632,8 +631,6 @@ let demoRoles: Role[] = [
   { id: '2', name: 'teacher', displayName: 'Professor', description: 'Acesso a turmas e agenda', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '3', name: 'secretary', displayName: 'Secretaria', description: 'Gestão de alunos e unidades', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
   { id: '4', name: 'student', displayName: 'Aluno', description: 'Acesso à área do aluno', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '5', name: 'financial', displayName: 'Financeiro', description: 'Acesso a funcionalidades financeiras', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
-  { id: '6', name: 'developer', displayName: 'Desenvolvedor', description: 'Acesso total ao sistema', isSystemRole: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
 ];
 
 // Role permissions demo data
@@ -645,7 +642,6 @@ let demoRolePermissions: RolePermission[] = [
   { id: '4', roleId: '1', permissionId: '4', createdAt: new Date() }, // Alunos
   { id: '5', roleId: '1', permissionId: '5', createdAt: new Date() }, // Cursos
   { id: '6', roleId: '1', permissionId: '6', createdAt: new Date() }, // Agenda
-  { id: '7', roleId: '1', permissionId: '7', createdAt: new Date() }, // Financeiro
   { id: '8', roleId: '1', permissionId: '8', createdAt: new Date() }, // Área do Aluno
   { id: '9', roleId: '1', permissionId: '9', createdAt: new Date() }, // Configurações
 
@@ -1601,7 +1597,6 @@ export class DatabaseStorage implements IStorage {
       students: [],
       courses: [],
       schedule: [],
-      financial: [],
       system: []
     };
 
@@ -1870,7 +1865,6 @@ export class DatabaseStorage implements IStorage {
         { id: '2', email: 'teacher@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'teacher' },
         { id: '3', email: 'secretary@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'secretary' },
         { id: '4', email: 'student@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'student' },
-        { id: '5', email: 'developer@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'developer' },
       ];
       
       const user = loginDemoUsers.find(u => u.id === userId);
@@ -1880,12 +1874,10 @@ export class DatabaseStorage implements IStorage {
 
       // Get role-based permissions for user
       const rolePermissionMap: { [key: string]: string[] } = {
-        admin: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], // All permissions including settings and permissions
-        developer: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], // All permissions
+        admin: ['1', '2', '3', '4', '5', '6', '8', '9', '10'], // All permissions including settings and permissions
         teacher: ['1', '4', '5', '6'], // Dashboard, Students, Courses, Schedule
         secretary: ['1', '2', '4', '5', '6'], // Dashboard, Units, Students, Courses, Schedule
         student: ['1', '8'], // Dashboard and Student area
-        financial: ['1', '7'] // Dashboard and Financial
       };
 
       const rolePermissionIds = rolePermissionMap[user.role] || [];
@@ -2012,7 +2004,6 @@ export class DatabaseStorage implements IStorage {
 
       switch (userRole) {
         case 'admin':
-        case 'developer':
           // Admin tem acesso a todas as páginas incluindo configurações
           rolePermissionIds = ['1', '2', '3', '4', '5', '6', '7', '8', '9']; // Dashboard, Unidades, Colaboradores, Alunos, Cursos, Agenda, Financeiro, Área do Aluno, Configurações
           break;
@@ -2027,10 +2018,6 @@ export class DatabaseStorage implements IStorage {
           rolePermissionIds = ['1', '2', '4', '5', '6']; // Dashboard, Unidades, Alunos, Cursos, Agenda
           break;
 
-        case 'financial':
-          // Financeiro tem acesso a dashboard e financeiro
-          rolePermissionIds = ['1', '7']; // Dashboard, Financeiro
-          break;
 
         case 'student':
           // Aluno tem acesso a dashboard e área do aluno

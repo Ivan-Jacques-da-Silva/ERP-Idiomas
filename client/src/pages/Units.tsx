@@ -100,7 +100,7 @@ export default function Units() {
   }
 
   // Check permissions
-  const canManageUnits = user?.role === 'admin' || user?.role === 'developer';
+  const canManageUnits = user?.role === 'admin';
 
   return (
     <Layout>

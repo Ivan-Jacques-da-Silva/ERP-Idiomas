@@ -31,7 +31,6 @@ const demoUsers = [
   { id: '2', email: 'teacher@demo.com', password: 'teacher123', firstName: 'Ivan', lastName: 'Silva', role: 'teacher' },
   { id: '3', email: 'secretary@demo.com', password: 'secretary123', firstName: 'Ivan', lastName: 'Silva', role: 'secretary' },
   { id: '4', email: 'student@demo.com', password: 'student123', firstName: 'Ivan', lastName: 'Silva', role: 'student' },
-  { id: '5', email: 'developer@demo.com', password: 'dev123', firstName: 'Ivan', lastName: 'Silva', role: 'developer' },
 ];
 
 // Simple middleware to check if user is logged in
@@ -43,12 +42,13 @@ const isAuthenticated = (req: any, res: any, next: any) => {
 };
 
 
-// Middleware to check if user has admin or developer role
-const requireAdminOrDeveloper = (req: any, res: any, next: any) => {
-  if (req.session?.user?.role === 'admin' || req.session?.user?.role === 'developer') {
+
+// Middleware para permitir apenas admin (novo sistema simplificado)
+const requireAdminOnly = (req: any, res: any, next: any) => {
+  if (req.session?.user?.role === 'admin') {
     return next();
   }
-  return res.status(403).json({ message: "Forbidden - Admin or Developer role required" });
+  return res.status(403).json({ message: "Forbidden - Admin role required" });
 };
 
 // Middleware to check if user has admin or secretary role
@@ -719,7 +719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Permissions routes - read-only catalog for UI
-  app.get("/api/permissions", isAuthenticated, requireAdminOrDeveloper, async (req, res) => {
+  app.get("/api/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
     try {
       const permissions = await storage.getPermissions();
       res.json(permissions);
@@ -732,12 +732,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User permissions routes - individual user permissions management
   app.get("/api/users/:id/permissions", isAuthenticated, async (req: any, res) => {
     try {
-      // Users can access their own permissions, admin/developer can access anyone's
+      // Users can access their own permissions, admin can access anyone's
       const currentUserId = req.session.user.id;
       const requestedUserId = req.params.id;
       const userRole = req.session.user.role;
       
-      if (currentUserId !== requestedUserId && userRole !== 'admin' && userRole !== 'developer') {
+      if (currentUserId !== requestedUserId && userRole !== 'admin') {
         return res.status(403).json({ message: "Forbidden - Can only access your own permissions" });
       }
       
@@ -752,7 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/:id/permissions", isAuthenticated, requireAdminOrDeveloper, async (req, res) => {
+  app.put("/api/users/:id/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
     try {
       const { permissionIds } = updateUserPermissionsSchema.parse(req.body);
       
@@ -790,12 +790,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Settings routes
   app.get("/api/users/:id/settings", isAuthenticated, async (req: any, res) => {
     try {
-      // Users can access their own settings, admin/developer can access anyone's
+      // Users can access their own settings, admin can access anyone's
       const currentUserId = req.session.user.id;
       const requestedUserId = req.params.id;
       const userRole = req.session.user.role;
       
-      if (currentUserId !== requestedUserId && userRole !== 'admin' && userRole !== 'developer') {
+      if (currentUserId !== requestedUserId && userRole !== 'admin') {
         return res.status(403).json({ message: "Forbidden - Can only access your own settings" });
       }
       
@@ -809,12 +809,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/users/:id/settings", isAuthenticated, async (req: any, res) => {
     try {
-      // Users can update their own settings, admin/developer can update anyone's
+      // Users can update their own settings, admin can update anyone's
       const currentUserId = req.session.user.id;
       const requestedUserId = req.params.id;
       const userRole = req.session.user.role;
       
-      if (currentUserId !== requestedUserId && userRole !== 'admin' && userRole !== 'developer') {
+      if (currentUserId !== requestedUserId && userRole !== 'admin') {
         return res.status(403).json({ message: "Forbidden - Can only update your own settings" });
       }
       
@@ -836,9 +836,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentUserId = req.session.user.id;
       const userRole = req.session.user.role;
       
-      // Admin/developer can see all tickets, others can see only their own
+      // Admin can see all tickets, others can see only their own
       let tickets;
-      if (userRole === 'admin' || userRole === 'developer') {
+      if (userRole === 'admin') {
         tickets = await storage.getSupportTickets();
       } else {
         tickets = await storage.getSupportTicketsByUser(currentUserId);
@@ -861,8 +861,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Ticket not found" });
       }
       
-      // Users can only access their own tickets, admin/developer can access all
-      if (ticket.userId !== currentUserId && userRole !== 'admin' && userRole !== 'developer') {
+      // Users can only access their own tickets, admin can access all
+      if (ticket.userId !== currentUserId && userRole !== 'admin') {
         return res.status(403).json({ message: "Forbidden - Can only access your own tickets" });
       }
       
@@ -909,8 +909,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentUserId = req.session.user.id;
       const userRole = req.session.user.role;
       
-      // Only admin/developer can update ticket status and assignment
-      if (userRole !== 'admin' && userRole !== 'developer') {
+      // Only admin can update ticket status and assignment
+      if (userRole !== 'admin') {
         return res.status(403).json({ message: "Forbidden - Only admin can update tickets" });
       }
       
@@ -941,7 +941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Ticket not found" });
       }
       
-      if (ticket.userId !== currentUserId && userRole !== 'admin' && userRole !== 'developer') {
+      if (ticket.userId !== currentUserId && userRole !== 'admin') {
         return res.status(403).json({ message: "Forbidden - Can only respond to your own tickets" });
       }
       
@@ -950,7 +950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...responseData,
         ticketId,
         userId: currentUserId,
-        isFromSupport: userRole === 'admin' || userRole === 'developer',
+        isFromSupport: userRole === 'admin',
       });
       
       res.status(201).json(newResponse);

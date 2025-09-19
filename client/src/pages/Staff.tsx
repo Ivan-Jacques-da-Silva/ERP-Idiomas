@@ -1,80 +1,21 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Link } from "wouter";
 
 export default function Staff() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const [selectedStaffMember, setSelectedStaffMember] = useState<any>(null);
-  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   const { data: staff, isLoading } = useQuery<any[]>({
     queryKey: ["/api/staff"],
     retry: false,
-  });
-
-  // Query for getting all available permissions (pages of the menu)
-  const { data: permissions } = useQuery<any[]>({
-    queryKey: ["/api/permissions"],
-    retry: false,
-  });
-
-  // Query for getting user permissions when modal opens
-  const { 
-    data: userWithPermissions, 
-    isLoading: userPermissionsLoading, 
-    error: userPermissionsError,
-    refetch: refetchUserPermissions 
-  } = useQuery({
-    queryKey: ["/api/users", selectedStaffMember?.user?.id, "permissions"],
-    enabled: !!selectedStaffMember?.user?.id && permissionsModalOpen,
-    retry: false,
-  });
-
-  // Mutation for updating user permissions
-  const updateUserPermissionsMutation = useMutation({
-    mutationFn: async (data: { userId: string; permissionIds: string[] }) => {
-      await apiRequest("PUT", `/api/users/${data.userId}/permissions`, { permissionIds: data.permissionIds });
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", variables.userId, "permissions"] });
-      toast({
-        title: "Sucesso!",
-        description: "Permissões atualizadas com sucesso.",
-      });
-      setPermissionsModalOpen(false);
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "Você foi desconectado. Redirecionando...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar permissões. Tente novamente.",
-        variant: "destructive",
-      });
-    },
   });
 
   // Redirect to login if not authenticated
@@ -100,75 +41,30 @@ export default function Staff() {
     );
   }
 
-  // Check permissions
-  const canManageStaff = user?.role === 'admin' || user?.role === 'developer';
-  const canManagePermissions = user?.role === 'admin' || user?.role === 'developer';
+  // Check permissions - agora apenas admin pode gerenciar
+  const canManageStaff = user?.role === 'admin';
+  const canManagePermissions = user?.role === 'admin';
 
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin': return 'fas fa-crown';
       case 'teacher': return 'fas fa-chalkboard-teacher';
       case 'secretary': return 'fas fa-user-tie';
-      case 'financial': return 'fas fa-calculator';
+      case 'student': return 'fas fa-user-graduate';
       default: return 'fas fa-user';
     }
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'bg-red-100 text-red-700';
-      case 'teacher': return 'bg-green-100 text-green-700';
-      case 'secretary': return 'bg-blue-100 text-blue-700';
-      case 'financial': return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'admin': return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
+      case 'teacher': return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
+      case 'secretary': return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300';
+      case 'student': return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300';
+      default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300';
     }
   };
 
-  // Handler for opening permissions modal
-  const handleViewPermissions = (staffMember: any) => {
-    setSelectedStaffMember(staffMember);
-    setHasUserInteracted(false); // Reset interaction flag for clean start
-    setPermissionsModalOpen(true);
-  };
-
-  // Handler for saving permissions
-  const handleSavePermissions = () => {
-    if (!selectedStaffMember?.user?.id) return;
-    
-    updateUserPermissionsMutation.mutate({
-      userId: selectedStaffMember.user.id,
-      permissionIds: selectedPermissions
-    });
-  };
-
-  // Initialize selected permissions only once when modal opens and data loads
-  useEffect(() => {
-    if (permissionsModalOpen && userWithPermissions?.userPermissions && !hasUserInteracted) {
-      const grantedPermissionIds = userWithPermissions.userPermissions
-        .filter((up: any) => up.isGranted)
-        .map((up: any) => up.permission.id);
-      setSelectedPermissions(grantedPermissionIds);
-    }
-  }, [permissionsModalOpen, userWithPermissions, hasUserInteracted]);
-
-  // Reset all states when modal closes
-  useEffect(() => {
-    if (!permissionsModalOpen) {
-      setSelectedPermissions([]);
-      setSelectedStaffMember(null);
-      setHasUserInteracted(false);
-    }
-  }, [permissionsModalOpen]);
-
-  // Handler for toggling permission
-  const togglePermission = (permissionId: string) => {
-    setHasUserInteracted(true);
-    setSelectedPermissions(prev => 
-      prev.includes(permissionId)
-        ? prev.filter(id => id !== permissionId)
-        : [...prev, permissionId]
-    );
-  };
 
   return (
     <Layout>
@@ -245,12 +141,11 @@ export default function Staff() {
                       </CardTitle>
                       <CardDescription className="flex items-center space-x-2">
                         <Badge className={getRoleBadgeColor(member.user?.role)}>
-                          {member.user?.role === 'admin' && 'Administrador'}
+                          <i className={`${getRoleIcon(member.user?.role)} mr-1`}></i>
+                          {member.user?.role === 'admin' && 'Administrativo'}
                           {member.user?.role === 'teacher' && 'Professor'}
-                          {member.user?.role === 'secretary' && 'Secretário'}
-                          {member.user?.role === 'financial' && 'Financeiro'}
-                          {member.user?.role === 'developer' && 'Desenvolvedor'}
-                          {member.user?.role === 'student' && 'Estudante'}
+                          {member.user?.role === 'secretary' && 'Secretario'}
+                          {member.user?.role === 'student' && 'Aluno'}
                         </Badge>
                       </CardDescription>
                     </div>
@@ -298,15 +193,16 @@ export default function Staff() {
                         Ver detalhes
                       </Button>
                       {canManagePermissions && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewPermissions(member)}
-                          data-testid={`button-permissions-${member.id}`}
-                        >
-                          <i className="fas fa-shield-alt mr-2"></i>
-                          Ver Permissões
-                        </Button>
+                        <Link to="/permissions">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            data-testid={`button-permissions-${member.id}`}
+                          >
+                            <i className="fas fa-shield-alt mr-2"></i>
+                            Gerenciar Permissões
+                          </Button>
+                        </Link>
                       )}
                     </div>
                   )}
@@ -317,121 +213,6 @@ export default function Staff() {
         )}
       </div>
 
-      {/* Permissions Management Modal */}
-      <Dialog open={permissionsModalOpen} onOpenChange={setPermissionsModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              Gerenciar Permissões
-            </DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              {selectedStaffMember?.user && 
-                `${selectedStaffMember.user.firstName} ${selectedStaffMember.user.lastName}`
-              }
-            </p>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {userPermissionsError ? (
-              <div className="text-center py-4">
-                <div className="text-red-500 mb-2">
-                  <i className="fas fa-exclamation-triangle text-2xl"></i>
-                </div>
-                <p className="text-sm text-red-600 mb-4">
-                  Erro ao carregar permissões do usuário
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => refetchUserPermissions()}
-                  data-testid="button-retry-permissions"
-                >
-                  <i className="fas fa-redo mr-2"></i>
-                  Tentar novamente
-                </Button>
-              </div>
-            ) : userPermissionsLoading ? (
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Carregando permissões do usuário...</Label>
-                <div className="space-y-2">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div key={index} className="flex items-center space-x-2 animate-pulse">
-                      <div className="w-4 h-4 bg-muted rounded"></div>
-                      <div className="w-32 h-4 bg-muted rounded"></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : !permissions || permissions.length === 0 ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                <p className="text-sm text-muted-foreground">Carregando permissões...</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Selecione as permissões:</Label>
-                <div className="max-h-60 overflow-y-auto space-y-2">
-                  {permissions.map((permission: any) => (
-                    <div key={permission.id} className="flex items-center space-x-2 p-2 rounded hover:bg-muted/50">
-                      <Checkbox
-                        id={`permission-${permission.id}`}
-                        checked={selectedPermissions.includes(permission.id)}
-                        onCheckedChange={() => togglePermission(permission.id)}
-                        data-testid={`checkbox-permission-${permission.id}`}
-                        disabled={userPermissionsLoading || updateUserPermissionsMutation.isPending}
-                      />
-                      <Label 
-                        htmlFor={`permission-${permission.id}`}
-                        className="text-sm font-normal cursor-pointer flex items-center flex-1"
-                      >
-                        <i className={`${permission.icon} mr-2 w-4`}></i>
-                        {permission.name}
-                        {permission.description && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({permission.description})
-                          </span>
-                        )}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setPermissionsModalOpen(false)}
-                data-testid="button-cancel-permissions"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSavePermissions}
-                disabled={
-                  updateUserPermissionsMutation.isPending || 
-                  userPermissionsLoading || 
-                  userPermissionsError || 
-                  !selectedStaffMember?.user?.id
-                }
-                data-testid="button-save-permissions"
-              >
-                {updateUserPermissionsMutation.isPending ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-save mr-2"></i>
-                    Salvar
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 }

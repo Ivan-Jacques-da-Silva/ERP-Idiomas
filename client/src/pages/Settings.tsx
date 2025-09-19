@@ -68,7 +68,7 @@ export default function Settings() {
     passwordChangeRequired: false,
   });
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'developer';
+  const isAdmin = user?.role === 'admin';
 
   const handleSaveSettings = (section: string) => {
     toast({
@@ -136,8 +136,6 @@ export default function Settings() {
             {user.role === 'admin' && 'Administrador'}
             {user.role === 'teacher' && 'Professor'}
             {user.role === 'secretary' && 'Secretário'}
-            {user.role === 'financial' && 'Financeiro'}
-            {user.role === 'developer' && 'Desenvolvedor'}
             {user.role === 'student' && 'Estudante'}
           </Badge>
         </div>
@@ -335,7 +333,7 @@ export default function Settings() {
                       <h3 className="font-medium text-sm">Função Atual</h3>
                       <p className="text-sm text-muted-foreground">
                         Você está logado como <strong>{user.role}</strong>. 
-                        {user.role !== 'admin' && user.role !== 'developer' && 
+                        {user.role !== 'admin' && 
                           ' Para alterar permissões, entre em contato com o administrador.'
                         }
                       </p>

@@ -31,10 +31,10 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       return false;
     }
     
-    // If user permissions haven't loaded yet or are empty, use fallback for admin and developer only
+    // If user permissions haven't loaded yet or are empty, use fallback for admin only
     if (!userPermissions || !Array.isArray((userPermissions as any)?.userPermissions)) {
-      // For admin and developer roles, allow all access as fallback
-      if (user?.role === 'admin' || user?.role === 'developer') {
+      // For admin role, allow all access as fallback
+      if (user?.role === 'admin') {
         return true;
       }
       return false;
@@ -82,12 +82,6 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       icon: "fas fa-calendar-alt",
       label: "Agenda",
       permission: "access_schedule"
-    },
-    {
-      path: "/financial",
-      icon: "fas fa-dollar-sign",
-      label: "Financeiro",
-      permission: "access_financial"
     },
     {
       path: "/student-area",

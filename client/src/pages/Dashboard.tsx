@@ -87,7 +87,7 @@ export default function Dashboard() {
                   const availableCards = [];
                   
                   // Admin vê tudo
-                  if (user?.role === 'admin' || user?.role === 'developer') {
+                  if (user?.role === 'admin') {
                     availableCards.push(
                       <StatsCard
                         key="students"
@@ -198,31 +198,6 @@ export default function Dashboard() {
                         icon="fas fa-calendar-check"
                         iconColor="purple"
                         data-testid="card-todays-classes"
-                      />
-                    );
-                  }
-                  // Financial - vê receita e estatísticas gerais
-                  else if (user?.role === 'financial') {
-                    availableCards.push(
-                      <StatsCard
-                        key="students"
-                        title="Total de Alunos"
-                        value={stats?.totalStudents || 0}
-                        change="+12%"
-                        changeType="positive"
-                        icon="fas fa-user-graduate"
-                        iconColor="blue"
-                        data-testid="card-total-students"
-                      />,
-                      <StatsCard
-                        key="revenue"
-                        title="Receita Mensal"
-                        value={`R$ ${(stats?.monthlyRevenue || 0).toLocaleString()}`}
-                        change="+8%"
-                        changeType="positive"
-                        icon="fas fa-dollar-sign"
-                        iconColor="yellow"
-                        data-testid="card-monthly-revenue"
                       />
                     );
                   }

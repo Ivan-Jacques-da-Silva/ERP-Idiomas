@@ -84,7 +84,7 @@ export default function Financial() {
   }
 
   // Check permissions
-  const canViewFinancial = user?.role === 'admin' || user?.role === 'financial' || user?.role === 'developer';
+  const canViewFinancial = user?.role === 'admin';
 
   if (!canViewFinancial) {
     return (

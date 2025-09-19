@@ -41,7 +41,6 @@ export const permissionCategoryEnum = pgEnum('permission_category', [
   'students',
   'courses', 
   'schedule',
-  'financial',
   'system'
 ]);
 
@@ -491,7 +490,7 @@ export type RoleWithPermissions = Role & {
 };
 
 export type PermissionsByCategory = {
-  [K in 'dashboard' | 'units' | 'staff' | 'students' | 'courses' | 'schedule' | 'financial' | 'system']: Permission[];
+  [K in 'dashboard' | 'units' | 'staff' | 'students' | 'courses' | 'schedule' | 'system']: Permission[];
 };
 
 // User Settings table

@@ -133,8 +133,6 @@ export default function Layout({ children }: LayoutProps) {
                       {user.role === 'admin' && 'Administrador'}
                       {user.role === 'teacher' && 'Professor'}
                       {user.role === 'secretary' && 'Secretário'}
-                      {user.role === 'financial' && 'Financeiro'}
-                      {user.role === 'developer' && 'Desenvolvedor'}
                       {user.role === 'student' && 'Estudante'}
                     </p>
                 </div>
