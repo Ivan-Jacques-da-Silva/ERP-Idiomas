@@ -1872,34 +1872,43 @@ export class DatabaseStorage implements IStorage {
         return undefined;
       }
 
-      // Get role-based permissions for user
-      const rolePermissionMap: { [key: string]: string[] } = {
-        admin: ['1', '2', '3', '4', '5', '6', '8', '9', '10'], // All permissions including settings and permissions
-        teacher: ['1', '4', '5', '6'], // Dashboard, Students, Courses, Schedule
-        secretary: ['1', '2', '4', '5', '6'], // Dashboard, Units, Students, Courses, Schedule
-        student: ['1', '8'], // Dashboard and Student area
-      };
-
-      const rolePermissionIds = rolePermissionMap[user.role] || [];
-
-      const userPermissions = demoPermissions
-        .filter(perm => rolePermissionIds.includes(perm.id))
-        .map(perm => ({
-          permission: perm,
-          isGranted: true,
-          id: crypto.randomUUID(),
-          userId: user.id,
-          permissionId: perm.id,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }));
-
-      // Find the corresponding role object
-      const role = demoRoles.find(r => r.name === user.role);
+      // Find the role object by name
+      const role = demoRoles.find(r => r.name === user.role && r.isActive);
+      
+      if (!role) {
+        console.warn(`Role '${user.role}' not found or inactive for user ${userId}`);
+        return {
+          ...user,
+          role: null,
+          userPermissions: [],
+        };
+      }
+      
+      // Get effective permissions from role
+      const rolePermissions = demoRolePermissions.filter(rp => rp.roleId === role.id);
+      
+      const userPermissions: (UserPermission & { permission: Permission })[] = [];
+      
+      for (const rp of rolePermissions) {
+        const permission = demoPermissions.find(p => p.id === rp.permissionId && p.isActive);
+        if (permission) {
+          userPermissions.push({
+            permission,
+            isGranted: true,
+            id: crypto.randomUUID(),
+            userId: user.id,
+            permissionId: permission.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        } else {
+          console.warn(`Permission ${rp.permissionId} not found or inactive for role ${role.name}`);
+        }
+      }
 
       return {
         ...user,
-        role: role || null,
+        role,
         userPermissions,
       };
     } catch (error) {

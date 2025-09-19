@@ -25,6 +25,10 @@ const updateUserPermissionsSchema = z.object({
   permissionIds: z.array(z.string())
 });
 
+const updateRolePermissionsSchema = z.object({
+  permissionIds: z.array(z.string())
+});
+
 // Simple demo users for login
 const demoUsers = [
   { id: '1', email: 'admin@demo.com', password: 'admin123', firstName: 'Ivan', lastName: 'Silva', role: 'admin' },
@@ -729,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User permissions routes - individual user permissions management
+  // User permissions route - read-only effective permissions based on role
   app.get("/api/users/:id/permissions", isAuthenticated, async (req: any, res) => {
     try {
       // Users can access their own permissions, admin can access anyone's
@@ -752,9 +756,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/:id/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
+  // Roles routes - manage system roles
+  app.get("/api/roles", isAuthenticated, requireAdminOnly, async (req, res) => {
     try {
-      const { permissionIds } = updateUserPermissionsSchema.parse(req.body);
+      const roles = await storage.getRoles();
+      res.json(roles);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      res.status(500).json({ message: "Failed to fetch roles" });
+    }
+  });
+
+  app.get("/api/roles/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const role = await storage.getRole(req.params.id);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.json(role);
+    } catch (error) {
+      console.error("Error fetching role:", error);
+      res.status(500).json({ message: "Failed to fetch role" });
+    }
+  });
+
+  app.get("/api/roles/:id/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const roleWithPermissions = await storage.getRoleWithPermissions(req.params.id);
+      if (!roleWithPermissions) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.json(roleWithPermissions);
+    } catch (error) {
+      console.error("Error fetching role permissions:", error);
+      res.status(500).json({ message: "Failed to fetch role permissions" });
+    }
+  });
+
+  app.put("/api/roles/:id/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const { permissionIds } = updateRolePermissionsSchema.parse(req.body);
       
       // Validate that all permission IDs exist
       if (permissionIds.length > 0) {
@@ -770,20 +811,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      await storage.updateUserPermissions(req.params.id, permissionIds);
+      await storage.updateRolePermissions(req.params.id, permissionIds);
       
-      // Return updated user permissions
-      const updatedUserPermissions = await storage.getUserWithPermissions(req.params.id);
-      res.json(updatedUserPermissions);
+      // Return updated role permissions
+      const updatedRolePermissions = await storage.getRoleWithPermissions(req.params.id);
+      res.json(updatedRolePermissions);
     } catch (error: any) {
-      console.error("Error updating user permissions:", error);
+      console.error("Error updating role permissions:", error);
       if (error.name === 'ZodError') {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }
       if (error.message?.includes("not found")) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: "Role not found" });
       }
-      res.status(500).json({ message: "Failed to update user permissions" });
+      res.status(500).json({ message: "Failed to update role permissions" });
     }
   });
 
