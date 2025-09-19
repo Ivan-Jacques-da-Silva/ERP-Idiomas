@@ -25,14 +25,12 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User roles enum - mantendo para compatibilidade
+// User roles enum - simplificado para 4 roles fixos
 export const userRoleEnum = pgEnum('user_role', [
-  'developer',
-  'admin', 
-  'secretary',
-  'financial',
-  'teacher',
-  'student'
+  'admin',     // Administrativo - acesso total
+  'secretary', // Secretario - acesso quase total
+  'teacher',   // Professor - acesso limitado focado em ensino  
+  'student'    // Aluno - apenas área do aluno
 ]);
 
 // Permission categories enum
@@ -59,19 +57,19 @@ export const permissions = pgTable("permissions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Roles table - roles fixos e personalizados
+// Roles table - mantido para compatibilidade, mas com foco nos 4 roles fixos
 export const roles = pgTable("roles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name").notNull().unique(), // ex: "admin", "teacher", "custom_role_1"
-  displayName: varchar("display_name").notNull(), // ex: "Administrativo", "Professor"
+  name: varchar("name").notNull().unique(), // "admin", "secretary", "teacher", "student"
+  displayName: varchar("display_name").notNull(), // "Administrativo", "Secretario", "Professor", "Aluno"
   description: text("description"),
-  isSystemRole: boolean("is_system_role").default(false), // true para roles fixos
+  isSystemRole: boolean("is_system_role").default(true), // todos os 4 roles são fixos do sistema
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Role permissions relationship - quais permissões cada role tem
+// Role permissions relationship - quais permissões cada role tem (para os 4 roles fixos)
 export const rolePermissions = pgTable("role_permissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   roleId: varchar("role_id").references(() => roles.id, { onDelete: 'cascade' }).notNull(),
@@ -88,8 +86,8 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: userRoleEnum("role").default('student'), // DEPRECATED: mantendo para compatibilidade temporária
-  roleId: varchar("role_id").references(() => roles.id, { onDelete: 'set null' }), // novo sistema de roles - fonte única de verdade
+  role: userRoleEnum("role").default('student'), // Sistema simplificado: apenas 4 roles fixos
+  roleId: varchar("role_id").references(() => roles.id, { onDelete: 'set null' }), // referência para tabela roles
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -228,7 +226,7 @@ export const userPermissions = pgTable("user_permissions", {
   index("UQ_user_permission").on(table.userId, table.permissionId),
 ]);
 
-// Relations
+// Relations - restauradas para manter compatibilidade
 export const permissionsRelations = relations(permissions, ({ many }) => ({
   rolePermissions: many(rolePermissions),
   userPermissions: many(userPermissions),
