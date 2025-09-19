@@ -9,7 +9,6 @@ import type {
   InsertPermission,
   InsertRole,
   InsertRolePermission,
-  InsertUserPermission,
   InsertUserSettings,
   InsertSupportTicket,
   InsertSupportTicketResponse,
@@ -28,9 +27,7 @@ import type {
   Permission,
   Role,
   RolePermission,
-  UserPermission,
   RoleWithPermissions,
-  UserWithPermissions,
   PermissionsByCategory,
   UserSettings,
   SupportTicket,
@@ -678,7 +675,6 @@ let demoRolePermissions: RolePermission[] = [
 ];
 
 // User permissions demo data - permissões individuais de usuário
-let demoUserPermissions: UserPermission[] = [];
 
 // User settings demo data
 let demoUserSettings: UserSettings[] = [];
@@ -778,13 +774,6 @@ export interface IStorage {
   removePermissionFromRole(roleId: string, permissionId: string): Promise<void>;
   updateRolePermissions(roleId: string, permissionIds: string[]): Promise<void>;
 
-  // User Permissions - permissões individuais por usuário
-  getUserPermissions(userId: string): Promise<UserPermission[]>;
-  getUserWithPermissions(userId: string): Promise<UserWithPermissions | undefined>;
-  grantUserPermission(userId: string, permissionId: string): Promise<UserPermission>;
-  revokeUserPermission(userId: string, permissionId: string): Promise<void>;
-  updateUserPermissions(userId: string, permissionIds: string[]): Promise<void>;
-  getUsersWithPermissions(): Promise<UserWithPermissions[]>;
 
   // User Settings
   getUserSettings(userId: string): Promise<UserSettings | undefined>;
