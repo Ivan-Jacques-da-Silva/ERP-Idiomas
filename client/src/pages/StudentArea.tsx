@@ -56,140 +56,84 @@ export default function StudentArea() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
+          {/* Left Column - Resumo Geral */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Meu Progresso */}
-            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+            {/* Resumo do Progresso */}
+            <Card className="glassmorphism-card">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <i className="fas fa-chart-line text-blue-600"></i>
-                  <span>Meu Progresso</span>
+                  <span>Resumo do Progresso</span>
                 </CardTitle>
                 <CardDescription>Journey • Intermediário • Book 3</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Progresso Geral */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progresso Geral</span>
-                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">65%</span>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-blue-600">65%</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Progresso Geral</p>
                   </div>
-                  <Progress value={65} className="h-3 bg-gray-200 dark:bg-gray-700" />
+                  <div>
+                    <p className="text-2xl font-bold text-purple-600">23</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Lições Concluídas</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-green-600">8.9</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Média Geral</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-orange-600">1</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Prova Pendente</p>
+                  </div>
                 </div>
-
-                {/* Livro Atual */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Livro Atual</span>
-                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">40%</span>
-                  </div>
-                  <Progress value={40} className="h-3 bg-gray-200 dark:bg-gray-700" />
-                  <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span>23 de 36 lições concluídas</span>
-                    <span>Lesson 8: Travel Adventures</span>
-                  </div>
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <Link href="/aluno/progresso" data-testid="link-view-full-progress">
+                    <Button variant="outline" className="w-full">
+                      <i className="fas fa-chart-line mr-2"></i>
+                      Ver Progresso Completo
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Lição Atual */}
-            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+            {/* Lição Atual Resumida */}
+            <Card className="glassmorphism-card">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <i className="fas fa-book-open text-purple-600"></i>
                   <span>Lição Atual: Travel Adventures</span>
                 </CardTitle>
-                <CardDescription>Complete os 6 passos para finalizar esta lição</CardDescription>
+                <CardDescription>Passo 4 de 6 • Em progresso</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Passo 1 - Concluído */}
-                  <Card className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Passo 1</span>
-                        <i className="fas fa-check-circle text-purple-600"></i>
-                      </div>
-                      <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">Vocabulary</h4>
-                      <p className="text-xs text-purple-600 dark:text-purple-400">video</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Passo 2 - Concluído */}
-                  <Card className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Passo 2</span>
-                        <i className="fas fa-check-circle text-purple-600"></i>
-                      </div>
-                      <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">Grammar Focus</h4>
-                      <p className="text-xs text-purple-600 dark:text-purple-400">activity</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Passo 3 - Concluído */}
-                  <Card className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Passo 3</span>
-                        <i className="fas fa-check-circle text-purple-600"></i>
-                      </div>
-                      <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">Listening Practice</h4>
-                      <p className="text-xs text-purple-600 dark:text-purple-400">audio</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Passo 4 - Em Progresso */}
-                  <Card className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Passo 4</span>
-                        <i className="fas fa-play text-blue-600"></i>
-                      </div>
-                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Speaking Exercise</h4>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">speaking</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Passo 5 - Próximo */}
-                  <Card className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Passo 5</span>
-                        <i className="fas fa-play text-gray-400"></i>
-                      </div>
-                      <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Writing Challenge</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">writing</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Passo 6 - Próximo */}
-                  <Card className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Passo 6</span>
-                        <i className="fas fa-play text-gray-400"></i>
-                      </div>
-                      <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Final Quiz</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">quiz</p>
-                    </CardContent>
-                  </Card>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Progresso da lição</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">67%</span>
+                </div>
+                <Progress value={67} className="h-3 mb-4" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">Speaking Exercise</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Próximo passo disponível</p>
+                  </div>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700" data-testid="button-continue-lesson">
+                    Continuar
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Próximas Aulas */}
-            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+            {/* Próxima Aula */}
+            <Card className="glassmorphism-card">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <i className="fas fa-calendar text-green-600"></i>
-                  <span>Próximas Aulas</span>
+                  <span>Próxima Aula</span>
                 </CardTitle>
-                <CardDescription>Suas aulas agendadas</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Aula 1 */}
+              <CardContent>
                 <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                   <div className="flex items-center space-x-3">
                     <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
@@ -202,74 +146,23 @@ export default function StudentArea() {
                     Entrar na Aula
                   </Button>
                 </div>
-
-                {/* Aula 2 */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                    <div>
-                      <h4 className="font-semibold text-gray-700 dark:text-gray-300">Lesson 10: Business English</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Amanhã • 14:00 - 15:30 • Prof. Maria Santos</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline">Agendada</Badge>
+                <div className="mt-4">
+                  <Link href="/aluno/cronograma" data-testid="link-view-full-schedule">
+                    <Button variant="outline" className="w-full">
+                      <i className="fas fa-calendar mr-2"></i>
+                      Ver Cronograma Completo
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column */}
+          {/* Right Column - Acessos Rápidos */}
           <div className="space-y-6">
             
-            {/* Conquistas */}
-            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <i className="fas fa-trophy text-yellow-600"></i>
-                  <span>Conquistas</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Conquista 1 */}
-                <div className="flex items-center space-x-3 p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg border border-pink-200 dark:border-pink-800">
-                  <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center">
-                    <i className="fas fa-star text-white text-sm"></i>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-pink-900 dark:text-pink-100 text-sm">Primeira Semana</h4>
-                    <p className="text-xs text-pink-600 dark:text-pink-400">Complete sua primeira semana de estudos</p>
-                  </div>
-                  <i className="fas fa-check-circle text-pink-600"></i>
-                </div>
-
-                {/* Conquista 2 */}
-                <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                    <i className="fas fa-medal text-white text-sm"></i>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Frequência Exemplar</h4>
-                    <p className="text-xs text-blue-600 dark:text-blue-400">Participe de 10 aulas consecutivas</p>
-                  </div>
-                  <i className="fas fa-check-circle text-blue-600"></i>
-                </div>
-
-                {/* Conquista 3 - Em progresso */}
-                <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
-                    <i className="fas fa-graduation-cap text-white text-sm"></i>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 text-sm">Estudante Dedicado</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Complete 50 lições</p>
-                  </div>
-                  <i className="fas fa-star text-gray-400"></i>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Atividades Recentes */}
-            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+            {/* Atividades Recentes Resumidas */}
+            <Card className="glassmorphism-card">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <i className="fas fa-clock text-blue-600"></i>
@@ -285,17 +178,17 @@ export default function StudentArea() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Prova urgente pendente</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Prazo: Hoje</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Workbook atualizado</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Ontem</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Nova conquista desbloqueada</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">2 dias atrás</p>
                   </div>
                 </div>
               </CardContent>
@@ -305,15 +198,15 @@ export default function StudentArea() {
             <div className="space-y-4">
               {/* Workbook */}
               <Link href="/aluno/workbook" data-testid="link-workbook">
-                <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-lg transition-all duration-300" data-testid="card-workbook">
+                <Card className="glassmorphism-card cursor-pointer hover:shadow-lg transition-all duration-300" data-testid="card-workbook">
                   <CardContent className="p-6 text-center">
                     <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <i className="fas fa-book text-white text-xl"></i>
                     </div>
-                    <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">Workbook Digital</h3>
-                    <p className="text-sm text-purple-600 dark:text-purple-400 mb-3">12 de 15 exercícios</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Workbook Digital</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">12 de 15 exercícios</p>
                     <Progress value={80} className="h-2 mb-3" />
-                    <Button size="sm" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" data-testid="button-workbook">
+                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700" data-testid="button-workbook">
                       Continuar
                     </Button>
                   </CardContent>
@@ -322,16 +215,16 @@ export default function StudentArea() {
 
               {/* Provas */}
               <Link href="/aluno/provas" data-testid="link-provas">
-                <Card className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800 cursor-pointer hover:shadow-lg transition-all duration-300" data-testid="card-provas">
+                <Card className="glassmorphism-card border-2 border-red-200 dark:border-red-800 cursor-pointer hover:shadow-lg transition-all duration-300" data-testid="card-provas">
                   <CardContent className="p-6 text-center">
                     <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center mx-auto mb-3">
                       <i className="fas fa-clipboard-check text-white text-xl"></i>
                     </div>
-                    <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-1">Área de Provas</h3>
-                    <p className="text-sm text-orange-600 dark:text-orange-400 mb-3">1 prova pendente</p>
-                    <Badge className="bg-orange-100 text-orange-700 border-orange-300 mb-3">Urgente</Badge>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Área de Provas</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">1 prova pendente</p>
+                    <Badge className="bg-red-100 text-red-700 border-red-300 mb-3">Urgente</Badge>
                     <br />
-                    <Button size="sm" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600" data-testid="button-provas">
+                    <Button size="sm" className="bg-red-600 hover:bg-red-700" data-testid="button-provas">
                       Ver Provas
                     </Button>
                   </CardContent>
