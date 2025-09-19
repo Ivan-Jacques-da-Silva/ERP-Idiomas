@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Demo users for display
 const demoUsers = [
@@ -135,7 +134,7 @@ export default function Landing() {
       </div>
 
       {/* Right Column - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-purple-100 via-purple-50 to-indigo-100 dark:from-purple-900 dark:via-purple-800 dark:to-indigo-900 theme-transition min-h-screen lg:min-h-auto">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-purple-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-black theme-transition min-h-screen lg:min-h-auto">
         <div className="w-full max-w-md mx-auto">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
@@ -146,12 +145,8 @@ export default function Landing() {
             <p className="text-muted-foreground">Sistema de Gestão Escolar</p>
           </div>
 
-          {/* Header com tema toggle */}
-          <div className="absolute top-6 right-6 z-50">
-            <ThemeToggle />
-          </div>
 
-          <Card className="shadow-2xl bg-card border-border mb-6 theme-transition">
+          <Card className="shadow-2xl glassmorphism-card mb-6 theme-transition">
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center">
                 <CardTitle className="text-2xl font-bold text-foreground">
@@ -174,7 +169,7 @@ export default function Landing() {
                       variant="outline"
                       size="sm"
                       onClick={() => setDemoUser(user)}
-                      className="h-auto p-3 flex flex-col items-start bg-white/50 hover:bg-blue-50 border-gray-200 text-left"
+                      className="h-auto p-3 flex flex-col items-start bg-white/30 dark:bg-white/10 hover:bg-blue-50 dark:hover:bg-white/20 border-gray-200 dark:border-gray-600 text-left transition-all duration-200"
                     >
                       <span className="font-medium text-xs">{user.role}</span>
                       <span className="text-xs text-muted-foreground truncate w-full">
@@ -190,7 +185,7 @@ export default function Landing() {
                   <span className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-muted-foreground">
+                  <span className="bg-white dark:bg-gray-800 px-2 text-muted-foreground">
                     Ou digite manualmente
                   </span>
                 </div>
@@ -207,7 +202,7 @@ export default function Landing() {
                     placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-10 sm:h-12 bg-white/50 border-gray-200 focus:border-primary"
+                    className="h-10 sm:h-12 bg-white/30 dark:bg-white/10 border-gray-200 dark:border-gray-600 focus:border-primary dark:focus:border-primary"
                   />
                 </div>
 
@@ -221,7 +216,7 @@ export default function Landing() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-10 sm:h-12 bg-white/50 border-gray-200 focus:border-primary"
+                    className="h-10 sm:h-12 bg-white/30 dark:bg-white/10 border-gray-200 dark:border-gray-600 focus:border-primary dark:focus:border-primary"
                   />
                 </div>
               </div>

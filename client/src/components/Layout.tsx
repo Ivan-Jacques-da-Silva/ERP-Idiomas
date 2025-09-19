@@ -4,6 +4,7 @@ import StudentLayout from "@/components/StudentLayout";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Menu, Settings, Bell, LogOut } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -120,8 +121,10 @@ export default function Layout({ children }: LayoutProps) {
           </Button>
 
           {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-accent/50 rounded-lg p-2 transition-colors cursor-pointer focus:outline-none" data-testid="dropdown-user">
+            <div className="flex items-center space-x-3">
+              <ThemeToggle />
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-accent/50 rounded-lg p-2 transition-colors cursor-pointer focus:outline-none" data-testid="dropdown-user">
                 <div className="text-right">
                   <p className="text-sm font-medium text-foreground">
                     {user.firstName} {user.lastName}
@@ -160,7 +163,8 @@ export default function Layout({ children }: LayoutProps) {
                   <span>Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+              </DropdownMenu>
+            </div>
           )}
         </div>
         <main className="flex-1 overflow-auto p-6 bg-background theme-transition">
