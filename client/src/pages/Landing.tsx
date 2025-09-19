@@ -5,14 +5,6 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 
-// Placeholder for the ThemeToggle component, assuming it's defined elsewhere
-// In a real scenario, you would import it: import ThemeToggle from './ThemeToggle';
-const ThemeToggle = () => (
-  <Button variant="ghost" size="icon">
-    <i className="fas fa-adjust text-lg"></i> {/* Example icon */}
-  </Button>
-);
-
 // Demo users for display
 const demoUsers = [
   { email: 'admin@demo.com', password: 'admin123', role: 'Administrador' },
@@ -142,12 +134,7 @@ export default function Landing() {
       </div>
 
       {/* Right Column - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-purple-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-black theme-transition min-h-screen lg:min-h-auto relative">
-        {/* Theme Toggle */}
-        <div className="absolute top-4 right-4">
-          <ThemeToggle />
-        </div>
-
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-purple-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-black theme-transition min-h-screen lg:min-h-auto">
         <div className="w-full max-w-md mx-auto">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
