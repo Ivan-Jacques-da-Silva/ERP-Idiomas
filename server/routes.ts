@@ -14,6 +14,9 @@ import {
   insertClassSchema,
   insertLessonSchema,
   insertBookSchema,
+  insertUserSettingsSchema,
+  insertSupportTicketSchema,
+  insertSupportTicketResponseSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -781,6 +784,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       res.status(500).json({ message: "Failed to update user permissions" });
+    }
+  });
+
+  // User Settings routes
+  app.get("/api/users/:id/settings", isAuthenticated, async (req: any, res) => {
+    try {
+      // Users can access their own settings, admin/developer can access anyone's
+      const currentUserId = req.session.user.id;
+      const requestedUserId = req.params.id;
+      const userRole = req.session.user.role;
+      
+      if (currentUserId !== requestedUserId && userRole !== 'admin' && userRole !== 'developer') {
+        return res.status(403).json({ message: "Forbidden - Can only access your own settings" });
+      }
+      
+      const settings = await storage.getUserSettings(requestedUserId);
+      res.json(settings || {});
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+      res.status(500).json({ message: "Failed to fetch user settings" });
+    }
+  });
+
+  app.put("/api/users/:id/settings", isAuthenticated, async (req: any, res) => {
+    try {
+      // Users can update their own settings, admin/developer can update anyone's
+      const currentUserId = req.session.user.id;
+      const requestedUserId = req.params.id;
+      const userRole = req.session.user.role;
+      
+      if (currentUserId !== requestedUserId && userRole !== 'admin' && userRole !== 'developer') {
+        return res.status(403).json({ message: "Forbidden - Can only update your own settings" });
+      }
+      
+      const settingsData = insertUserSettingsSchema.partial().parse(req.body);
+      const updatedSettings = await storage.updateUserSettings(requestedUserId, settingsData);
+      res.json(updatedSettings);
+    } catch (error: any) {
+      console.error("Error updating user settings:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update user settings" });
+    }
+  });
+
+  // Support Tickets routes
+  app.get("/api/support/tickets", isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUserId = req.session.user.id;
+      const userRole = req.session.user.role;
+      
+      // Admin/developer can see all tickets, others can see only their own
+      let tickets;
+      if (userRole === 'admin' || userRole === 'developer') {
+        tickets = await storage.getSupportTickets();
+      } else {
+        tickets = await storage.getSupportTicketsByUser(currentUserId);
+      }
+      
+      res.json(tickets);
+    } catch (error) {
+      console.error("Error fetching support tickets:", error);
+      res.status(500).json({ message: "Failed to fetch support tickets" });
+    }
+  });
+
+  app.get("/api/support/tickets/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUserId = req.session.user.id;
+      const userRole = req.session.user.role;
+      
+      const ticket = await storage.getSupportTicket(req.params.id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      
+      // Users can only access their own tickets, admin/developer can access all
+      if (ticket.userId !== currentUserId && userRole !== 'admin' && userRole !== 'developer') {
+        return res.status(403).json({ message: "Forbidden - Can only access your own tickets" });
+      }
+      
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error fetching support ticket:", error);
+      res.status(500).json({ message: "Failed to fetch support ticket" });
+    }
+  });
+
+  app.post("/api/support/tickets", isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUserId = req.session.user.id;
+      const ticketData = insertSupportTicketSchema.parse(req.body);
+      
+      const newTicket = await storage.createSupportTicket({
+        ...ticketData,
+        userId: currentUserId,
+      });
+      
+      // TODO: Send email notification to support team
+      // This would be implemented server-side using environment variables:
+      // if (process.env.SUPPORT_EMAIL) {
+      //   await sendEmail({
+      //     to: process.env.SUPPORT_EMAIL,
+      //     subject: `Novo ticket: ${newTicket.title}`,
+      //     body: ticketData.description,
+      //     priority: ticketData.priority,
+      //   });
+      // }
+      
+      res.status(201).json(newTicket);
+    } catch (error: any) {
+      console.error("Error creating support ticket:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create support ticket" });
+    }
+  });
+
+  app.put("/api/support/tickets/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUserId = req.session.user.id;
+      const userRole = req.session.user.role;
+      
+      // Only admin/developer can update ticket status and assignment
+      if (userRole !== 'admin' && userRole !== 'developer') {
+        return res.status(403).json({ message: "Forbidden - Only admin can update tickets" });
+      }
+      
+      const ticketData = insertSupportTicketSchema.partial().parse(req.body);
+      const updatedTicket = await storage.updateSupportTicket(req.params.id, ticketData);
+      res.json(updatedTicket);
+    } catch (error: any) {
+      console.error("Error updating support ticket:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      res.status(500).json({ message: "Failed to update support ticket" });
+    }
+  });
+
+  app.post("/api/support/tickets/:ticketId/responses", isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUserId = req.session.user.id;
+      const userRole = req.session.user.role;
+      const ticketId = req.params.ticketId;
+      
+      // Check if ticket exists and user has access
+      const ticket = await storage.getSupportTicket(ticketId);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      
+      if (ticket.userId !== currentUserId && userRole !== 'admin' && userRole !== 'developer') {
+        return res.status(403).json({ message: "Forbidden - Can only respond to your own tickets" });
+      }
+      
+      const responseData = insertSupportTicketResponseSchema.parse(req.body);
+      const newResponse = await storage.createSupportTicketResponse({
+        ...responseData,
+        ticketId,
+        userId: currentUserId,
+        isFromSupport: userRole === 'admin' || userRole === 'developer',
+      });
+      
+      res.status(201).json(newResponse);
+    } catch (error: any) {
+      console.error("Error creating support ticket response:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create support ticket response" });
     }
   });
 

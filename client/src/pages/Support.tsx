@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,16 +58,29 @@ interface SupportResponse {
   userId: string;
 }
 
+// Form schema
+const ticketFormSchema = z.object({
+  title: z.string().min(1, "Título é obrigatório").min(10, "Título deve ter pelo menos 10 caracteres"),
+  description: z.string().min(1, "Descrição é obrigatória").min(20, "Descrição deve ter pelo menos 20 caracteres"),
+  category: z.string().min(1, "Categoria é obrigatória"),
+  priority: z.enum(["low", "medium", "high", "urgent"]),
+});
+
+type TicketFormValues = z.infer<typeof ticketFormSchema>;
+
 export default function Support() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Estados do formulário
-  const [ticketForm, setTicketForm] = useState({
-    title: "",
-    description: "",
-    category: "",
-    priority: "medium" as const,
+  // Form setup
+  const ticketForm = useForm<TicketFormValues>({
+    resolver: zodResolver(ticketFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      category: "",
+      priority: "medium",
+    },
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -114,70 +132,29 @@ export default function Support() {
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Tickets mock (normalmente viria da API)
-  const mockTickets: SupportTicket[] = [
-    {
-      id: "1",
-      title: "Problema com login no sistema",
-      description: "Não consigo fazer login mesmo com a senha correta",
-      category: "Técnico",
-      priority: "high",
-      status: "in_progress",
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      userId: user?.id || "",
-    },
-    {
-      id: "2",
-      title: "Sugestão de melhoria na agenda",
-      description: "Seria útil ter filtros por professor na visualização da agenda",
-      category: "Sugestão",
-      priority: "low",
-      status: "open",
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      userId: user?.id || "",
-    }
-  ];
+  // Query para buscar tickets
+  const { data: userTickets, isLoading: ticketsLoading, error: ticketsError } = useQuery({
+    queryKey: ['/api/support/tickets'],
+    enabled: !!user,
+  });
 
   // Mutation para criar ticket
   const createTicketMutation = useMutation({
-    mutationFn: async (ticketData: typeof ticketForm) => {
-      // Aqui seria feita a chamada para a API
-      // const response = await apiRequest('/api/support/tickets', {
-      //   method: 'POST',
-      //   body: JSON.stringify(ticketData)
-      // });
-      
-      // COMENTADO: Integração com email para notificar suporte
-      // if (process.env.SUPPORT_EMAIL) {
-      //   await fetch('/api/support/notify-email', {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({
-      //       to: process.env.SUPPORT_EMAIL,
-      //       subject: `Novo ticket: ${ticketData.title}`,
-      //       message: ticketData.description,
-      //       priority: ticketData.priority,
-      //       userId: user?.id,
-      //       userEmail: user?.email
-      //     })
-      //   });
-      // }
-      
-      return { success: true, ticketId: 'TICKET_' + Date.now() };
+    mutationFn: async (ticketData: TicketFormValues) => {
+      const response = await apiRequest('/api/support/tickets', {
+        method: 'POST',
+        body: JSON.stringify(ticketData)
+      });
+      return response;
     },
     onSuccess: (data) => {
       toast({
         title: "Ticket criado com sucesso",
-        description: `Seu ticket #${data.ticketId} foi criado. Entraremos em contato em breve.`,
+        description: `Seu ticket #${data.id} foi criado. Entraremos em contato em breve.`,
       });
-      setTicketForm({
-        title: "",
-        description: "",
-        category: "",
-        priority: "medium",
-      });
+      ticketForm.reset();
+      // Invalidate tickets cache
+      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
     },
     onError: (error: Error) => {
       toast({
@@ -188,19 +165,8 @@ export default function Support() {
     },
   });
 
-  const handleSubmitTicket = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!ticketForm.title || !ticketForm.description || !ticketForm.category) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createTicketMutation.mutate(ticketForm);
+  const onSubmitTicket = (data: TicketFormValues) => {
+    createTicketMutation.mutate(data);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -319,16 +285,16 @@ export default function Support() {
                 {/* FAQ Accordion */}
                 <Accordion type="single" collapsible className="w-full">
                   {filteredFaq.map((faq) => (
-                    <AccordionItem key={faq.id} value={faq.id}>
-                      <AccordionTrigger className="text-left">
+                    <AccordionItem key={faq.id} value={faq.id} data-testid={`faq-item-${faq.id}`}>
+                      <AccordionTrigger className="text-left" data-testid={`faq-question-${faq.id}`}>
                         <div className="flex items-start space-x-3">
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs" data-testid={`faq-category-${faq.id}`}>
                             {faq.category}
                           </Badge>
                           <span>{faq.question}</span>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent>
+                      <AccordionContent data-testid={`faq-answer-${faq.id}`}>
                         <div className="pt-2 pl-16">
                           <p className="text-muted-foreground">{faq.answer}</p>
                         </div>
@@ -359,7 +325,7 @@ export default function Support() {
                         // Switch to new ticket tab
                         const ticketTab = document.querySelector('[value="new-ticket"]') as HTMLElement;
                         ticketTab?.click();
-                      }}>
+                      }} data-testid="button-create-ticket-from-faq">
                         Criar Ticket
                       </Button>
                     </div>
@@ -382,91 +348,114 @@ export default function Support() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmitTicket} className="space-y-6">
+                <Form {...ticketForm}>
+                  <form onSubmit={ticketForm.handleSubmit(onSubmitTicket)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Categoria *</Label>
-                      <Select
-                        value={ticketForm.category}
-                        onValueChange={(value) => 
-                          setTicketForm(prev => ({ ...prev, category: value }))
-                        }
-                      >
-                        <SelectTrigger id="category" data-testid="select-ticket-category">
-                          <SelectValue placeholder="Selecione a categoria" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tecnico">
-                            <div className="flex items-center space-x-2">
-                              <Bug className="h-4 w-4" />
-                              <span>Problema Técnico</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="sugestao">
-                            <div className="flex items-center space-x-2">
-                              <Lightbulb className="h-4 w-4" />
-                              <span>Sugestão de Melhoria</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="duvida">
-                            <div className="flex items-center space-x-2">
-                              <HelpCircle className="h-4 w-4" />
-                              <span>Dúvida Geral</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="permissao">
-                            <div className="flex items-center space-x-2">
-                              <Users className="h-4 w-4" />
-                              <span>Solicitação de Acesso</span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <FormField
+                      control={ticketForm.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Categoria *</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-ticket-category">
+                                <SelectValue placeholder="Selecione a categoria" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="tecnico">
+                                <div className="flex items-center space-x-2">
+                                  <Bug className="h-4 w-4" />
+                                  <span>Problema Técnico</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="sugestao">
+                                <div className="flex items-center space-x-2">
+                                  <Lightbulb className="h-4 w-4" />
+                                  <span>Sugestão de Melhoria</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="duvida">
+                                <div className="flex items-center space-x-2">
+                                  <HelpCircle className="h-4 w-4" />
+                                  <span>Dúvida Geral</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="permissao">
+                                <div className="flex items-center space-x-2">
+                                  <Users className="h-4 w-4" />
+                                  <span>Solicitação de Acesso</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                    <div className="space-y-2">
-                      <Label htmlFor="priority">Prioridade</Label>
-                      <Select
-                        value={ticketForm.priority}
-                        onValueChange={(value: any) => 
-                          setTicketForm(prev => ({ ...prev, priority: value }))
-                        }
-                      >
-                        <SelectTrigger id="priority" data-testid="select-ticket-priority">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Baixa</SelectItem>
-                          <SelectItem value="medium">Média</SelectItem>
-                          <SelectItem value="high">Alta</SelectItem>
-                          <SelectItem value="urgent">Urgente</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Título *</Label>
-                    <Input
-                      id="title"
-                      value={ticketForm.title}
-                      onChange={(e) => setTicketForm(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Descreva brevemente o problema ou solicitação"
-                      data-testid="input-ticket-title"
+                    <FormField
+                      control={ticketForm.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Prioridade</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-ticket-priority">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="low">Baixa</SelectItem>
+                              <SelectItem value="medium">Média</SelectItem>
+                              <SelectItem value="high">Alta</SelectItem>
+                              <SelectItem value="urgent">Urgente</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Descrição Detalhada *</Label>
-                    <Textarea
-                      id="description"
-                      value={ticketForm.description}
-                      onChange={(e) => setTicketForm(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Forneça o máximo de detalhes possível sobre o problema, incluindo passos para reproduzi-lo, mensagens de erro, etc."
-                      rows={6}
-                      data-testid="textarea-ticket-description"
-                    />
-                  </div>
+                  <FormField
+                    control={ticketForm.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Título *</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Descreva brevemente o problema ou solicitação"
+                            data-testid="input-ticket-title"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={ticketForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição Detalhada *</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Forneça o máximo de detalhes possível sobre o problema, incluindo passos para reproduzi-lo, mensagens de erro, etc."
+                            rows={6}
+                            data-testid="textarea-ticket-description"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <div className="flex items-start space-x-3">
@@ -489,12 +478,8 @@ export default function Support() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setTicketForm({
-                        title: "",
-                        description: "",
-                        category: "",
-                        priority: "medium",
-                      })}
+                      onClick={() => ticketForm.reset()}
+                      data-testid="button-clear-ticket"
                     >
                       Limpar
                     </Button>
@@ -508,6 +493,7 @@ export default function Support() {
                     </Button>
                   </div>
                 </form>
+                </Form>
               </CardContent>
             </Card>
           </TabsContent>
@@ -525,23 +511,33 @@ export default function Support() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {mockTickets.length > 0 ? (
-                  mockTickets.map((ticket) => (
-                    <Card key={ticket.id} className="border-l-4 border-l-primary">
+                {ticketsLoading ? (
+                  <div className="text-center py-8" data-testid="tickets-loading">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Carregando tickets...</p>
+                  </div>
+                ) : ticketsError ? (
+                  <div className="text-center py-8" data-testid="tickets-error">
+                    <p className="text-destructive mb-2">Erro ao carregar tickets</p>
+                    <p className="text-sm text-muted-foreground">Tente recarregar a página</p>
+                  </div>
+                ) : userTickets && userTickets.length > 0 ? (
+                  userTickets.map((ticket) => (
+                    <Card key={ticket.id} className="border-l-4 border-l-primary" data-testid={`ticket-card-${ticket.id}`}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="space-y-1">
-                            <h3 className="font-medium">{ticket.title}</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
+                            <h3 className="font-medium" data-testid={`ticket-title-${ticket.id}`}>{ticket.title}</h3>
+                            <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`ticket-description-${ticket.id}`}>
                               {ticket.description}
                             </p>
                           </div>
                           <div className="flex flex-col items-end space-y-2">
-                            <Badge className={getStatusColor(ticket.status)}>
+                            <Badge className={getStatusColor(ticket.status)} data-testid={`ticket-status-${ticket.id}`}>
                               {getStatusIcon(ticket.status)}
                               <span className="ml-1 capitalize">{ticket.status.replace('_', ' ')}</span>
                             </Badge>
-                            <Badge variant="outline" className={getPriorityColor(ticket.priority)}>
+                            <Badge variant="outline" className={getPriorityColor(ticket.priority)} data-testid={`ticket-priority-${ticket.id}`}>
                               {ticket.priority === 'urgent' && 'Urgente'}
                               {ticket.priority === 'high' && 'Alta'}
                               {ticket.priority === 'medium' && 'Média'}
@@ -550,8 +546,8 @@ export default function Support() {
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Ticket #{ticket.id}</span>
-                          <span>{ticket.createdAt.toLocaleDateString('pt-BR')}</span>
+                          <span data-testid={`ticket-id-${ticket.id}`}>Ticket #{ticket.id}</span>
+                          <span data-testid={`ticket-date-${ticket.id}`}>{ticket.createdAt.toLocaleDateString('pt-BR')}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -565,11 +561,11 @@ export default function Support() {
                     <Button variant="outline" onClick={() => {
                       const ticketTab = document.querySelector('[value="new-ticket"]') as HTMLElement;
                       ticketTab?.click();
-                    }}>
+                    }} data-testid="button-create-first-ticket">
                       Criar Primeiro Ticket
                     </Button>
                   </div>
-                )}
+                )
               </CardContent>
             </Card>
           </TabsContent>
@@ -654,7 +650,7 @@ export default function Support() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button variant="outline" className="w-full justify-start h-auto p-4" data-testid="link-manual">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4" data-testid="button-manual">
                     <div className="flex items-center space-x-3">
                       <Book className="h-5 w-5 text-blue-600" />
                       <div className="text-left">
@@ -667,7 +663,7 @@ export default function Support() {
                     </div>
                   </Button>
 
-                  <Button variant="outline" className="w-full justify-start h-auto p-4" data-testid="link-tutorial">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4" data-testid="button-tutorial">
                     <div className="flex items-center space-x-3">
                       <Users className="h-5 w-5 text-green-600" />
                       <div className="text-left">
@@ -680,7 +676,7 @@ export default function Support() {
                     </div>
                   </Button>
 
-                  <Button variant="outline" className="w-full justify-start h-auto p-4" data-testid="link-community">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4" data-testid="button-community">
                     <div className="flex items-center space-x-3">
                       <MessageCircle className="h-5 w-5 text-purple-600" />
                       <div className="text-left">

@@ -174,7 +174,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
             ))}
 
           {/* Sistema Section */}
-          {systemMenuItems.some(item => canAccess(item.permission)) && (
+          {(systemMenuItems.some(item => canAccess(item.permission)) || user) && (
             <div className="pt-4">
               {expanded && (
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -183,7 +183,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
               )}
               <div className="space-y-1">
                 {systemMenuItems
-                  .filter(item => canAccess(item.permission))
+                  .filter(item => item.path === '/support' ? !!user : canAccess(item.permission))
                   .map((item) => (
                     <Link key={item.path} href={item.path}>
                       <a

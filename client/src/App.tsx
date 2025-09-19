@@ -39,6 +39,7 @@ function Router() {
         <>
           <Route path="/" component={StudentArea} />
           <Route path="/student-area" component={StudentArea} />
+          <Route path="/support" component={Support} />
           <Route path="/aluno/workbook" component={() => <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"><div className="text-center"><h1 className="text-2xl font-bold mb-4">Workbook Digital</h1><p className="text-gray-600 dark:text-gray-400">Página em construção</p></div></div>} />
           <Route path="/aluno/provas" component={() => <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"><div className="text-center"><h1 className="text-2xl font-bold mb-4">Área de Provas</h1><p className="text-gray-600 dark:text-gray-400">Página em construção</p></div></div>} />
         </>

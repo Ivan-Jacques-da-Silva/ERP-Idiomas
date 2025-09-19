@@ -10,6 +10,9 @@ import type {
   InsertRole,
   InsertRolePermission,
   InsertUserPermission,
+  InsertUserSettings,
+  InsertSupportTicket,
+  InsertSupportTicketResponse,
   Unit,
   Staff,
   Student,
@@ -29,6 +32,10 @@ import type {
   RoleWithPermissions,
   UserWithPermissions,
   PermissionsByCategory,
+  UserSettings,
+  SupportTicket,
+  SupportTicketResponse,
+  SupportTicketWithResponses,
 } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
@@ -677,6 +684,15 @@ let demoRolePermissions: RolePermission[] = [
 // User permissions demo data - permissões individuais de usuário
 let demoUserPermissions: UserPermission[] = [];
 
+// User settings demo data
+let demoUserSettings: UserSettings[] = [];
+
+// Support tickets demo data
+let demoSupportTickets: SupportTicket[] = [];
+
+// Support ticket responses demo data
+let demoSupportTicketResponses: SupportTicketResponse[] = [];
+
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise < User | undefined > ;
@@ -773,6 +789,22 @@ export interface IStorage {
   revokeUserPermission(userId: string, permissionId: string): Promise<void>;
   updateUserPermissions(userId: string, permissionIds: string[]): Promise<void>;
   getUsersWithPermissions(): Promise<UserWithPermissions[]>;
+
+  // User Settings
+  getUserSettings(userId: string): Promise<UserSettings | undefined>;
+  createUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
+  updateUserSettings(userId: string, settings: Partial<InsertUserSettings>): Promise<UserSettings>;
+
+  // Support Tickets
+  getSupportTickets(): Promise<SupportTicket[]>;
+  getSupportTicketsByUser(userId: string): Promise<SupportTicket[]>;
+  getSupportTicket(id: string): Promise<SupportTicketWithResponses | undefined>;
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  updateSupportTicket(id: string, ticket: Partial<InsertSupportTicket>): Promise<SupportTicket>;
+  deleteSupportTicket(id: string): Promise<void>;
+  
+  // Support Ticket Responses
+  createSupportTicketResponse(response: InsertSupportTicketResponse): Promise<SupportTicketResponse>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2028,6 +2060,119 @@ export class DatabaseStorage implements IStorage {
     }
 
     console.log(`Migração concluída! ${demoUsers.length} usuários migrados com ${demoUserPermissions.length} permissões individuais`);
+  }
+
+  // User Settings
+  async getUserSettings(userId: string): Promise<UserSettings | undefined> {
+    return demoUserSettings.find(s => s.userId === userId);
+  }
+
+  async createUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
+    const id = crypto.randomUUID();
+    const newSettings: UserSettings = {
+      id,
+      ...settings,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    demoUserSettings.push(newSettings);
+    return newSettings;
+  }
+
+  async updateUserSettings(userId: string, settings: Partial<InsertUserSettings>): Promise<UserSettings> {
+    const index = demoUserSettings.findIndex(s => s.userId === userId);
+    if (index === -1) {
+      // Create new settings if they don't exist
+      return this.createUserSettings({ userId, ...settings } as InsertUserSettings);
+    }
+
+    const updatedSettings = {
+      ...demoUserSettings[index],
+      ...settings,
+      updatedAt: new Date(),
+    };
+    demoUserSettings[index] = updatedSettings;
+    return updatedSettings;
+  }
+
+  // Support Tickets
+  async getSupportTickets(): Promise<SupportTicket[]> {
+    return [...demoSupportTickets].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getSupportTicketsByUser(userId: string): Promise<SupportTicket[]> {
+    return demoSupportTickets
+      .filter(t => t.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getSupportTicket(id: string): Promise<SupportTicketWithResponses | undefined> {
+    const ticket = demoSupportTickets.find(t => t.id === id);
+    if (!ticket) return undefined;
+
+    const user = demoUsers.find(u => u.id === ticket.userId);
+    const assignedUser = ticket.assignedTo ? demoUsers.find(u => u.id === ticket.assignedTo) : undefined;
+    const responses = demoSupportTicketResponses.filter(r => r.ticketId === id);
+
+    if (!user) return undefined;
+
+    return {
+      ...ticket,
+      user,
+      assignedUser,
+      responses,
+    };
+  }
+
+  async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const id = crypto.randomUUID();
+    const newTicket: SupportTicket = {
+      id,
+      ...ticket,
+      status: 'open',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    demoSupportTickets.push(newTicket);
+    return newTicket;
+  }
+
+  async updateSupportTicket(id: string, ticket: Partial<InsertSupportTicket>): Promise<SupportTicket> {
+    const index = demoSupportTickets.findIndex(t => t.id === id);
+    if (index === -1) throw new Error('Ticket not found');
+
+    const updatedTicket = {
+      ...demoSupportTickets[index],
+      ...ticket,
+      updatedAt: new Date(),
+    };
+    demoSupportTickets[index] = updatedTicket;
+    return updatedTicket;
+  }
+
+  async deleteSupportTicket(id: string): Promise<void> {
+    const index = demoSupportTickets.findIndex(t => t.id === id);
+    if (index !== -1) {
+      demoSupportTickets.splice(index, 1);
+      // Also remove associated responses
+      for (let i = demoSupportTicketResponses.length - 1; i >= 0; i--) {
+        if (demoSupportTicketResponses[i].ticketId === id) {
+          demoSupportTicketResponses.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  // Support Ticket Responses
+  async createSupportTicketResponse(response: InsertSupportTicketResponse): Promise<SupportTicketResponse> {
+    const id = crypto.randomUUID();
+    const newResponse: SupportTicketResponse = {
+      id,
+      ...response,
+      createdAt: new Date(),
+    };
+    demoSupportTicketResponses.push(newResponse);
+    return newResponse;
   }
 }
 

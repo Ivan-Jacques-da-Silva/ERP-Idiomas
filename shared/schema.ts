@@ -495,3 +495,91 @@ export type RoleWithPermissions = Role & {
 export type PermissionsByCategory = {
   [K in 'dashboard' | 'units' | 'staff' | 'students' | 'courses' | 'schedule' | 'financial' | 'system']: Permission[];
 };
+
+// User Settings table
+export const userSettings = pgTable("user_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  theme: varchar("theme").default('light'), // 'light' | 'dark'
+  language: varchar("language").default('pt-BR'),
+  timezone: varchar("timezone").default('America/Sao_Paulo'),
+  dateFormat: varchar("date_format").default('DD/MM/YYYY'),
+  currency: varchar("currency").default('BRL'),
+  emailNotifications: boolean("email_notifications").default(true),
+  pushNotifications: boolean("push_notifications").default(false),
+  systemAlerts: boolean("system_alerts").default(true),
+  lessonReminders: boolean("lesson_reminders").default(true),
+  weeklyReports: boolean("weekly_reports").default(false),
+  autoSave: boolean("auto_save").default(true),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  sessionTimeout: integer("session_timeout").default(30), // minutes
+  loginAlerts: boolean("login_alerts").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Support ticket priority and status enums
+export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high', 'urgent']);
+export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
+
+// Support Tickets table
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  category: varchar("category").notNull(),
+  priority: ticketPriorityEnum("priority").default('medium'),
+  status: ticketStatusEnum("status").default('open'),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Support ticket responses table
+export const supportTicketResponses = pgTable("support_ticket_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").references(() => supportTickets.id, { onDelete: 'cascade' }).notNull(),
+  message: text("message").notNull(),
+  isFromSupport: boolean("is_from_support").default(false),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for new tables
+export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  userId: true,
+  assignedTo: true,
+  status: true,
+});
+
+export const insertSupportTicketResponseSchema = createInsertSchema(supportTicketResponses).omit({
+  id: true,
+  createdAt: true,
+  ticketId: true,
+  userId: true,
+});
+
+// Types for new tables
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicketResponse = z.infer<typeof insertSupportTicketResponseSchema>;
+export type SupportTicketResponse = typeof supportTicketResponses.$inferSelect;
+
+// Extended types with relations
+export type SupportTicketWithResponses = SupportTicket & {
+  responses: SupportTicketResponse[];
+  user: User;
+  assignedUser?: User;
+};
