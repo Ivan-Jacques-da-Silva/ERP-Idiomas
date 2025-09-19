@@ -108,11 +108,11 @@ export default function Financial() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'first-notice':
-        return <Badge className="bg-yellow-100 text-yellow-700">Primeiro Aviso</Badge>;
+        return <Badge variant="outline">Primeiro Aviso</Badge>;
       case 'negotiation':
-        return <Badge className="bg-purple-100 text-purple-700">Negociação</Badge>;
+        return <Badge variant="outline">Negociação</Badge>;
       case 'second-notice':
-        return <Badge className="bg-red-100 text-red-700">Segundo Aviso</Badge>;
+        return <Badge variant="outline">Segundo Aviso</Badge>;
       default:
         return <Badge variant="secondary">Status</Badge>;
     }
@@ -155,59 +155,59 @@ export default function Financial() {
             stagger={80}
             className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6"
           >
-            <Card className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+            <Card className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-red-600 dark:text-red-400">Total Inadimplência</p>
-                    <p className="text-2xl font-bold text-red-700 dark:text-red-300">
+                    <p className="text-sm font-medium text-muted-foreground">Total Inadimplência</p>
+                    <p className="text-2xl font-bold text-foreground">
                       R$ {financialData.totalInArrears.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
-                  <div className="w-8 h-8 bg-red-100 dark:bg-red-800 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-exclamation-triangle text-red-600 dark:text-red-400"></i>
+                  <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-exclamation-triangle text-white"></i>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800">
+            <Card className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Contas em Atraso</p>
-                    <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{financialData.accountsInArrears}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Contas em Atraso</p>
+                    <p className="text-2xl font-bold text-foreground">{financialData.accountsInArrears}</p>
                   </div>
-                  <div className="w-8 h-8 bg-purple-100 dark:bg-purple-800 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-calendar-times text-purple-600 dark:text-purple-400"></i>
+                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-calendar-times text-white"></i>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+            <Card className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Média de Atraso</p>
-                    <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{financialData.averageDelay} dias</p>
+                    <p className="text-sm font-medium text-muted-foreground">Média de Atraso</p>
+                    <p className="text-2xl font-bold text-foreground">{financialData.averageDelay} dias</p>
                   </div>
-                  <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-800 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-clock text-yellow-600 dark:text-yellow-400"></i>
+                  <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-clock text-white"></i>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800">
+            <Card className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Taxa de Inadimplência</p>
-                    <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{financialData.defaultRate}%</p>
+                    <p className="text-sm font-medium text-muted-foreground">Taxa de Inadimplência</p>
+                    <p className="text-2xl font-bold text-foreground">{financialData.defaultRate}%</p>
                   </div>
-                  <div className="w-8 h-8 bg-orange-100 dark:bg-orange-800 rounded-lg flex items-center justify-center">
-                    <i className="fas fa-chart-line text-orange-600 dark:text-orange-400"></i>
+                  <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                    <i className="fas fa-chart-line text-white"></i>
                   </div>
                 </div>
               </CardContent>
@@ -219,13 +219,13 @@ export default function Financial() {
             stagger={100}
             className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6"
           >
-            <Card className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+            <Card className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">{getStatusCount('first-notice')}</p>
-                    <p className="text-sm text-yellow-600 dark:text-yellow-400">Primeiro Aviso</p>
-                    <p className="text-xs text-yellow-500 dark:text-yellow-500">Contatos iniciais</p>
+                    <p className="text-lg font-bold text-foreground">{getStatusCount('first-notice')}</p>
+                    <p className="text-sm text-muted-foreground">Primeiro Aviso</p>
+                    <p className="text-xs text-muted-foreground/70">Contatos iniciais</p>
                   </div>
                   <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold">●</span>
@@ -234,13 +234,13 @@ export default function Financial() {
               </CardContent>
             </Card>
 
-            <Card className="bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800">
+            <Card className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{getStatusCount('negotiation')}</p>
-                    <p className="text-sm text-purple-600 dark:text-purple-400">Em Negociação</p>
-                    <p className="text-xs text-purple-500 dark:text-purple-500">Acordos em andamento</p>
+                    <p className="text-lg font-bold text-foreground">{getStatusCount('negotiation')}</p>
+                    <p className="text-sm text-muted-foreground">Em Negociação</p>
+                    <p className="text-xs text-muted-foreground/70">Acordos em andamento</p>
                   </div>
                   <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold">●</span>
@@ -249,13 +249,13 @@ export default function Financial() {
               </CardContent>
             </Card>
 
-            <Card className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+            <Card className="glassmorphism-card rounded-2xl border border-white/20 shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-lg font-bold text-red-700 dark:text-red-300">{getStatusCount('second-notice')}</p>
-                    <p className="text-sm text-red-600 dark:text-red-400">Segundo Aviso</p>
-                    <p className="text-xs text-red-500 dark:text-red-500">Situação crítica</p>
+                    <p className="text-lg font-bold text-foreground">{getStatusCount('second-notice')}</p>
+                    <p className="text-sm text-muted-foreground">Segundo Aviso</p>
+                    <p className="text-xs text-muted-foreground/70">Situação crítica</p>
                   </div>
                   <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold">●</span>
@@ -335,7 +335,6 @@ export default function Financial() {
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <Badge variant="secondary">Segundo Aviso</Badge>
                           <Button size="sm" className="gap-1 bg-purple-600 hover:bg-purple-700">
                             Negociar
                           </Button>
