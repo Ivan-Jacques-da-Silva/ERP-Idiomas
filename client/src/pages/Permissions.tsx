@@ -10,7 +10,36 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Crown, UserCog, GraduationCap, BookOpen, Shield, Settings, CheckCircle, Tag, Info } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { insertRoleSchema } from "@shared/schema";
+import { Crown, UserCog, GraduationCap, BookOpen, Shield, Settings, CheckCircle, Tag, Info, Plus, Edit, Trash2 } from "lucide-react";
+
+// Schema baseado no compartilhado com validações específicas da UI
+const createRoleSchema = insertRoleSchema
+  .omit({ isSystemRole: true }) // Remove campo de sistema para segurança
+  .extend({
+    name: z.string()
+      .min(1, "Nome é obrigatório")
+      .max(50, "Nome deve ter no máximo 50 caracteres")
+      .regex(/^[a-zA-Z0-9_-]+$/, "Nome deve conter apenas letras, números, underscore e hífen")
+      .refine(
+        (value) => !['admin', 'secretary', 'teacher', 'student'].includes(value.toLowerCase()),
+        "Este nome é reservado pelo sistema"
+      ),
+    displayName: z.string()
+      .min(1, "Nome de exibição é obrigatório")
+      .max(100, "Nome de exibição deve ter no máximo 100 caracteres"),
+    description: z.string()
+      .max(500, "Descrição deve ter no máximo 500 caracteres")
+      .optional()
+  });
+
+type CreateRoleFormData = z.infer<typeof createRoleSchema>;
 
 export default function Permissions() {
   const { user } = useAuth();
@@ -18,6 +47,9 @@ export default function Permissions() {
   const [selectedRole, setSelectedRole] = useState<any>(null);
   const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [createRoleModalOpen, setCreateRoleModalOpen] = useState(false);
+  const [editRoleModalOpen, setEditRoleModalOpen] = useState(false);
+  const [roleToEdit, setRoleToEdit] = useState<any>(null);
 
   // Apenas admin pode acessar (removido developer conforme solicitado)
   if (!user || user.role !== 'admin') {
@@ -79,6 +111,114 @@ export default function Permissions() {
     },
   });
 
+  // Mutation para criar novo role
+  const createRoleMutation = useMutation({
+    mutationFn: async (data: CreateRoleFormData) => {
+      await apiRequest("POST", "/api/roles", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
+      toast({
+        title: "Sucesso!",
+        description: "Novo nível de acesso criado com sucesso.",
+      });
+      setCreateRoleModalOpen(false);
+      createRoleForm.reset();
+    },
+    onError: (error: any) => {
+      let errorMessage = "Erro ao criar nível de acesso. Tente novamente.";
+      
+      // Tratar erro 409 (conflito) especificamente
+      if (error.response?.status === 409 || error.message?.includes("already exists")) {
+        errorMessage = "Nome já em uso ou reservado pelo sistema.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para atualizar role
+  const updateRoleMutation = useMutation({
+    mutationFn: async (data: { id: string; roleData: Partial<CreateRoleFormData> }) => {
+      await apiRequest("PUT", `/api/roles/${data.id}`, data.roleData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
+      toast({
+        title: "Sucesso!",
+        description: "Nível de acesso atualizado com sucesso.",
+      });
+      setEditRoleModalOpen(false);
+      setRoleToEdit(null);
+      editRoleForm.reset();
+    },
+    onError: (error: any) => {
+      let errorMessage = "Erro ao atualizar nível de acesso. Tente novamente.";
+      
+      // Tratar erro 409 (conflito) especificamente
+      if (error.response?.status === 409 || error.message?.includes("already exists")) {
+        errorMessage = "Nome já em uso ou reservado pelo sistema.";
+      } else if (error.response?.status === 403 || error.message?.includes("Cannot modify")) {
+        errorMessage = "Não é possível modificar níveis de sistema.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para deletar role
+  const deleteRoleMutation = useMutation({
+    mutationFn: async (roleId: string) => {
+      await apiRequest("DELETE", `/api/roles/${roleId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
+      toast({
+        title: "Sucesso!",
+        description: "Nível de acesso removido com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao remover nível de acesso. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Form para criação de role
+  const createRoleForm = useForm<CreateRoleFormData>({
+    resolver: zodResolver(createRoleSchema),
+    defaultValues: {
+      name: "",
+      displayName: "",
+      description: "",
+    },
+  });
+
+  // Form para edição de role
+  const editRoleForm = useForm<CreateRoleFormData>({
+    resolver: zodResolver(createRoleSchema),
+    defaultValues: {
+      name: "",
+      displayName: "",
+      description: "",
+    },
+  });
+
   // Mapear roles para os 4 tipos fixos
   const getRoleInfo = (role: string) => {
     switch (role) {
@@ -131,6 +271,57 @@ export default function Permissions() {
     });
   };
 
+  // Criar novo role
+  const handleCreateRole = (data: CreateRoleFormData) => {
+    createRoleMutation.mutate(data);
+  };
+
+  // Abrir modal de edição
+  const handleEditRole = (role: any) => {
+    if (role.isSystemRole) {
+      toast({
+        title: "Não permitido",
+        description: "Níveis de sistema não podem ser editados.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setRoleToEdit(role);
+    editRoleForm.reset({
+      name: role.name,
+      displayName: role.displayName,
+      description: role.description || "",
+    });
+    setEditRoleModalOpen(true);
+  };
+
+  // Atualizar role
+  const handleUpdateRole = (data: CreateRoleFormData) => {
+    if (!roleToEdit?.id) return;
+    
+    updateRoleMutation.mutate({
+      id: roleToEdit.id,
+      roleData: data
+    });
+  };
+
+  // Deletar role
+  const handleDeleteRole = (role: any) => {
+    if (role.isSystemRole) {
+      toast({
+        title: "Não permitido",
+        description: "Níveis de sistema não podem ser removidos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm(`Tem certeza que deseja remover o nível "${role.displayName}"? Esta ação não pode ser desfeita.`)) {
+      deleteRoleMutation.mutate(role.id);
+    }
+  };
+
   // Inicializar permissões selecionadas quando modal abre
   useEffect(() => {
     if (permissionsModalOpen && roleWithPermissions && (roleWithPermissions as any)?.rolePermissions) {
@@ -170,9 +361,20 @@ export default function Permissions() {
             </p>
           </div>
           
-          <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-lg flex items-center">
-            <Info className="w-4 h-4 mr-2" />
-            Sistema baseado em níveis fixos
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={() => setCreateRoleModalOpen(true)}
+              className="flex items-center gap-2"
+              data-testid="button-create-role"
+            >
+              <Plus className="w-4 h-4" />
+              Adicionar Novo Nível
+            </Button>
+            
+            <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-lg flex items-center">
+              <Info className="w-4 h-4 mr-2" />
+              4 níveis fixos + personalizados
+            </div>
           </div>
         </div>
 
@@ -240,15 +442,43 @@ export default function Permissions() {
                       )}
                     </div>
                     
-                    <Button 
-                      onClick={() => handleManagePermissions(role)}
-                      className="w-full"
-                      size="sm"
-                      data-testid={`button-manage-permissions-${role.id}`}
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Configurar Permissões
-                    </Button>
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={() => handleManagePermissions(role)}
+                        className="w-full"
+                        size="sm"
+                        data-testid={`button-manage-permissions-${role.id}`}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Configurar Permissões
+                      </Button>
+                      
+                      {!role.isSystemRole && (
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleEditRole(role)}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            data-testid={`button-edit-role-${role.id}`}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleDeleteRole(role)}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+                            data-testid={`button-delete-role-${role.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remover
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -328,6 +558,211 @@ export default function Permissions() {
                 {updateRolePermissionsMutation.isPending ? 'Salvando...' : 'Salvar'}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Criação de Role */}
+        <Dialog 
+          open={createRoleModalOpen} 
+          onOpenChange={(open) => {
+            if (!open) {
+              createRoleForm.reset();
+            }
+            setCreateRoleModalOpen(open);
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                Adicionar Novo Nível de Acesso
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Crie um novo nível de acesso personalizado para o sistema
+              </p>
+            </DialogHeader>
+            
+            <Form {...createRoleForm}>
+              <form onSubmit={createRoleForm.handleSubmit(handleCreateRole)} className="space-y-4">
+                <FormField
+                  control={createRoleForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome Interno</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="ex: coordinator, supervisor"
+                          data-testid="input-role-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground">
+                        Apenas letras, números, underscore e hífen
+                      </p>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={createRoleForm.control}
+                  name="displayName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome de Exibição</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="ex: Coordenador, Supervisor"
+                          data-testid="input-role-display-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={createRoleForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição (Opcional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="Descreva as responsabilidades deste nível..."
+                          rows={3}
+                          data-testid="input-role-description"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={() => setCreateRoleModalOpen(false)}
+                    data-testid="button-cancel-create-role"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    type="submit"
+                    disabled={createRoleMutation.isPending}
+                    data-testid="button-submit-create-role"
+                  >
+                    {createRoleMutation.isPending ? 'Criando...' : 'Criar Nível'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Edição de Role */}
+        <Dialog 
+          open={editRoleModalOpen} 
+          onOpenChange={(open) => {
+            if (!open) {
+              editRoleForm.reset();
+              setRoleToEdit(null);
+            }
+            setEditRoleModalOpen(open);
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                Editar Nível de Acesso
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                {roleToEdit && `Editando: ${roleToEdit.displayName}`}
+              </p>
+            </DialogHeader>
+            
+            <Form {...editRoleForm}>
+              <form onSubmit={editRoleForm.handleSubmit(handleUpdateRole)} className="space-y-4">
+                <FormField
+                  control={editRoleForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome Interno</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="ex: coordinator, supervisor"
+                          data-testid="input-edit-role-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground">
+                        Apenas letras, números, underscore e hífen
+                      </p>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editRoleForm.control}
+                  name="displayName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome de Exibição</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="ex: Coordenador, Supervisor"
+                          data-testid="input-edit-role-display-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editRoleForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição (Opcional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="Descreva as responsabilidades deste nível..."
+                          rows={3}
+                          data-testid="input-edit-role-description"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={() => setEditRoleModalOpen(false)}
+                    data-testid="button-cancel-edit-role"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    type="submit"
+                    disabled={updateRoleMutation.isPending}
+                    data-testid="button-submit-edit-role"
+                  >
+                    {updateRoleMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
