@@ -16,6 +16,7 @@ import {
   insertBookSchema,
   insertPermissionCategorySchema,
   insertPermissionSchema,
+  insertRoleSchema,
   insertUserSettingsSchema,
   insertSupportTicketSchema,
   insertSupportTicketResponseSchema,
@@ -934,6 +935,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Role not found" });
       }
       res.status(500).json({ message: "Failed to update role permissions" });
+    }
+  });
+
+  app.post("/api/roles", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      // Create safe schema that excludes isSystemRole to prevent privilege escalation
+      const safeRoleData = insertRoleSchema.omit({ isSystemRole: true }).parse(req.body);
+      
+      // Force isSystemRole to false for all custom roles created via API
+      const roleData = {
+        ...safeRoleData,
+        isSystemRole: false
+      };
+      
+      const role = await storage.createRole(roleData);
+      res.status(201).json(role);
+    } catch (error: any) {
+      console.error("Error creating role:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      if (error.message?.includes("already exists")) {
+        return res.status(409).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to create role" });
+    }
+  });
+
+  app.put("/api/roles/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      // Create safe schema that excludes isSystemRole to prevent system role modification
+      const safeRoleData = insertRoleSchema.omit({ isSystemRole: true }).partial().parse(req.body);
+      
+      const role = await storage.updateRole(req.params.id, safeRoleData);
+      res.json(role);
+    } catch (error: any) {
+      console.error("Error updating role:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      if (error.message?.includes("Cannot modify") || error.message?.includes("system roles")) {
+        return res.status(403).json({ message: "Cannot modify system roles" });
+      }
+      res.status(500).json({ message: "Failed to update role" });
+    }
+  });
+
+  app.delete("/api/roles/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      await storage.deleteRole(req.params.id);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting role:", error);
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      if (error.message?.includes("Cannot delete system roles")) {
+        return res.status(403).json({ message: "Cannot delete system roles" });
+      }
+      res.status(500).json({ message: "Failed to delete role" });
     }
   });
 
