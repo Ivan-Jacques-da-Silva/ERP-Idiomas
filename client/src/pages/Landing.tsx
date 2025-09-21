@@ -230,7 +230,7 @@ export default function Landing() {
               <Button 
                 onClick={handleLogin}
                 disabled={loginMutation.isPending}
-                className="w-full h-10 sm:h-12 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-medium text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full h-10 sm:h-12 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white font-medium text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 button-hover-effect"
                 data-testid="button-login"
               >
                 <i className="fas fa-sign-in-alt mr-2"></i>
