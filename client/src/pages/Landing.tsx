@@ -81,20 +81,20 @@ export default function Landing() {
       </div>
       
       {/* Left Column - Welcome Section with Stars */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-purple-900 via-orange-900 to-purple-800 overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-purple-900 via-purple-700 to-purple-800 overflow-hidden">
         {/* Stars Animation */}
         <div className="absolute inset-0">
           {stars.map((star) => (
             <div
               key={star.id}
-              className="absolute bg-white rounded-full animate-pulse"
+              className="absolute bg-white rounded-full animate-twinkle"
               style={{
                 left: `${star.x}%`,
                 top: `${star.y}%`,
                 width: `${star.size}px`,
                 height: `${star.size}px`,
                 animationDelay: `${star.animationDelay}s`,
-                animationDuration: '2s'
+                animationDuration: '3s'
               }}
             />
           ))}
