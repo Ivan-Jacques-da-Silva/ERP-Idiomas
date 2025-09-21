@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { Menu, Settings, Bell, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -115,45 +116,48 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
             {/* User Menu */}
             {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors cursor-pointer focus:outline-none" data-testid="dropdown-user">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {user.firstName} {user.lastName}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {user.role === 'admin' && 'Administrador'}
-                      {user.role === 'teacher' && 'Professor'}
-                      {user.role === 'secretary' && 'Secretário'}
-                      {user.role === 'student' && 'Estudante'}
-                    </p>
-                  </div>
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {user.firstName?.[0]}{user.lastName?.[0]}
-                    </span>
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem className="cursor-default" data-testid="menu-item-settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Configurações</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-default" data-testid="menu-item-notifications">
-                    <Bell className="mr-2 h-4 w-4" />
-                    <span>Notificações</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    data-testid="menu-item-logout"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sair</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center space-x-3">
+                <ThemeToggle />
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex items-center space-x-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors cursor-pointer focus:outline-none" data-testid="dropdown-user">
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {user.firstName} {user.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {user.role === 'admin' && 'Administrador'}
+                        {user.role === 'teacher' && 'Professor'}
+                        {user.role === 'secretary' && 'Secretário'}
+                        {user.role === 'student' && 'Estudante'}
+                      </p>
+                    </div>
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {user.firstName?.[0]}{user.lastName?.[0]}
+                      </span>
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem className="cursor-default" data-testid="menu-item-settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Configurações</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-default" data-testid="menu-item-notifications">
+                      <Bell className="mr-2 h-4 w-4" />
+                      <span>Notificações</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      data-testid="menu-item-logout"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sair</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
           </div>
         </div>
