@@ -118,7 +118,7 @@ export default function StudentArea() {
                     <p className="font-medium text-gray-900 dark:text-gray-100">Speaking Exercise</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Próximo passo disponível</p>
                   </div>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700" data-testid="button-continue-lesson">
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 button-hover-effect" data-testid="button-continue-lesson">
                     Continuar
                   </Button>
                 </div>
@@ -142,7 +142,7 @@ export default function StudentArea() {
                       <p className="text-sm text-purple-600 dark:text-purple-400">Hoje • 14:00 - 15:30 • Prof. Maria Santos</p>
                     </div>
                   </div>
-                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700" data-testid="button-enter-aula">
+                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700 button-hover-effect" data-testid="button-enter-aula">
                     Entrar na Aula
                   </Button>
                 </div>
@@ -206,7 +206,7 @@ export default function StudentArea() {
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Workbook Digital</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">12 de 15 exercícios</p>
                     <Progress value={80} className="h-2 mb-3" />
-                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700" data-testid="button-workbook">
+                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700 button-hover-effect" data-testid="button-workbook">
                       Continuar
                     </Button>
                   </CardContent>
@@ -224,7 +224,7 @@ export default function StudentArea() {
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">1 prova pendente</p>
                     <Badge className="bg-red-100 text-red-700 border-red-300 mb-3">Urgente</Badge>
                     <br />
-                    <Button size="sm" className="bg-red-600 hover:bg-red-700" data-testid="button-provas">
+                    <Button size="sm" className="bg-red-600 hover:bg-red-700 button-hover-effect" data-testid="button-provas">
                       Ver Provas
                     </Button>
                   </CardContent>
