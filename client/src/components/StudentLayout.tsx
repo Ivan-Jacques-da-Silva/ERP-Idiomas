@@ -85,11 +85,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       label: "Meu Progresso",
       icon: "fas fa-chart-line",
     },
-    {
-      path: "/support",
-      label: "Suporte",
-      icon: "fas fa-question-circle",
-    },
   ];
 
   const isActive = (path: string) => {

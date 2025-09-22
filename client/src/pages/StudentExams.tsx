@@ -214,33 +214,7 @@ export default function StudentExams() {
               </CardContent>
             </Card>
 
-            {/* Recursos para Estudos */}
-            <Card className="glassmorphism-card">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <i className="fas fa-graduation-cap text-blue-600"></i>
-                  <span>Recursos de Estudo</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start" data-testid="button-practice-tests">
-                  <i className="fas fa-clipboard-list mr-2"></i>
-                  Simulados
-                </Button>
-                <Button variant="outline" className="w-full justify-start" data-testid="button-review-materials">
-                  <i className="fas fa-file-alt mr-2"></i>
-                  Material de Revisão
-                </Button>
-                <Button variant="outline" className="w-full justify-start" data-testid="button-study-guide">
-                  <i className="fas fa-map mr-2"></i>
-                  Guia de Estudos
-                </Button>
-                <Button variant="outline" className="w-full justify-start" data-testid="button-exam-tips">
-                  <i className="fas fa-lightbulb mr-2"></i>
-                  Dicas para Provas
-                </Button>
-              </CardContent>
-            </Card>
+            
 
             {/* Lembretes */}
             <Card className="glassmorphism-card">

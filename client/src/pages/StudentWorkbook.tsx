@@ -226,54 +226,7 @@ export default function StudentWorkbook() {
               </CardContent>
             </Card>
 
-            {/* Recursos de Estudo */}
-            <Card className="glassmorphism-card">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <i className="fas fa-tools text-blue-600"></i>
-                  <span>Recursos de Estudo</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start" data-testid="button-dictionary">
-                  <i className="fas fa-book mr-2"></i>
-                  Dicionário
-                </Button>
-                <Button variant="outline" className="w-full justify-start" data-testid="button-grammar">
-                  <i className="fas fa-spell-check mr-2"></i>
-                  Guia de Gramática
-                </Button>
-                <Button variant="outline" className="w-full justify-start" data-testid="button-audio">
-                  <i className="fas fa-headphones mr-2"></i>
-                  Áudios da Lição
-                </Button>
-                <Button variant="outline" className="w-full justify-start" data-testid="button-help">
-                  <i className="fas fa-question-circle mr-2"></i>
-                  Pedir Ajuda
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Dicas de Estudo */}
-            <Card className="glassmorphism-card">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <i className="fas fa-lightbulb text-yellow-600"></i>
-                  <span>Dica do Dia</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <i className="fas fa-lightbulb text-yellow-600 text-2xl mb-2"></i>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300 font-medium mb-2">
-                    Pratique regularmente!
-                  </p>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                    Faça pelo menos um exercício por dia para manter o progresso constante.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            
 
           </div>
         </div>
