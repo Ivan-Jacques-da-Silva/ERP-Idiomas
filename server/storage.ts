@@ -1070,77 +1070,137 @@ export class DatabaseStorage implements IStorage {
 
   // Books
   async getBooks(): Promise < Book[] > {
-    return [...demoBooks];
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      return [...demoBooks];
+    }
+    return await db.select().from(books).where(eq(books.isActive, true));
   }
 
   async getBook(id: string): Promise < Book | undefined > {
-    return demoBooks.find(book => book.id === id);
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      return demoBooks.find(book => book.id === id);
+    }
+    const result = await db.select().from(books).where(eq(books.id, id)).limit(1);
+    return result[0];
   }
 
   async createBook(bookData: InsertBook): Promise < Book > {
-    // Validate that the course exists and is active
-    const course = demoCourses.find(c => c.id === bookData.courseId);
-    if (!course) {
-      throw new Error(`Course with ID ${bookData.courseId} not found`);
-    }
-    if (!course.isActive) {
-      throw new Error(`Cannot create book for inactive course: ${course.name}`);
-    }
-
-    const id = crypto.randomUUID();
-    const newBook: Book = {
-      id,
-      courseId: bookData.courseId,
-      name: bookData.name,
-      description: bookData.description || null,
-      pdfUrl: bookData.pdfUrl || null,
-      color: bookData.color || '#3b82f6',
-      displayOrder: bookData.displayOrder ?? 1,
-      totalDays: bookData.totalDays ?? 30,
-      isActive: bookData.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    demoBooks.push(newBook);
-    return newBook;
-  }
-
-  async updateBook(id: string, bookData: Partial < InsertBook > ): Promise < Book > {
-    const index = demoBooks.findIndex(b => b.id === id);
-    if (index === -1) throw new Error('Book not found');
-
-    // If courseId is being updated, validate that the new course exists and is active
-    if (bookData.courseId) {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode - validate course exists in demo data
       const course = demoCourses.find(c => c.id === bookData.courseId);
       if (!course) {
         throw new Error(`Course with ID ${bookData.courseId} not found`);
       }
       if (!course.isActive) {
-        throw new Error(`Cannot update book to inactive course: ${course.name}`);
+        throw new Error(`Cannot create book for inactive course: ${course.name}`);
+      }
+      const id = crypto.randomUUID();
+      const newBook: Book = {
+        id,
+        courseId: bookData.courseId,
+        name: bookData.name,
+        description: bookData.description || null,
+        pdfUrl: bookData.pdfUrl || null,
+        color: bookData.color || '#3b82f6',
+        displayOrder: bookData.displayOrder ?? 1,
+        totalDays: bookData.totalDays ?? 30,
+        isActive: bookData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoBooks.push(newBook);
+      return newBook;
+    }
+    // Validate that the course exists and is active
+    const courseResult = await db.select().from(courses).where(eq(courses.id, bookData.courseId)).limit(1);
+    if (courseResult.length === 0) {
+      throw new Error(`Course with ID ${bookData.courseId} not found`);
+    }
+    if (!courseResult[0].isActive) {
+      throw new Error(`Cannot create book for inactive course: ${courseResult[0].name}`);
+    }
+    const result = await db.insert(books).values({
+      ...bookData,
+      color: bookData.color || '#3b82f6',
+      displayOrder: bookData.displayOrder ?? 1,
+      totalDays: bookData.totalDays ?? 30,
+      isActive: bookData.isActive ?? true,
+    }).returning();
+    return result[0];
+  }
+
+  async updateBook(id: string, bookData: Partial < InsertBook > ): Promise < Book > {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const index = demoBooks.findIndex(b => b.id === id);
+      if (index === -1) throw new Error('Book not found');
+      // If courseId is being updated, validate that the new course exists and is active
+      if (bookData.courseId) {
+        const course = demoCourses.find(c => c.id === bookData.courseId);
+        if (!course) {
+          throw new Error(`Course with ID ${bookData.courseId} not found`);
+        }
+        if (!course.isActive) {
+          throw new Error(`Cannot update book to inactive course: ${course.name}`);
+        }
+      }
+      const updatedBook = {
+        ...demoBooks[index],
+        ...bookData,
+        updatedAt: new Date(),
+      };
+      demoBooks[index] = updatedBook;
+      return updatedBook;
+    }
+    // If courseId is being updated, validate that the new course exists and is active
+    if (bookData.courseId) {
+      const courseResult = await db.select().from(courses).where(eq(courses.id, bookData.courseId)).limit(1);
+      if (courseResult.length === 0) {
+        throw new Error(`Course with ID ${bookData.courseId} not found`);
+      }
+      if (!courseResult[0].isActive) {
+        throw new Error(`Cannot update book to inactive course: ${courseResult[0].name}`);
       }
     }
-
-    const updatedBook = {
-      ...demoBooks[index],
-      ...bookData,
-      updatedAt: new Date(),
-    };
-    demoBooks[index] = updatedBook;
-    return updatedBook;
+    const result = await db.update(books)
+      .set({ ...bookData, updatedAt: new Date() })
+      .where(eq(books.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Book not found');
+    }
+    return result[0];
   }
 
   async deleteBook(id: string): Promise < void > {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode - check references in demo data
+      const referencingClasses = demoClasses.filter(cls => cls.bookId === id);
+      if (referencingClasses.length > 0) {
+        const classNames = referencingClasses.map(cls => cls.name).join(', ');
+        throw new Error(`Cannot delete book: it is being used by the following classes: ${classNames}`);
+      }
+      const index = demoBooks.findIndex(book => book.id === id);
+      if (index !== -1) {
+        demoBooks.splice(index, 1);
+      }
+      return;
+    }
     // Check if any classes reference this book
-    const referencingClasses = demoClasses.filter(cls => cls.bookId === id);
+    const referencingClasses = await db.select().from(classes).where(eq(classes.bookId, id));
     if (referencingClasses.length > 0) {
       const classNames = referencingClasses.map(cls => cls.name).join(', ');
       throw new Error(`Cannot delete book: it is being used by the following classes: ${classNames}`);
     }
-
-    const index = demoBooks.findIndex(book => book.id === id);
-    if (index !== -1) {
-      demoBooks.splice(index, 1);
-    }
+    await db.update(books)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(books.id, id));
   }
 
   // Staff
@@ -1388,56 +1448,98 @@ export class DatabaseStorage implements IStorage {
 
   // Courses
   async getCourses(): Promise < Course[] > {
-    return [...demoCourses];
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      return [...demoCourses];
+    }
+    return await db.select().from(courses).where(eq(courses.isActive, true));
   }
 
   async getCourse(id: string): Promise < Course | undefined > {
-    return demoCourses.find(course => course.id === id);
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      return demoCourses.find(course => course.id === id);
+    }
+    const result = await db.select().from(courses).where(eq(courses.id, id)).limit(1);
+    return result[0];
   }
 
   async createCourse(courseData: InsertCourse): Promise < Course > {
-    const id = crypto.randomUUID();
-    const newCourse: Course = {
-      id,
-      name: courseData.name,
-      description: courseData.description || null,
-      language: courseData.language,
-      level: courseData.level,
-      duration: courseData.duration || null,
-      price: courseData.price || null,
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const id = crypto.randomUUID();
+      const newCourse: Course = {
+        id,
+        name: courseData.name,
+        description: courseData.description || null,
+        language: courseData.language,
+        level: courseData.level,
+        duration: courseData.duration || null,
+        price: courseData.price || null,
+        isActive: courseData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoCourses.push(newCourse);
+      return newCourse;
+    }
+    const result = await db.insert(courses).values({
+      ...courseData,
       isActive: courseData.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    demoCourses.push(newCourse);
-    return newCourse;
+    }).returning();
+    return result[0];
   }
 
   async updateCourse(id: string, courseData: Partial < InsertCourse > ): Promise < Course > {
-    const index = demoCourses.findIndex(c => c.id === id);
-    if (index === -1) throw new Error('Course not found');
-
-    const updatedCourse = {
-      ...demoCourses[index],
-      ...courseData,
-      updatedAt: new Date(),
-    };
-    demoCourses[index] = updatedCourse;
-    return updatedCourse;
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const index = demoCourses.findIndex(c => c.id === id);
+      if (index === -1) throw new Error('Course not found');
+      const updatedCourse = {
+        ...demoCourses[index],
+        ...courseData,
+        updatedAt: new Date(),
+      };
+      demoCourses[index] = updatedCourse;
+      return updatedCourse;
+    }
+    const result = await db.update(courses)
+      .set({ ...courseData, updatedAt: new Date() })
+      .where(eq(courses.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Course not found');
+    }
+    return result[0];
   }
 
   async deleteCourse(id: string): Promise < void > {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode - check references in demo data
+      const referencingBooks = demoBooks.filter(book => book.courseId === id);
+      if (referencingBooks.length > 0) {
+        const bookNames = referencingBooks.map(book => book.name).join(', ');
+        throw new Error(`Cannot delete course: it has the following books associated with it: ${bookNames}`);
+      }
+      const index = demoCourses.findIndex(course => course.id === id);
+      if (index !== -1) {
+        demoCourses.splice(index, 1);
+      }
+      return;
+    }
     // Check if any books reference this course
-    const referencingBooks = demoBooks.filter(book => book.courseId === id);
+    const referencingBooks = await db.select().from(books).where(eq(books.courseId, id));
     if (referencingBooks.length > 0) {
       const bookNames = referencingBooks.map(book => book.name).join(', ');
       throw new Error(`Cannot delete course: it has the following books associated with it: ${bookNames}`);
     }
-
-    const index = demoCourses.findIndex(course => course.id === id);
-    if (index !== -1) {
-      demoCourses.splice(index, 1);
-    }
+    await db.update(courses)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(courses.id, id));
   }
 
   // Classes
