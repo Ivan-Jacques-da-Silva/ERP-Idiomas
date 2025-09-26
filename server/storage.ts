@@ -39,7 +39,26 @@ import type {
   SupportTicketResponse,
   SupportTicketWithResponses,
 } from "@shared/schema";
+import {
+  units,
+  users,
+  staff,
+  students,
+  courses,
+  classes,
+  lessons,
+  books,
+  permissions,
+  permissionCategories,
+  roles,
+  rolePermissions,
+  userPermissions,
+  userSettings,
+  supportTickets,
+  supportTicketResponses,
+} from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { db } from "./db";
 
 // Demo data in memory - no database needed
 let demoUnits: Unit[] = [{
@@ -967,48 +986,86 @@ export class DatabaseStorage implements IStorage {
 
   // Units
   async getUnits(): Promise < Unit[] > {
-    return [...demoUnits];
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      return [...demoUnits];
+    }
+    return await db.select().from(units).where(eq(units.isActive, true));
   }
 
   async getUnit(id: string): Promise < Unit | undefined > {
-    return demoUnits.find(unit => unit.id === id);
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      return demoUnits.find(unit => unit.id === id);
+    }
+    const result = await db.select().from(units).where(eq(units.id, id)).limit(1);
+    return result[0];
   }
 
   async createUnit(unit: InsertUnit): Promise < Unit > {
-    const id = crypto.randomUUID();
-    const newUnit: Unit = {
-      id,
-      name: unit.name,
-      address: unit.address || null,
-      phone: unit.phone || null,
-      email: unit.email || null,
-      managerId: unit.managerId || null,
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode - create in memory
+      const id = crypto.randomUUID();
+      const newUnit: Unit = {
+        id,
+        name: unit.name,
+        address: unit.address || null,
+        phone: unit.phone || null,
+        email: unit.email || null,
+        managerId: unit.managerId || null,
+        isActive: unit.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoUnits.push(newUnit);
+      return newUnit;
+    }
+    const result = await db.insert(units).values({
+      ...unit,
       isActive: unit.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    demoUnits.push(newUnit);
-    return newUnit;
+    }).returning();
+    return result[0];
   }
 
   async updateUnit(id: string, unit: Partial < InsertUnit > ): Promise < Unit > {
-    const index = demoUnits.findIndex(u => u.id === id);
-    if (index === -1) throw new Error('Unit not found');
-
-    const updatedUnit = {
-      ...demoUnits[index],
-      ...unit,
-      updatedAt: new Date(),
-    };
-    demoUnits[index] = updatedUnit;
-    return updatedUnit;
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode - update in memory
+      const index = demoUnits.findIndex(u => u.id === id);
+      if (index === -1) throw new Error('Unit not found');
+      const updatedUnit = {
+        ...demoUnits[index],
+        ...unit,
+        updatedAt: new Date(),
+      };
+      demoUnits[index] = updatedUnit;
+      return updatedUnit;
+    }
+    const result = await db.update(units)
+      .set({ ...unit, updatedAt: new Date() })
+      .where(eq(units.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Unit not found');
+    }
+    return result[0];
   }
 
   async deleteUnit(id: string): Promise < void > {
-    const index = demoUnits.findIndex(unit => unit.id === id);
-    if (index !== -1) {
-      demoUnits.splice(index, 1);
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode - remove from memory
+      const index = demoUnits.findIndex(unit => unit.id === id);
+      if (index !== -1) {
+        demoUnits.splice(index, 1);
+      }
+      return;
     }
+    await db.update(units)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(units.id, id));
   }
 
   // Books
@@ -1088,129 +1145,245 @@ export class DatabaseStorage implements IStorage {
 
   // Staff
   async getStaff(): Promise < StaffWithUser[] > {
-    return demoStaff.map(staff => {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode - use in memory data
+      return demoStaff.map(staff => {
+        const user = demoUsers.find(u => u.id === staff.userId);
+        if (!user) throw new Error(`User not found for staff ${staff.id}`);
+        return {
+          ...staff,
+          user
+        };
+      });
+    }
+    const result = await db.select()
+      .from(staff)
+      .innerJoin(users, eq(staff.userId, users.id))
+      .where(eq(staff.isActive, true));
+    
+    return result.map(row => ({
+      ...row.staff,
+      user: row.users
+    }));
+  }
+
+  async getStaffMember(id: string): Promise < StaffWithUser | undefined > {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const staff = demoStaff.find(staff => staff.id === id);
+      if (!staff) return undefined;
       const user = demoUsers.find(u => u.id === staff.userId);
-      if (!user) throw new Error(`User not found for staff ${staff.id}`);
+      if (!user) return undefined;
       return {
         ...staff,
         user
       };
-    });
-  }
-
-  async getStaffMember(id: string): Promise < StaffWithUser | undefined > {
-    const staff = demoStaff.find(staff => staff.id === id);
-    if (!staff) return undefined;
-
-    const user = demoUsers.find(u => u.id === staff.userId);
-    if (!user) return undefined;
-
+    }
+    const result = await db.select()
+      .from(staff)
+      .innerJoin(users, eq(staff.userId, users.id))
+      .where(eq(staff.id, id))
+      .limit(1);
+    
+    if (result.length === 0) return undefined;
+    
     return {
-      ...staff,
-      user
+      ...result[0].staff,
+      user: result[0].users
     };
   }
 
   async createStaff(staffData: InsertStaff): Promise < Staff > {
-    const id = crypto.randomUUID();
-    const newStaff: Staff = {
-      id,
-      userId: staffData.userId,
-      unitId: staffData.unitId || null,
-      employeeId: staffData.employeeId || null,
-      position: staffData.position || null,
-      department: staffData.department || null,
-      salary: staffData.salary || null,
-      hireDate: staffData.hireDate || null,
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const id = crypto.randomUUID();
+      const newStaff: Staff = {
+        id,
+        userId: staffData.userId,
+        unitId: staffData.unitId || null,
+        employeeId: staffData.employeeId || null,
+        position: staffData.position || null,
+        department: staffData.department || null,
+        salary: staffData.salary || null,
+        hireDate: staffData.hireDate || null,
+        isActive: staffData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoStaff.push(newStaff);
+      return newStaff;
+    }
+    const result = await db.insert(staff).values({
+      ...staffData,
       isActive: staffData.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    demoStaff.push(newStaff);
-    return newStaff;
+    }).returning();
+    return result[0];
   }
 
   async updateStaff(id: string, staffData: Partial < InsertStaff > ): Promise < Staff > {
-    const index = demoStaff.findIndex(s => s.id === id);
-    if (index === -1) throw new Error('Staff not found');
-
-    const updatedStaff = {
-      ...demoStaff[index],
-      ...staffData,
-      updatedAt: new Date(),
-    };
-    demoStaff[index] = updatedStaff;
-    return updatedStaff;
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const index = demoStaff.findIndex(s => s.id === id);
+      if (index === -1) throw new Error('Staff not found');
+      const updatedStaff = {
+        ...demoStaff[index],
+        ...staffData,
+        updatedAt: new Date(),
+      };
+      demoStaff[index] = updatedStaff;
+      return updatedStaff;
+    }
+    const result = await db.update(staff)
+      .set({ ...staffData, updatedAt: new Date() })
+      .where(eq(staff.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Staff not found');
+    }
+    return result[0];
   }
 
   async deleteStaff(id: string): Promise < void > {
-    const index = demoStaff.findIndex(staff => staff.id === id);
-    if (index !== -1) {
-      demoStaff.splice(index, 1);
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const index = demoStaff.findIndex(staff => staff.id === id);
+      if (index !== -1) {
+        demoStaff.splice(index, 1);
+      }
+      return;
     }
+    await db.update(staff)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(staff.id, id));
   }
 
   // Students
   async getStudents(): Promise < StudentWithUser[] > {
-    return demoStudents.map(student => {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      return demoStudents.map(student => {
+        const user = demoUsers.find(u => u.id === student.userId);
+        if (!user) throw new Error(`User not found for student ${student.id}`);
+        return {
+          ...student,
+          user
+        };
+      });
+    }
+    const result = await db.select()
+      .from(students)
+      .innerJoin(users, eq(students.userId, users.id))
+      .where(eq(users.isActive, true));
+    
+    return result.map(row => ({
+      ...row.students,
+      user: row.users
+    }));
+  }
+
+  async getStudent(id: string): Promise < StudentWithUser | undefined > {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const student = demoStudents.find(student => student.id === id);
+      if (!student) return undefined;
       const user = demoUsers.find(u => u.id === student.userId);
-      if (!user) throw new Error(`User not found for student ${student.id}`);
+      if (!user) return undefined;
       return {
         ...student,
         user
       };
-    });
-  }
-
-  async getStudent(id: string): Promise < StudentWithUser | undefined > {
-    const student = demoStudents.find(student => student.id === id);
-    if (!student) return undefined;
-
-    const user = demoUsers.find(u => u.id === student.userId);
-    if (!user) return undefined;
-
+    }
+    const result = await db.select()
+      .from(students)
+      .innerJoin(users, eq(students.userId, users.id))
+      .where(eq(students.id, id))
+      .limit(1);
+    
+    if (result.length === 0) return undefined;
+    
     return {
-      ...student,
-      user
+      ...result[0].students,
+      user: result[0].users
     };
   }
 
   async createStudent(studentData: InsertStudent): Promise < Student > {
-    const id = crypto.randomUUID();
-    const newStudent: Student = {
-      id,
-      userId: studentData.userId,
-      studentId: studentData.studentId || null,
-      unitId: studentData.unitId || null,
-      enrollmentDate: studentData.enrollmentDate || null,
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const id = crypto.randomUUID();
+      const newStudent: Student = {
+        id,
+        userId: studentData.userId,
+        studentId: studentData.studentId || null,
+        unitId: studentData.unitId || null,
+        enrollmentDate: studentData.enrollmentDate || null,
+        status: studentData.status || 'active',
+        emergencyContact: studentData.emergencyContact || null,
+        notes: studentData.notes || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoStudents.push(newStudent);
+      return newStudent;
+    }
+    const result = await db.insert(students).values({
+      ...studentData,
       status: studentData.status || 'active',
-      emergencyContact: studentData.emergencyContact || null,
-      notes: studentData.notes || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    demoStudents.push(newStudent);
-    return newStudent;
+    }).returning();
+    return result[0];
   }
 
   async updateStudent(id: string, studentData: Partial < InsertStudent > ): Promise < Student > {
-    const index = demoStudents.findIndex(s => s.id === id);
-    if (index === -1) throw new Error('Student not found');
-
-    const updatedStudent = {
-      ...demoStudents[index],
-      ...studentData,
-      updatedAt: new Date(),
-    };
-    demoStudents[index] = updatedStudent;
-    return updatedStudent;
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const index = demoStudents.findIndex(s => s.id === id);
+      if (index === -1) throw new Error('Student not found');
+      const updatedStudent = {
+        ...demoStudents[index],
+        ...studentData,
+        updatedAt: new Date(),
+      };
+      demoStudents[index] = updatedStudent;
+      return updatedStudent;
+    }
+    const result = await db.update(students)
+      .set({ ...studentData, updatedAt: new Date() })
+      .where(eq(students.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Student not found');
+    }
+    return result[0];
   }
 
   async deleteStudent(id: string): Promise < void > {
-    const index = demoStudents.findIndex(student => student.id === id);
-    if (index !== -1) {
-      demoStudents.splice(index, 1);
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Demo mode
+      const index = demoStudents.findIndex(student => student.id === id);
+      if (index !== -1) {
+        demoStudents.splice(index, 1);
+      }
+      return;
     }
+    await db.update(users)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(users.id, 
+        db.select({ userId: students.userId })
+          .from(students)
+          .where(eq(students.id, id))
+      ));
   }
 
   // Courses
