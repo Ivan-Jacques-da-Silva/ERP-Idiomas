@@ -8,13 +8,13 @@ const DB_CONFIG = {
   host: 'localhost',
   port: 5432,
   user: 'postgres',
-  password: 'admin',
+  password: 'admin', // Senha padrão do PostgreSQL no ambiente
   database: 'postgres' // Conecta ao banco padrão primeiro
 };
 
 const TARGET_DB = 'school_system';
 const TARGET_USER = 'school_admin';
-const TARGET_PASSWORD = 'admin';
+const TARGET_PASSWORD = 'SchoolSys2024!@#';
 
 // Função para executar comandos SQL
 async function executeSQL(pool, sql, description) {
@@ -558,15 +558,26 @@ async function setup(isReset = false) {
     console.log('📋 Informações de conexão:');
     console.log(`   DATABASE_URL=postgresql://${TARGET_USER}:${TARGET_PASSWORD}@${DB_CONFIG.host}:${DB_CONFIG.port}/${TARGET_DB}`);
     console.log('');
-    console.log('👤 Usuário admin criado:');
+    console.log('🔐 Credenciais de acesso:');
+    console.log(`   - PostgreSQL User: ${TARGET_USER}`);
+    console.log(`   - PostgreSQL Password: ${TARGET_PASSWORD}`);
+    console.log(`   - Database: ${TARGET_DB}`);
+    console.log('');
+    console.log('👤 Usuário admin da aplicação:');
     console.log('   Email: admin@escola.com');
-    console.log('   Role: admin (acesso total)');
+    console.log('   Role: admin (acesso total ao sistema)');
     console.log('');
     console.log('📊 Permissões configuradas:');
     console.log('   - Admin: Acesso total (todas as permissões CRUD)');
     console.log('   - Secretary: Acesso quase completo');
     console.log('   - Teacher: Acesso focado em turmas e aulas'); 
     console.log('   - Student: Acesso limitado à área do aluno');
+    console.log('');
+    console.log('⚠️  Para usar o banco, adicione esta variável ao seu ambiente:');
+    console.log(`   export DATABASE_URL="postgresql://${TARGET_USER}:${TARGET_PASSWORD}@${DB_CONFIG.host}:${DB_CONFIG.port}/${TARGET_DB}"`);
+    console.log('');
+    console.log('🚀 Ou crie um arquivo .env com:');
+    console.log(`   DATABASE_URL=postgresql://${TARGET_USER}:${TARGET_PASSWORD}@${DB_CONFIG.host}:${DB_CONFIG.port}/${TARGET_DB}`);
     
   } catch (error) {
     console.error('❌ Erro durante o setup:', error.message);
