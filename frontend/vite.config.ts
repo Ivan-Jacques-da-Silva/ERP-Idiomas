@@ -36,5 +36,12 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    proxy: {
+      '/api': {
+        target: process.env.BACKEND_URL || 'http://localhost:5052',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
 });
