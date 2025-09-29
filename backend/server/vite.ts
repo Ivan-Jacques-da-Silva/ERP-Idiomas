@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../../frontend/vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
@@ -20,6 +19,8 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  const frontendRoot = path.resolve(import.meta.dirname, "..", "..", "frontend");
+  
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
@@ -27,8 +28,8 @@ export async function setupVite(app: Express, server: Server) {
   };
 
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    root: path.join(frontendRoot, "client"),
+    configFile: path.join(frontendRoot, "vite.config.ts"),
     customLogger: {
       ...viteLogger,
       error: (msg, options) => {
@@ -47,7 +48,8 @@ export async function setupVite(app: Express, server: Server) {
     try {
       const clientTemplate = path.resolve(
         import.meta.dirname,
-        "..",
+        "..", "..",
+        "frontend",
         "client",
         "index.html",
       );
@@ -68,7 +70,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const distPath = path.resolve(import.meta.dirname, "..", "..", "frontend", "dist", "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(

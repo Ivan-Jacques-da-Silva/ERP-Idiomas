@@ -83,14 +83,11 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Only serve frontend if SERVE_FRONTEND is enabled
-  // This allows backend to run separately from frontend in development
-  if (process.env.SERVE_FRONTEND === "true") {
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
+  // Setup frontend serving
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
   }
 
   const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5052");
