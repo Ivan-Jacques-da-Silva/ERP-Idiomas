@@ -48,6 +48,8 @@ export async function setupVite(app: Express, server: Server) {
       const clientTemplate = path.resolve(
         import.meta.dirname,
         "..",
+        "..",
+        "frontend",
         "client",
         "index.html",
       );
@@ -68,7 +70,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const distPath = path.resolve(import.meta.dirname, "..", "..", "frontend", "dist", "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
