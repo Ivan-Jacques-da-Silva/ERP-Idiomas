@@ -95,6 +95,6 @@ app.use((req, res, next) => {
 
   const port = process.env.PORT || 5052;
   server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
+    log(`Backend serving on port ${port}`);
   });
 })();
