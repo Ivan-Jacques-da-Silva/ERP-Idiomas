@@ -40,7 +40,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.BACKEND_URL || 'http://localhost:5000',
+        target: process.env.BACKEND_URL || 'http://localhost:5052',
         changeOrigin: true,
         secure: false,
       }

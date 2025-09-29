@@ -1,4 +1,4 @@
-
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import cors from "cors";
@@ -93,7 +93,7 @@ app.use((req, res, next) => {
     }
   }
 
-  const port = parseInt(process.env.PORT || "5052");
+  const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5052");
   server.listen(port, "0.0.0.0", () => {
     log(`Backend serving on port ${port}`);
   });
