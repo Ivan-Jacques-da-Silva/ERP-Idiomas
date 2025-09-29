@@ -8,14 +8,13 @@ import { setupVite, serveStatic } from "./vite";
 const app = express();
 
 // CORS configuration for separated frontend/backend
-if (process.env.NODE_ENV === "production" && process.env.FRONTEND_URL) {
-  app.use(cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
-  }));
-}
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5051';
+app.use(cors({
+  origin: frontendUrl,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -84,16 +83,17 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+  // Only serve frontend if SERVE_FRONTEND is enabled
+  // This allows backend to run separately from frontend in development
+  if (process.env.SERVE_FRONTEND === "true") {
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
   }
 
-  const port = process.env.PORT || 5052;
+  const port = parseInt(process.env.PORT || "5052");
   server.listen(port, "0.0.0.0", () => {
     log(`Backend serving on port ${port}`);
   });
