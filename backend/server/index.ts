@@ -8,9 +8,31 @@ import { setupVite, serveStatic } from "./vite.js";
 const app = express();
 
 // CORS configuration for separated frontend/backend
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5051';
+const allowedOrigins = [
+  'https://erp.vision.dev.br',
+  'https://erpapi.vision.dev.br',
+  'http://localhost:5000',
+  'http://localhost:5001',
+  'http://localhost:5051',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+  process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null,
+  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
+].filter(Boolean);
+
 app.use(cors({
-  origin: frontendUrl,
+  origin: (origin, callback) => {
+    // Permitir requisições sem origin (mobile apps, postman, etc)
+    if (!origin) return callback(null, true);
+    
+    // Verificar se a origin está na lista de permitidas (comparação exata)
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Rejeitar qualquer outra origem
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
