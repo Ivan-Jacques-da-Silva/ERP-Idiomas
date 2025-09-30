@@ -1,9 +1,23 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
-const { Pool } = pg;
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import * as schema from "../shared/schema.js";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://school_admin:SchoolSys2024!@#@localhost:5432/school_system",
-});
+const connectionString = process.env.DATABASE_URL;
 
-export const db = drizzle(pool);
+// Handle the case when DATABASE_URL is not set or invalid
+let db = null;
+
+try {
+  if (connectionString && connectionString.trim() !== '') {
+    const sql = neon(connectionString);
+    db = drizzle(sql, { schema });
+    console.log("✅ Database connected");
+  } else {
+    console.log("⚠️  DATABASE_URL not set, using demo data");
+  }
+} catch (error) {
+  console.warn("⚠️  Database connection failed, using demo data:", error.message);
+  db = null;
+}
+
+export { db };

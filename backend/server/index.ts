@@ -2,8 +2,8 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import cors from "cors";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic } from "./vite";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic } from "./vite.js";
 
 const app = express();
 

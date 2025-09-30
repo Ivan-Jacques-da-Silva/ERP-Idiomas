@@ -5,7 +5,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { 
   insertUnitSchema, 
   insertStaffSchema, 
@@ -20,7 +20,7 @@ import {
   insertUserSettingsSchema,
   insertSupportTicketSchema,
   insertSupportTicketResponseSchema,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { z } from "zod";
 
 

@@ -38,7 +38,7 @@ import type {
   SupportTicket,
   SupportTicketResponse,
   SupportTicketWithResponses,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import {
   units,
   users,
@@ -56,9 +56,9 @@ import {
   userSettings,
   supportTickets,
   supportTicketResponses,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { db } from "./db";
+import { db } from "./db.js";
 
 // Demo data in memory - no database needed
 let demoUnits: Unit[] = [{
@@ -780,7 +780,7 @@ export interface IStorage {
   createLesson(lesson: InsertLesson): Promise < Lesson > ;
   updateLesson(id: string, lesson: Partial < InsertLesson > ): Promise < Lesson > ;
   deleteLesson(id: string): Promise < void > ;
-  checkLessonConflicts(teacherId: string, date: Date, startTime: string, endTime: string, excludeLessonId?: string): Promise<{ hasConflict: boolean; conflictingLesson?: Lesson }>;
+  checkLessonConflicts(teacherId: string, date: Date, startTime: string, endTime: string, excludeLessonId ? : string): Promise<{ hasConflict: boolean; conflictingLesson ? : Lesson }>;
 
   // Dashboard stats
   getDashboardStats(): Promise < {
@@ -832,7 +832,7 @@ export interface IStorage {
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
   updateSupportTicket(id: string, ticket: Partial<InsertSupportTicket>): Promise<SupportTicket>;
   deleteSupportTicket(id: string): Promise<void>;
-  
+
   // Support Ticket Responses
   createSupportTicketResponse(response: InsertSupportTicketResponse): Promise<SupportTicketResponse>;
 }
@@ -990,7 +990,12 @@ export class DatabaseStorage implements IStorage {
       console.warn('Database not available, using demo data');
       return [...demoUnits];
     }
-    return await db.select().from(units).where(eq(units.isActive, true));
+    try {
+      return await db.select().from(units).where(eq(units.isActive, true));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      return [...demoUnits];
+    }
   }
 
   async getUnit(id: string): Promise < Unit | undefined > {
@@ -998,8 +1003,13 @@ export class DatabaseStorage implements IStorage {
       console.warn('Database not available, using demo data');
       return demoUnits.find(unit => unit.id === id);
     }
-    const result = await db.select().from(units).where(eq(units.id, id)).limit(1);
-    return result[0];
+    try {
+      const result = await db.select().from(units).where(eq(units.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      return demoUnits.find(unit => unit.id === id);
+    }
   }
 
   async createUnit(unit: InsertUnit): Promise < Unit > {
@@ -1021,11 +1031,30 @@ export class DatabaseStorage implements IStorage {
       demoUnits.push(newUnit);
       return newUnit;
     }
-    const result = await db.insert(units).values({
-      ...unit,
-      isActive: unit.isActive ?? true,
-    }).returning();
-    return result[0];
+    try {
+      const result = await db.insert(units).values({
+        ...unit,
+        isActive: unit.isActive ?? true,
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode - create in memory
+      const id = crypto.randomUUID();
+      const newUnit: Unit = {
+        id,
+        name: unit.name,
+        address: unit.address || null,
+        phone: unit.phone || null,
+        email: unit.email || null,
+        managerId: unit.managerId || null,
+        isActive: unit.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoUnits.push(newUnit);
+      return newUnit;
+    }
   }
 
   async updateUnit(id: string, unit: Partial < InsertUnit > ): Promise < Unit > {
@@ -1042,15 +1071,29 @@ export class DatabaseStorage implements IStorage {
       demoUnits[index] = updatedUnit;
       return updatedUnit;
     }
-    const result = await db.update(units)
-      .set({ ...unit, updatedAt: new Date() })
-      .where(eq(units.id, id))
-      .returning();
-    
-    if (result.length === 0) {
-      throw new Error('Unit not found');
+    try {
+      const result = await db.update(units)
+        .set({ ...unit, updatedAt: new Date() })
+        .where(eq(units.id, id))
+        .returning();
+
+      if (result.length === 0) {
+        throw new Error('Unit not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode - update in memory
+      const index = demoUnits.findIndex(u => u.id === id);
+      if (index === -1) throw new Error('Unit not found');
+      const updatedUnit = {
+        ...demoUnits[index],
+        ...unit,
+        updatedAt: new Date(),
+      };
+      demoUnits[index] = updatedUnit;
+      return updatedUnit;
     }
-    return result[0];
   }
 
   async deleteUnit(id: string): Promise < void > {
@@ -1063,18 +1106,32 @@ export class DatabaseStorage implements IStorage {
       }
       return;
     }
-    await db.update(units)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(units.id, id));
+    try {
+      await db.update(units)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(units.id, id));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode - remove from memory
+      const index = demoUnits.findIndex(unit => unit.id === id);
+      if (index !== -1) {
+        demoUnits.splice(index, 1);
+      }
+    }
   }
 
   // Books
   async getBooks(): Promise < Book[] > {
     if (!db) {
-      console.warn('Database not available, using demo data');
-      return [...demoBooks];
+      console.log('Using demo books data');
+      return demoBooks;
     }
-    return await db.select().from(books).where(eq(books.isActive, true));
+    try {
+      return await db.select().from(books).where(eq(books.isActive, true));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      return demoBooks;
+    }
   }
 
   async getBook(id: string): Promise < Book | undefined > {
@@ -1082,8 +1139,13 @@ export class DatabaseStorage implements IStorage {
       console.warn('Database not available, using demo data');
       return demoBooks.find(book => book.id === id);
     }
-    const result = await db.select().from(books).where(eq(books.id, id)).limit(1);
-    return result[0];
+    try {
+      const result = await db.select().from(books).where(eq(books.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      return demoBooks.find(book => book.id === id);
+    }
   }
 
   async createBook(bookData: InsertBook): Promise < Book > {
@@ -1114,22 +1176,50 @@ export class DatabaseStorage implements IStorage {
       demoBooks.push(newBook);
       return newBook;
     }
-    // Validate that the course exists and is active
-    const courseResult = await db.select().from(courses).where(eq(courses.id, bookData.courseId)).limit(1);
-    if (courseResult.length === 0) {
-      throw new Error(`Course with ID ${bookData.courseId} not found`);
+    try {
+      // Validate that the course exists and is active
+      const courseResult = await db.select().from(courses).where(eq(courses.id, bookData.courseId)).limit(1);
+      if (courseResult.length === 0) {
+        throw new Error(`Course with ID ${bookData.courseId} not found`);
+      }
+      if (!courseResult[0].isActive) {
+        throw new Error(`Cannot create book for inactive course: ${courseResult[0].name}`);
+      }
+      const result = await db.insert(books).values({
+        ...bookData,
+        color: bookData.color || '#3b82f6',
+        displayOrder: bookData.displayOrder ?? 1,
+        totalDays: bookData.totalDays ?? 30,
+        isActive: bookData.isActive ?? true,
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode - validate course exists in demo data
+      const course = demoCourses.find(c => c.id === bookData.courseId);
+      if (!course) {
+        throw new Error(`Course with ID ${bookData.courseId} not found`);
+      }
+      if (!course.isActive) {
+        throw new Error(`Cannot create book for inactive course: ${course.name}`);
+      }
+      const id = crypto.randomUUID();
+      const newBook: Book = {
+        id,
+        courseId: bookData.courseId,
+        name: bookData.name,
+        description: bookData.description || null,
+        pdfUrl: bookData.pdfUrl || null,
+        color: bookData.color || '#3b82f6',
+        displayOrder: bookData.displayOrder ?? 1,
+        totalDays: bookData.totalDays ?? 30,
+        isActive: bookData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoBooks.push(newBook);
+      return newBook;
     }
-    if (!courseResult[0].isActive) {
-      throw new Error(`Cannot create book for inactive course: ${courseResult[0].name}`);
-    }
-    const result = await db.insert(books).values({
-      ...bookData,
-      color: bookData.color || '#3b82f6',
-      displayOrder: bookData.displayOrder ?? 1,
-      totalDays: bookData.totalDays ?? 30,
-      isActive: bookData.isActive ?? true,
-    }).returning();
-    return result[0];
   }
 
   async updateBook(id: string, bookData: Partial < InsertBook > ): Promise < Book > {
@@ -1156,25 +1246,49 @@ export class DatabaseStorage implements IStorage {
       demoBooks[index] = updatedBook;
       return updatedBook;
     }
-    // If courseId is being updated, validate that the new course exists and is active
-    if (bookData.courseId) {
-      const courseResult = await db.select().from(courses).where(eq(courses.id, bookData.courseId)).limit(1);
-      if (courseResult.length === 0) {
-        throw new Error(`Course with ID ${bookData.courseId} not found`);
+    try {
+      // If courseId is being updated, validate that the new course exists and is active
+      if (bookData.courseId) {
+        const courseResult = await db.select().from(courses).where(eq(courses.id, bookData.courseId)).limit(1);
+        if (courseResult.length === 0) {
+          throw new Error(`Course with ID ${bookData.courseId} not found`);
+        }
+        if (!courseResult[0].isActive) {
+          throw new Error(`Cannot update book to inactive course: ${courseResult[0].name}`);
+        }
       }
-      if (!courseResult[0].isActive) {
-        throw new Error(`Cannot update book to inactive course: ${courseResult[0].name}`);
+      const result = await db.update(books)
+        .set({ ...bookData, updatedAt: new Date() })
+        .where(eq(books.id, id))
+        .returning();
+
+      if (result.length === 0) {
+        throw new Error('Book not found');
       }
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const index = demoBooks.findIndex(b => b.id === id);
+      if (index === -1) throw new Error('Book not found');
+      // If courseId is being updated, validate that the new course exists and is active
+      if (bookData.courseId) {
+        const course = demoCourses.find(c => c.id === bookData.courseId);
+        if (!course) {
+          throw new Error(`Course with ID ${bookData.courseId} not found`);
+        }
+        if (!course.isActive) {
+          throw new Error(`Cannot update book to inactive course: ${course.name}`);
+        }
+      }
+      const updatedBook = {
+        ...demoBooks[index],
+        ...bookData,
+        updatedAt: new Date(),
+      };
+      demoBooks[index] = updatedBook;
+      return updatedBook;
     }
-    const result = await db.update(books)
-      .set({ ...bookData, updatedAt: new Date() })
-      .where(eq(books.id, id))
-      .returning();
-    
-    if (result.length === 0) {
-      throw new Error('Book not found');
-    }
-    return result[0];
   }
 
   async deleteBook(id: string): Promise < void > {
@@ -1192,15 +1306,29 @@ export class DatabaseStorage implements IStorage {
       }
       return;
     }
-    // Check if any classes reference this book
-    const referencingClasses = await db.select().from(classes).where(eq(classes.bookId, id));
-    if (referencingClasses.length > 0) {
-      const classNames = referencingClasses.map(cls => cls.name).join(', ');
-      throw new Error(`Cannot delete book: it is being used by the following classes: ${classNames}`);
+    try {
+      // Check if any classes reference this book
+      const referencingClasses = await db.select().from(classes).where(eq(classes.bookId, id));
+      if (referencingClasses.length > 0) {
+        const classNames = referencingClasses.map(cls => cls.name).join(', ');
+        throw new Error(`Cannot delete book: it is being used by the following classes: ${classNames}`);
+      }
+      await db.update(books)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(books.id, id));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode - check references in demo data
+      const referencingClasses = demoClasses.filter(cls => cls.bookId === id);
+      if (referencingClasses.length > 0) {
+        const classNames = referencingClasses.map(cls => cls.name).join(', ');
+        throw new Error(`Cannot delete book: it is being used by the following classes: ${classNames}`);
+      }
+      const index = demoBooks.findIndex(book => book.id === id);
+      if (index !== -1) {
+        demoBooks.splice(index, 1);
+      }
     }
-    await db.update(books)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(books.id, id));
   }
 
   // Staff
@@ -1217,15 +1345,28 @@ export class DatabaseStorage implements IStorage {
         };
       });
     }
-    const result = await db.select()
-      .from(staff)
-      .innerJoin(users, eq(staff.userId, users.id))
-      .where(eq(staff.isActive, true));
-    
-    return result.map(row => ({
-      ...row.staff,
-      user: row.users
-    }));
+    try {
+      const result = await db.select()
+        .from(staff)
+        .innerJoin(users, eq(staff.userId, users.id))
+        .where(eq(staff.isActive, true));
+
+      return result.map(row => ({
+        ...row.staff,
+        user: row.users
+      }));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode - use in memory data
+      return demoStaff.map(staff => {
+        const user = demoUsers.find(u => u.id === staff.userId);
+        if (!user) throw new Error(`User not found for staff ${staff.id}`);
+        return {
+          ...staff,
+          user
+        };
+      });
+    }
   }
 
   async getStaffMember(id: string): Promise < StaffWithUser | undefined > {
@@ -1241,18 +1382,31 @@ export class DatabaseStorage implements IStorage {
         user
       };
     }
-    const result = await db.select()
-      .from(staff)
-      .innerJoin(users, eq(staff.userId, users.id))
-      .where(eq(staff.id, id))
-      .limit(1);
-    
-    if (result.length === 0) return undefined;
-    
-    return {
-      ...result[0].staff,
-      user: result[0].users
-    };
+    try {
+      const result = await db.select()
+        .from(staff)
+        .innerJoin(users, eq(staff.userId, users.id))
+        .where(eq(staff.id, id))
+        .limit(1);
+
+      if (result.length === 0) return undefined;
+
+      return {
+        ...result[0].staff,
+        user: result[0].users
+      };
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const staff = demoStaff.find(staff => staff.id === id);
+      if (!staff) return undefined;
+      const user = demoUsers.find(u => u.id === staff.userId);
+      if (!user) return undefined;
+      return {
+        ...staff,
+        user
+      };
+    }
   }
 
   async createStaff(staffData: InsertStaff): Promise < Staff > {
@@ -1276,11 +1430,32 @@ export class DatabaseStorage implements IStorage {
       demoStaff.push(newStaff);
       return newStaff;
     }
-    const result = await db.insert(staff).values({
-      ...staffData,
-      isActive: staffData.isActive ?? true,
-    }).returning();
-    return result[0];
+    try {
+      const result = await db.insert(staff).values({
+        ...staffData,
+        isActive: staffData.isActive ?? true,
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const id = crypto.randomUUID();
+      const newStaff: Staff = {
+        id,
+        userId: staffData.userId,
+        unitId: staffData.unitId || null,
+        employeeId: staffData.employeeId || null,
+        position: staffData.position || null,
+        department: staffData.department || null,
+        salary: staffData.salary || null,
+        hireDate: staffData.hireDate || null,
+        isActive: staffData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoStaff.push(newStaff);
+      return newStaff;
+    }
   }
 
   async updateStaff(id: string, staffData: Partial < InsertStaff > ): Promise < Staff > {
@@ -1297,15 +1472,29 @@ export class DatabaseStorage implements IStorage {
       demoStaff[index] = updatedStaff;
       return updatedStaff;
     }
-    const result = await db.update(staff)
-      .set({ ...staffData, updatedAt: new Date() })
-      .where(eq(staff.id, id))
-      .returning();
-    
-    if (result.length === 0) {
-      throw new Error('Staff not found');
+    try {
+      const result = await db.update(staff)
+        .set({ ...staffData, updatedAt: new Date() })
+        .where(eq(staff.id, id))
+        .returning();
+
+      if (result.length === 0) {
+        throw new Error('Staff not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const index = demoStaff.findIndex(s => s.id === id);
+      if (index === -1) throw new Error('Staff not found');
+      const updatedStaff = {
+        ...demoStaff[index],
+        ...staffData,
+        updatedAt: new Date(),
+      };
+      demoStaff[index] = updatedStaff;
+      return updatedStaff;
     }
-    return result[0];
   }
 
   async deleteStaff(id: string): Promise < void > {
@@ -1318,9 +1507,18 @@ export class DatabaseStorage implements IStorage {
       }
       return;
     }
-    await db.update(staff)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(staff.id, id));
+    try {
+      await db.update(staff)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(staff.id, id));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const index = demoStaff.findIndex(staff => staff.id === id);
+      if (index !== -1) {
+        demoStaff.splice(index, 1);
+      }
+    }
   }
 
   // Students
@@ -1337,15 +1535,28 @@ export class DatabaseStorage implements IStorage {
         };
       });
     }
-    const result = await db.select()
-      .from(students)
-      .innerJoin(users, eq(students.userId, users.id))
-      .where(eq(users.isActive, true));
-    
-    return result.map(row => ({
-      ...row.students,
-      user: row.users
-    }));
+    try {
+      const result = await db.select()
+        .from(students)
+        .innerJoin(users, eq(students.userId, users.id))
+        .where(eq(users.isActive, true));
+
+      return result.map(row => ({
+        ...row.students,
+        user: row.users
+      }));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      return demoStudents.map(student => {
+        const user = demoUsers.find(u => u.id === student.userId);
+        if (!user) throw new Error(`User not found for student ${student.id}`);
+        return {
+          ...student,
+          user
+        };
+      });
+    }
   }
 
   async getStudent(id: string): Promise < StudentWithUser | undefined > {
@@ -1361,18 +1572,31 @@ export class DatabaseStorage implements IStorage {
         user
       };
     }
-    const result = await db.select()
-      .from(students)
-      .innerJoin(users, eq(students.userId, users.id))
-      .where(eq(students.id, id))
-      .limit(1);
-    
-    if (result.length === 0) return undefined;
-    
-    return {
-      ...result[0].students,
-      user: result[0].users
-    };
+    try {
+      const result = await db.select()
+        .from(students)
+        .innerJoin(users, eq(students.userId, users.id))
+        .where(eq(students.id, id))
+        .limit(1);
+
+      if (result.length === 0) return undefined;
+
+      return {
+        ...result[0].students,
+        user: result[0].users
+      };
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const student = demoStudents.find(student => student.id === id);
+      if (!student) return undefined;
+      const user = demoUsers.find(u => u.id === student.userId);
+      if (!user) return undefined;
+      return {
+        ...student,
+        user
+      };
+    }
   }
 
   async createStudent(studentData: InsertStudent): Promise < Student > {
@@ -1395,11 +1619,31 @@ export class DatabaseStorage implements IStorage {
       demoStudents.push(newStudent);
       return newStudent;
     }
-    const result = await db.insert(students).values({
-      ...studentData,
-      status: studentData.status || 'active',
-    }).returning();
-    return result[0];
+    try {
+      const result = await db.insert(students).values({
+        ...studentData,
+        status: studentData.status || 'active',
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const id = crypto.randomUUID();
+      const newStudent: Student = {
+        id,
+        userId: studentData.userId,
+        studentId: studentData.studentId || null,
+        unitId: studentData.unitId || null,
+        enrollmentDate: studentData.enrollmentDate || null,
+        status: studentData.status || 'active',
+        emergencyContact: studentData.emergencyContact || null,
+        notes: studentData.notes || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoStudents.push(newStudent);
+      return newStudent;
+    }
   }
 
   async updateStudent(id: string, studentData: Partial < InsertStudent > ): Promise < Student > {
@@ -1416,15 +1660,29 @@ export class DatabaseStorage implements IStorage {
       demoStudents[index] = updatedStudent;
       return updatedStudent;
     }
-    const result = await db.update(students)
-      .set({ ...studentData, updatedAt: new Date() })
-      .where(eq(students.id, id))
-      .returning();
-    
-    if (result.length === 0) {
-      throw new Error('Student not found');
+    try {
+      const result = await db.update(students)
+        .set({ ...studentData, updatedAt: new Date() })
+        .where(eq(students.id, id))
+        .returning();
+
+      if (result.length === 0) {
+        throw new Error('Student not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const index = demoStudents.findIndex(s => s.id === id);
+      if (index === -1) throw new Error('Student not found');
+      const updatedStudent = {
+        ...demoStudents[index],
+        ...studentData,
+        updatedAt: new Date(),
+      };
+      demoStudents[index] = updatedStudent;
+      return updatedStudent;
     }
-    return result[0];
   }
 
   async deleteStudent(id: string): Promise < void > {
@@ -1437,22 +1695,36 @@ export class DatabaseStorage implements IStorage {
       }
       return;
     }
-    await db.update(users)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(users.id, 
-        db.select({ userId: students.userId })
-          .from(students)
-          .where(eq(students.id, id))
-      ));
+    try {
+      await db.update(users)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(users.id,
+          db.select({ userId: students.userId })
+            .from(students)
+            .where(eq(students.id, id))
+        ));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const index = demoStudents.findIndex(student => student.id === id);
+      if (index !== -1) {
+        demoStudents.splice(index, 1);
+      }
+    }
   }
 
   // Courses
-  async getCourses(): Promise < Course[] > {
+  async getCourses(): Promise<Course[]> {
     if (!db) {
-      console.warn('Database not available, using demo data');
-      return [...demoCourses];
+      console.log('Using demo courses data');
+      return demoCourses;
     }
-    return await db.select().from(courses).where(eq(courses.isActive, true));
+    try {
+      return await db.select().from(courses).where(eq(courses.isActive, true));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      return demoCourses;
+    }
   }
 
   async getCourse(id: string): Promise < Course | undefined > {
@@ -1460,8 +1732,13 @@ export class DatabaseStorage implements IStorage {
       console.warn('Database not available, using demo data');
       return demoCourses.find(course => course.id === id);
     }
-    const result = await db.select().from(courses).where(eq(courses.id, id)).limit(1);
-    return result[0];
+    try {
+      const result = await db.select().from(courses).where(eq(courses.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      return demoCourses.find(course => course.id === id);
+    }
   }
 
   async createCourse(courseData: InsertCourse): Promise < Course > {
@@ -1484,11 +1761,31 @@ export class DatabaseStorage implements IStorage {
       demoCourses.push(newCourse);
       return newCourse;
     }
-    const result = await db.insert(courses).values({
-      ...courseData,
-      isActive: courseData.isActive ?? true,
-    }).returning();
-    return result[0];
+    try {
+      const result = await db.insert(courses).values({
+        ...courseData,
+        isActive: courseData.isActive ?? true,
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const id = crypto.randomUUID();
+      const newCourse: Course = {
+        id,
+        name: courseData.name,
+        description: courseData.description || null,
+        language: courseData.language,
+        level: courseData.level,
+        duration: courseData.duration || null,
+        price: courseData.price || null,
+        isActive: courseData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoCourses.push(newCourse);
+      return newCourse;
+    }
   }
 
   async updateCourse(id: string, courseData: Partial < InsertCourse > ): Promise < Course > {
@@ -1505,15 +1802,29 @@ export class DatabaseStorage implements IStorage {
       demoCourses[index] = updatedCourse;
       return updatedCourse;
     }
-    const result = await db.update(courses)
-      .set({ ...courseData, updatedAt: new Date() })
-      .where(eq(courses.id, id))
-      .returning();
-    
-    if (result.length === 0) {
-      throw new Error('Course not found');
+    try {
+      const result = await db.update(courses)
+        .set({ ...courseData, updatedAt: new Date() })
+        .where(eq(courses.id, id))
+        .returning();
+
+      if (result.length === 0) {
+        throw new Error('Course not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const index = demoCourses.findIndex(c => c.id === id);
+      if (index === -1) throw new Error('Course not found');
+      const updatedCourse = {
+        ...demoCourses[index],
+        ...courseData,
+        updatedAt: new Date(),
+      };
+      demoCourses[index] = updatedCourse;
+      return updatedCourse;
     }
-    return result[0];
   }
 
   async deleteCourse(id: string): Promise < void > {
@@ -1531,28 +1842,105 @@ export class DatabaseStorage implements IStorage {
       }
       return;
     }
-    // Check if any books reference this course
-    const referencingBooks = await db.select().from(books).where(eq(books.courseId, id));
-    if (referencingBooks.length > 0) {
-      const bookNames = referencingBooks.map(book => book.name).join(', ');
-      throw new Error(`Cannot delete course: it has the following books associated with it: ${bookNames}`);
+    try {
+      // Check if any books reference this course
+      const referencingBooks = await db.select().from(books).where(eq(books.courseId, id));
+      if (referencingBooks.length > 0) {
+        const bookNames = referencingBooks.map(book => book.name).join(', ');
+        throw new Error(`Cannot delete course: it has the following books associated with it: ${bookNames}`);
+      }
+      await db.update(courses)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(courses.id, id));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode - check references in demo data
+      const referencingBooks = demoBooks.filter(book => book.courseId === id);
+      if (referencingBooks.length > 0) {
+        const bookNames = referencingBooks.map(book => book.name).join(', ');
+        throw new Error(`Cannot delete course: it has the following books associated with it: ${bookNames}`);
+      }
+      const index = demoCourses.findIndex(course => course.id === id);
+      if (index !== -1) {
+        demoCourses.splice(index, 1);
+      }
     }
-    await db.update(courses)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(courses.id, id));
   }
 
   // Classes
   async getClasses(): Promise < ClassWithDetails[] > {
-    return demoClasses.map(cls => {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      return demoClasses.map(cls => {
+        const book = demoBooks.find(b => b.id === cls.bookId);
+        const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
+        const teacher = demoUsers.find(u => u.id === cls.teacherId);
+        const unit = demoUnits.find(u => u.id === cls.unitId);
+
+        if (!book || !course || !teacher || !unit) {
+          throw new Error(`Missing required data for class ${cls.id}`);
+        }
+
+        return {
+          ...cls,
+          book: { ...book, course },
+          teacher,
+          unit,
+          enrollments: [],
+        };
+      });
+    }
+    try {
+      const result = await db.select()
+        .from(classes)
+        .innerJoin(books, eq(classes.bookId, books.id))
+        .innerJoin(courses, eq(books.courseId, courses.id))
+        .innerJoin(users, eq(classes.teacherId, users.id))
+        .innerJoin(units, eq(classes.unitId, units.id))
+        .where(eq(classes.isActive, true));
+
+      return result.map(row => ({
+        ...row.classes,
+        book: { ...row.books, course: row.courses },
+        teacher: row.users,
+        unit: row.units,
+        enrollments: [],
+      }));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      return demoClasses.map(cls => {
+        const book = demoBooks.find(b => b.id === cls.bookId);
+        const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
+        const teacher = demoUsers.find(u => u.id === cls.teacherId);
+        const unit = demoUnits.find(u => u.id === cls.unitId);
+
+        if (!book || !course || !teacher || !unit) {
+          throw new Error(`Missing required data for class ${cls.id}`);
+        }
+
+        return {
+          ...cls,
+          book: { ...book, course },
+          teacher,
+          unit,
+          enrollments: [],
+        };
+      });
+    }
+  }
+
+  async getClass(id: string): Promise < ClassWithDetails | undefined > {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      const cls = demoClasses.find(cls => cls.id === id);
+      if (!cls) return undefined;
+
       const book = demoBooks.find(b => b.id === cls.bookId);
       const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
       const teacher = demoUsers.find(u => u.id === cls.teacherId);
       const unit = demoUnits.find(u => u.id === cls.unitId);
 
-      if (!book || !course || !teacher || !unit) {
-        throw new Error(`Missing required data for class ${cls.id}`);
-      }
+      if (!book || !course || !teacher || !unit) return undefined;
 
       return {
         ...cls,
@@ -1561,105 +1949,262 @@ export class DatabaseStorage implements IStorage {
         unit,
         enrollments: [],
       };
-    });
-  }
+    }
+    try {
+      const result = await db.select()
+        .from(classes)
+        .innerJoin(books, eq(classes.bookId, books.id))
+        .innerJoin(courses, eq(books.courseId, courses.id))
+        .innerJoin(users, eq(classes.teacherId, users.id))
+        .innerJoin(units, eq(classes.unitId, units.id))
+        .where(eq(classes.id, id))
+        .limit(1);
 
-  async getClass(id: string): Promise < ClassWithDetails | undefined > {
-    const cls = demoClasses.find(cls => cls.id === id);
-    if (!cls) return undefined;
+      if (result.length === 0) return undefined;
 
-    const book = demoBooks.find(b => b.id === cls.bookId);
-    const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
-    const teacher = demoUsers.find(u => u.id === cls.teacherId);
-    const unit = demoUnits.find(u => u.id === cls.unitId);
+      return {
+        ...result[0].classes,
+        book: { ...result[0].books, course: result[0].courses },
+        teacher: result[0].users,
+        unit: result[0].units,
+        enrollments: [],
+      };
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const cls = demoClasses.find(cls => cls.id === id);
+      if (!cls) return undefined;
 
-    if (!book || !course || !teacher || !unit) return undefined;
-
-    return {
-      ...cls,
-      book: { ...book, course },
-      teacher,
-      unit,
-      enrollments: [],
-    };
-  }
-
-  async getClassesByTeacher(teacherId: string): Promise < ClassWithDetails[] > {
-    const classes = demoClasses.filter(cls => cls.teacherId === teacherId && cls.isActive);
-
-    return classes.map(cls => {
       const book = demoBooks.find(b => b.id === cls.bookId);
-      const unit = demoUnits.find(u => u.id === cls.unitId);
       const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
       const teacher = demoUsers.find(u => u.id === cls.teacherId);
+      const unit = demoUnits.find(u => u.id === cls.unitId);
+
+      if (!book || !course || !teacher || !unit) return undefined;
 
       return {
         ...cls,
-        book: book ? { ...book, course: course || demoCourses[0] } : { ...demoBooks[0], course: demoCourses[0] },
-        unit: unit || demoUnits[0],
-        teacher: teacher,
-        enrollments: []
+        book: { ...book, course },
+        teacher,
+        unit,
+        enrollments: [],
       };
-    });
+    }
+  }
+
+  async getClassesByTeacher(teacherId: string): Promise < ClassWithDetails[] > {
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      const classes = demoClasses.filter(cls => cls.teacherId === teacherId && cls.isActive);
+
+      return classes.map(cls => {
+        const book = demoBooks.find(b => b.id === cls.bookId);
+        const unit = demoUnits.find(u => u.id === cls.unitId);
+        const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
+        const teacher = demoUsers.find(u => u.id === cls.teacherId);
+
+        return {
+          ...cls,
+          book: book ? { ...book, course: course || demoCourses[0] } : { ...demoBooks[0], course: demoCourses[0] },
+          unit: unit || demoUnits[0],
+          teacher: teacher,
+          enrollments: []
+        };
+      });
+    }
+    try {
+      const result = await db.select()
+        .from(classes)
+        .innerJoin(books, eq(classes.bookId, books.id))
+        .innerJoin(courses, eq(books.courseId, courses.id))
+        .innerJoin(users, eq(classes.teacherId, users.id))
+        .innerJoin(units, eq(classes.unitId, units.id))
+        .where(and(eq(classes.teacherId, teacherId), eq(classes.isActive, true)));
+
+      return result.map(row => ({
+        ...row.classes,
+        book: { ...row.books, course: row.courses },
+        teacher: row.users,
+        unit: row.units,
+        enrollments: []
+      }));
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const classes = demoClasses.filter(cls => cls.teacherId === teacherId && cls.isActive);
+
+      return classes.map(cls => {
+        const book = demoBooks.find(b => b.id === cls.bookId);
+        const unit = demoUnits.find(u => u.id === cls.unitId);
+        const course = book ? demoCourses.find(c => c.id === book.courseId) : undefined;
+        const teacher = demoUsers.find(u => u.id === cls.teacherId);
+
+        return {
+          ...cls,
+          book: book ? { ...book, course: course || demoCourses[0] } : { ...demoBooks[0], course: demoCourses[0] },
+          unit: unit || demoUnits[0],
+          teacher: teacher,
+          enrollments: []
+        };
+      });
+    }
   }
 
   async createClass(classData: InsertClass): Promise < Class > {
-    // Validate that the book exists and is active
-    const book = demoBooks.find(b => b.id === classData.bookId);
-    if (!book) {
-      throw new Error(`Book with ID ${classData.bookId} not found`);
-    }
-    if (!book.isActive) {
-      throw new Error(`Cannot create class for inactive course: ${book.name}`);
-    }
+    if (!db) {
+      console.warn('Database not available, using demo data');
+      // Validate that the book exists and is active
+      const book = demoBooks.find(b => b.id === classData.bookId);
+      if (!book) {
+        throw new Error(`Book with ID ${classData.bookId} not found`);
+      }
+      if (!book.isActive) {
+        throw new Error(`Cannot create class for inactive course: ${book.name}`);
+      }
 
-    // Validate that the teacher exists and has teacher role
-    const teacher = demoUsers.find(u => u.id === classData.teacherId);
-    if (!teacher) {
-      throw new Error(`Teacher with ID ${classData.teacherId} not found`);
-    }
-    if (teacher.role !== 'teacher') {
-      throw new Error(`User ${teacher.firstName} ${teacher.lastName} is not a teacher (current role: ${teacher.role})`);
-    }
-    if (!teacher.isActive) {
-      throw new Error(`Cannot assign inactive teacher ${teacher.firstName} ${teacher.lastName} to class`);
-    }
+      // Validate that the teacher exists and has teacher role
+      const teacher = demoUsers.find(u => u.id === classData.teacherId);
+      if (!teacher) {
+        throw new Error(`Teacher with ID ${classData.teacherId} not found`);
+      }
+      if (teacher.role !== 'teacher') {
+        throw new Error(`User ${teacher.firstName} ${teacher.lastName} is not a teacher (current role: ${teacher.role})`);
+      }
+      if (!teacher.isActive) {
+        throw new Error(`Cannot assign inactive teacher ${teacher.firstName} ${teacher.lastName} to class`);
+      }
 
-    // Check for time conflicts with teacher's existing classes
-    const timeConflict = this.checkTeacherTimeConflict(
-      classData.teacherId,
-      classData.dayOfWeek || null,
-      classData.startTime || null,
-      classData.endTime || null
-    );
+      // Check for time conflicts with teacher's existing classes
+      const timeConflict = this.checkTeacherTimeConflict(
+        classData.teacherId,
+        classData.dayOfWeek || null,
+        classData.startTime || null,
+        classData.endTime || null
+      );
 
-    if (timeConflict.hasConflict && timeConflict.conflictingClass) {
-      throw new Error(`Teacher ${teacher.firstName} ${teacher.lastName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
+      if (timeConflict.hasConflict && timeConflict.conflictingClass) {
+        throw new Error(`Teacher ${teacher.firstName} ${teacher.lastName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
+      }
+
+      const id = crypto.randomUUID();
+      const newClass: Class = {
+        id,
+        bookId: classData.bookId,
+        teacherId: classData.teacherId,
+        unitId: classData.unitId,
+        name: classData.name,
+        schedule: classData.schedule || null,
+        dayOfWeek: classData.dayOfWeek || null,
+        startTime: classData.startTime || null,
+        endTime: classData.endTime || null,
+        room: classData.room || null,
+        maxStudents: classData.maxStudents ?? 15,
+        currentStudents: classData.currentStudents ?? 0,
+        startDate: classData.startDate || null,
+        endDate: classData.endDate || null,
+        currentDay: classData.currentDay ?? 1,
+        isActive: classData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoClasses.push(newClass);
+      return newClass;
     }
+    try {
+      // Validate that the book exists and is active
+      const bookResult = await db.select().from(books).where(eq(books.id, classData.bookId)).limit(1);
+      if (bookResult.length === 0) {
+        throw new Error(`Book with ID ${classData.bookId} not found`);
+      }
+      if (!bookResult[0].isActive) {
+        throw new Error(`Cannot create class for inactive book: ${bookResult[0].name}`);
+      }
 
-    const id = crypto.randomUUID();
-    const newClass: Class = {
-      id,
-      bookId: classData.bookId,
-      teacherId: classData.teacherId,
-      unitId: classData.unitId,
-      name: classData.name,
-      schedule: classData.schedule || null,
-      dayOfWeek: classData.dayOfWeek || null,
-      startTime: classData.startTime || null,
-      endTime: classData.endTime || null,
-      room: classData.room || null,
-      maxStudents: classData.maxStudents ?? 15,
-      currentStudents: classData.currentStudents ?? 0,
-      startDate: classData.startDate || null,
-      endDate: classData.endDate || null,
-      currentDay: classData.currentDay ?? 1,
-      isActive: classData.isActive ?? true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    demoClasses.push(newClass);
-    return newClass;
+      // Validate that the teacher exists and has teacher role
+      const teacherResult = await db.select().from(users).where(eq(users.id, classData.teacherId)).limit(1);
+      if (teacherResult.length === 0) {
+        throw new Error(`Teacher with ID ${classData.teacherId} not found`);
+      }
+      if (teacherResult[0].role !== 'teacher') {
+        throw new Error(`User ${teacherResult[0].firstName} ${teacherResult[0].lastName} is not a teacher (current role: ${teacherResult[0].role})`);
+      }
+      if (!teacherResult[0].isActive) {
+        throw new Error(`Cannot assign inactive teacher ${teacherResult[0].firstName} ${teacherResult[0].lastName} to class`);
+      }
+
+      // Check for time conflicts with teacher's existing classes
+      const timeConflict = this.checkTeacherTimeConflict(
+        classData.teacherId,
+        classData.dayOfWeek || null,
+        classData.startTime || null,
+        classData.endTime || null
+      );
+
+      if (timeConflict.hasConflict && timeConflict.conflictingClass) {
+        throw new Error(`Teacher ${teacherResult[0].firstName} ${teacherResult[0].lastName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
+      }
+
+      const result = await db.insert(classes).values({
+        ...classData,
+        maxStudents: classData.maxStudents ?? 15,
+        currentStudents: classData.currentStudents ?? 0,
+        currentDay: classData.currentDay ?? 1,
+        isActive: classData.isActive ?? true,
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.warn('Database error, falling back to demo data:', error.message);
+      // Demo mode
+      const book = demoBooks.find(b => b.id === classData.bookId);
+      if (!book) {
+        throw new Error(`Book with ID ${classData.bookId} not found`);
+      }
+      if (!book.isActive) {
+        throw new Error(`Cannot create class for inactive course: ${book.name}`);
+      }
+      const teacher = demoUsers.find(u => u.id === classData.teacherId);
+      if (!teacher) {
+        throw new Error(`Teacher with ID ${classData.teacherId} not found`);
+      }
+      if (teacher.role !== 'teacher') {
+        throw new Error(`User ${teacher.firstName} ${teacher.lastName} is not a teacher (current role: ${teacher.role})`);
+      }
+      if (!teacher.isActive) {
+        throw new Error(`Cannot assign inactive teacher ${teacher.firstName} ${teacher.lastName} to class`);
+      }
+      const timeConflict = this.checkTeacherTimeConflict(
+        classData.teacherId,
+        classData.dayOfWeek || null,
+        classData.startTime || null,
+        classData.endTime || null
+      );
+      if (timeConflict.hasConflict && timeConflict.conflictingClass) {
+        throw new Error(`Teacher ${teacher.firstName} ${teacher.lastName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
+      }
+      const id = crypto.randomUUID();
+      const newClass: Class = {
+        id,
+        bookId: classData.bookId,
+        teacherId: classData.teacherId,
+        unitId: classData.unitId,
+        name: classData.name,
+        schedule: classData.schedule || null,
+        dayOfWeek: classData.dayOfWeek || null,
+        startTime: classData.startTime || null,
+        endTime: classData.endTime || null,
+        room: classData.room || null,
+        maxStudents: classData.maxStudents ?? 15,
+        currentStudents: classData.currentStudents ?? 0,
+        startDate: classData.startDate || null,
+        endDate: classData.endDate || null,
+        currentDay: classData.currentDay ?? 1,
+        isActive: classData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoClasses.push(newClass);
+      return newClass;
+    }
   }
 
   async updateClass(id: string, classData: Partial < InsertClass > ): Promise < Class > {
@@ -1905,7 +2450,7 @@ export class DatabaseStorage implements IStorage {
     if (index === -1) throw new Error('Permission category not found');
 
     const existingCategory = demoPermissionCategories[index];
-    
+
     // Prevent editing system categories name
     if (existingCategory.isSystemCategory && categoryData.name) {
       throw new Error('Cannot modify name of system categories');
@@ -2189,10 +2734,10 @@ export class DatabaseStorage implements IStorage {
 
     // Get role permissions for this role ID
     const rolePermissions = demoRolePermissions.filter(rp => rp.roleId === role.id);
-    
+
     // Join with permissions data to return complete permission information
     const permissionsWithData: (RolePermission & { permission: Permission })[] = [];
-    
+
     for (const rp of rolePermissions) {
       const permission = demoPermissions.find(p => p.id === rp.permissionId && p.isActive);
       if (permission) {
@@ -2282,7 +2827,7 @@ export class DatabaseStorage implements IStorage {
         { id: '3', email: 'secretary@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'secretary' },
         { id: '4', email: 'student@demo.com', firstName: 'Ivan', lastName: 'Silva', role: 'student' },
       ];
-      
+
       const user = loginDemoUsers.find(u => u.id === userId);
       if (!user) {
         return undefined;
@@ -2290,7 +2835,7 @@ export class DatabaseStorage implements IStorage {
 
       // Find the role object by name
       const role = demoRoles.find(r => r.name === user.role && r.isActive);
-      
+
       if (!role) {
         console.warn(`Role '${user.role}' not found or inactive for user ${userId}`);
         return {
@@ -2299,12 +2844,12 @@ export class DatabaseStorage implements IStorage {
           userPermissions: [],
         };
       }
-      
+
       // Get effective permissions from role
       const rolePermissions = demoRolePermissions.filter(rp => rp.roleId === role.id);
-      
+
       const userPermissions: (UserPermission & { permission: Permission })[] = [];
-      
+
       for (const rp of rolePermissions) {
         const permission = demoPermissions.find(p => p.id === rp.permissionId && p.isActive);
         if (permission) {
@@ -2398,7 +2943,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      demoUserPermissions.push(newUserPermission);
+      demoUserPermissions.push( newUserPermission);
     }
   }
 
@@ -2589,4 +3134,3 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
-
