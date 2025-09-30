@@ -1095,7 +1095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newTicket = await storage.createSupportTicket({
         ...ticketData,
         userId: currentUserId,
-      });
+      } as any);
       
       // TODO: Send email notification to support team
       // This would be implemented server-side using environment variables:
@@ -1165,7 +1165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ticketId,
         userId: currentUserId,
         isFromSupport: userRole === 'admin',
-      });
+      } as any);
       
       res.status(201).json(newResponse);
     } catch (error: any) {

@@ -3,7 +3,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import cors from "cors";
 import { registerRoutes } from "./routes.js";
-import { setupVite, serveStatic } from "./vite.js";
 
 const app = express();
 
@@ -11,9 +10,9 @@ const app = express();
 const allowedOrigins = [
   'https://erp.vision.dev.br',
   'https://erpapi.vision.dev.br',
+  'http://localhost:5051',
   'http://localhost:5000',
   'http://localhost:5001',
-  'http://localhost:5051',
   'http://localhost:3000',
   process.env.FRONTEND_URL,
   process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null,
@@ -21,7 +20,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Permitir requisições sem origin (mobile apps, postman, etc)
     if (!origin) return callback(null, true);
     
@@ -105,15 +104,8 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Setup frontend serving
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5052");
+  const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5000");
   server.listen(port, "0.0.0.0", () => {
-    log(`Backend serving on port ${port}`);
+    log(`Backend API serving on port ${port}`);
   });
 })();
