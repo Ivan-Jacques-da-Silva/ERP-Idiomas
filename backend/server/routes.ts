@@ -156,7 +156,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Logout endpoint (with JWT, logout is handled client-side)
+  // Support both GET and POST for compatibility
   app.post('/api/auth/logout', (req, res) => {
+    res.json({ message: "Logout realizado com sucesso" });
+  });
+  
+  app.get('/api/auth/logout', (req, res) => {
     res.json({ message: "Logout realizado com sucesso" });
   });
 

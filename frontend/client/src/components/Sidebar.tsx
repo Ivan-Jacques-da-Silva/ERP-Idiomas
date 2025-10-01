@@ -2,6 +2,8 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
 
 interface SidebarProps {
   expanded: boolean;
@@ -35,12 +37,12 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
     if (permissionsLoading) {
       return false;
     }
-    
+
     // If role permissions haven't loaded yet or are malformed, deny access
     if (!rolePermissions || !Array.isArray((rolePermissions as any)?.permissions)) {
       return false;
     }
-    
+
     // Check if user's role has the specific permission
     return (rolePermissions as any).permissions.some((permission: any) => 
       permission.name === permissionName
@@ -118,6 +120,41 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       permission: "access_support"
     }
   ];
+
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      // Try to call logout endpoint, but don't fail if it errors
+      try {
+        await apiRequest("/api/auth/logout", {
+          method: "POST",
+        });
+      } catch (apiError) {
+        console.warn('Logout API call failed, continuing with local logout:', apiError);
+      }
+
+      // Always clear local storage regardless of API call result
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+
+      // Redirect to landing page
+      window.location.href = '/landing';
+    } catch (error) {
+      console.error('Logout error:', error);
+
+      // Even if there's an error, clear storage and redirect
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      window.location.href = '/landing';
+
+      toast({
+        title: "Erro no logout",
+        description: "Erro ao fazer logout, mas você foi desconectado localmente",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <aside 
@@ -212,6 +249,47 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
         </div>
       </nav>
 
+      {/* User Profile & Logout */}
+      {user && (
+        <div className={`${expanded ? 'p-4' : 'p-2'} border-t border-white/20 mt-auto`}>
+          <div className="flex items-center justify-between space-x-3">
+            <div className="flex items-center space-x-3 overflow-hidden">
+              <Avatar>
+                <AvatarImage src={user.avatar_url || ''} alt={user.name} />
+                <AvatarFallback>
+                  {user.name?.split(' ').map(n => n[0]).join('') || '?'}
+                </AvatarFallback>
+              </Avatar>
+              {expanded && (
+                <div className="overflow-hidden">
+                  <p className="text-sm font-semibold text-white truncate" title={user.name}>{user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate" title={user.email}>{user.email}</p>
+                </div>
+              )}
+            </div>
+            {expanded && (
+              <button
+                onClick={handleLogout}
+                className="ml-auto p-2 rounded-full text-muted-foreground hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="Logout"
+                title="Sair do sistema"
+              >
+                <i className="fas fa-sign-out-alt text-lg"></i>
+              </button>
+            )}
+             {!expanded && (
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-full text-muted-foreground hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="Logout"
+                title="Sair do sistema"
+              >
+                <i className="fas fa-sign-out-alt text-lg"></i>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
