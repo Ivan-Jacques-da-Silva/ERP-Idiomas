@@ -5,6 +5,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import jwt from "jsonwebtoken";
 import { storage } from "./storage.js";
 import { 
   insertUnitSchema, 
@@ -29,27 +30,40 @@ const updateRolePermissionsSchema = z.object({
   permissionIds: z.array(z.string())
 });
 
-// Simple demo users for login
+// Simple demo users for login (passwords match frontend)
 const demoUsers = [
-  { id: '1', email: 'admin@demo.com', password: 'admin123', firstName: 'Ivan', lastName: 'Silva', role: 'admin' },
-  { id: '2', email: 'teacher@demo.com', password: 'teacher123', firstName: 'Ivan', lastName: 'Silva', role: 'teacher' },
-  { id: '3', email: 'secretary@demo.com', password: 'secretary123', firstName: 'Ivan', lastName: 'Silva', role: 'secretary' },
-  { id: '4', email: 'student@demo.com', password: 'student123', firstName: 'Ivan', lastName: 'Silva', role: 'student' },
+  { id: '1', email: 'admin@demo.com', password: 'demo123', firstName: 'Admin', lastName: 'Sistema', role: 'admin' },
+  { id: '2', email: 'teacher@demo.com', password: 'demo123', firstName: 'Professor', lastName: 'Demo', role: 'teacher' },
+  { id: '3', email: 'secretary@demo.com', password: 'demo123', firstName: 'Secretária', lastName: 'Demo', role: 'secretary' },
+  { id: '4', email: 'student@demo.com', password: 'demo123', firstName: 'Aluno', lastName: 'Demo', role: 'student' },
 ];
 
-// Simple middleware to check if user is logged in
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || 'demo-secret-change-in-production';
+
+// JWT middleware to check if user is logged in
 const isAuthenticated = (req: any, res: any, next: any) => {
-  if (req.session?.user) {
-    return next();
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ message: "Token não fornecido" });
   }
-  return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    req.user = decoded;
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token inválido" });
+  }
 };
 
 
 
-// Middleware para permitir apenas admin (novo sistema simplificado)
+// Middleware para permitir apenas admin (sistema JWT)
 const requireAdminOnly = (req: any, res: any, next: any) => {
-  if (req.session?.user?.role === 'admin') {
+  if (req.user?.role === 'admin') {
     return next();
   }
   return res.status(403).json({ message: "Forbidden - Admin role required" });
@@ -57,7 +71,7 @@ const requireAdminOnly = (req: any, res: any, next: any) => {
 
 // Middleware to check if user has admin or secretary role
 const requireAdminOrSecretary = (req: any, res: any, next: any) => {
-  if (req.session?.user?.role === 'admin' || req.session?.user?.role === 'secretary') {
+  if (req.user?.role === 'admin' || req.user?.role === 'secretary') {
     return next();
   }
   return res.status(403).json({ message: "Forbidden - Admin or Secretary role required" });
@@ -91,18 +105,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
   app.use('/uploads', express.static('uploads'));
 
-  // Demo login endpoint
+  // Demo login endpoint with JWT
   app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
+    
+    console.log('🔑 Tentativa de login:', { email, password: '***' });
     
     const user = demoUsers.find(u => u.email === email && u.password === password);
     
     if (!user) {
+      console.log('❌ Credenciais inválidas para:', email);
       return res.status(401).json({ message: "Credenciais inválidas" });
     }
 
-    // Store user in session
-    (req.session as any).user = {
+    // Create JWT token
+    const userPayload = {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -110,18 +127,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       role: user.role
     };
 
-    res.json({ user: (req.session as any).user });
+    const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
+    
+    console.log('✅ Login bem-sucedido para:', email);
+    
+    res.json({ 
+      user: userPayload,
+      token,
+      message: "Login realizado com sucesso"
+    });
   });
 
   // Get current user
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    res.json(req.session.user);
+    res.json(req.user);
   });
 
   // Get effective permissions for current user based on their role
   app.get('/api/auth/effective-permissions', isAuthenticated, async (req: any, res) => {
     try {
-      const rolePermissions = await storage.getRolePermissionsByName(req.session.user.role);
+      const rolePermissions = await storage.getRolePermissionsByName(req.user.role);
       // Return permissions in the format expected by the frontend
       const permissions = rolePermissions.map(rp => rp.permission);
       res.json({ permissions: permissions || [] });
@@ -131,11 +156,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Logout endpoint
+  // Logout endpoint (with JWT, logout is handled client-side)
   app.post('/api/auth/logout', (req, res) => {
-    req.session.destroy(() => {
-      res.json({ message: "Logged out" });
-    });
+    res.json({ message: "Logout realizado com sucesso" });
   });
 
   // Dashboard stats
@@ -1005,9 +1028,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:id/settings", isAuthenticated, async (req: any, res) => {
     try {
       // Users can access their own settings, admin can access anyone's
-      const currentUserId = req.session.user.id;
+      const currentUserId = req.user.id;
       const requestedUserId = req.params.id;
-      const userRole = req.session.user.role;
+      const userRole = req.user.role;
       
       if (currentUserId !== requestedUserId && userRole !== 'admin') {
         return res.status(403).json({ message: "Forbidden - Can only access your own settings" });
@@ -1024,9 +1047,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/users/:id/settings", isAuthenticated, async (req: any, res) => {
     try {
       // Users can update their own settings, admin can update anyone's
-      const currentUserId = req.session.user.id;
+      const currentUserId = req.user.id;
       const requestedUserId = req.params.id;
-      const userRole = req.session.user.role;
+      const userRole = req.user.role;
       
       if (currentUserId !== requestedUserId && userRole !== 'admin') {
         return res.status(403).json({ message: "Forbidden - Can only update your own settings" });
@@ -1047,8 +1070,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Support Tickets routes
   app.get("/api/support/tickets", isAuthenticated, async (req: any, res) => {
     try {
-      const currentUserId = req.session.user.id;
-      const userRole = req.session.user.role;
+      const currentUserId = req.user.id;
+      const userRole = req.user.role;
       
       // Admin can see all tickets, others can see only their own
       let tickets;
@@ -1067,8 +1090,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/support/tickets/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const currentUserId = req.session.user.id;
-      const userRole = req.session.user.role;
+      const currentUserId = req.user.id;
+      const userRole = req.user.role;
       
       const ticket = await storage.getSupportTicket(req.params.id);
       if (!ticket) {
@@ -1089,7 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/support/tickets", isAuthenticated, async (req: any, res) => {
     try {
-      const currentUserId = req.session.user.id;
+      const currentUserId = req.user.id;
       const ticketData = insertSupportTicketSchema.parse(req.body);
       
       const newTicket = await storage.createSupportTicket({
@@ -1120,8 +1143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/support/tickets/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const currentUserId = req.session.user.id;
-      const userRole = req.session.user.role;
+      const currentUserId = req.user.id;
+      const userRole = req.user.role;
       
       // Only admin can update ticket status and assignment
       if (userRole !== 'admin') {
@@ -1145,8 +1168,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/support/tickets/:ticketId/responses", isAuthenticated, async (req: any, res) => {
     try {
-      const currentUserId = req.session.user.id;
-      const userRole = req.session.user.role;
+      const currentUserId = req.user.id;
+      const userRole = req.user.role;
       const ticketId = req.params.ticketId;
       
       // Check if ticket exists and user has access

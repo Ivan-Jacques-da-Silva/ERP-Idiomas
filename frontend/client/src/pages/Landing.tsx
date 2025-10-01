@@ -5,18 +5,19 @@ import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { API_BASE } from "@/lib/api";
 
 // Demo users for display
 const demoUsers = [
-  { email: 'admin@demo.com', password: 'admin123', role: 'Administrador' },
-  { email: 'teacher@demo.com', password: 'teacher123', role: 'Professor' },
-  { email: 'secretary@demo.com', password: 'secretary123', role: 'Secretário' },
-  { email: 'student@demo.com', password: 'student123', role: 'Aluno' },
+  { email: 'admin@demo.com', password: 'demo123', role: 'Administrador' },
+  { email: 'teacher@demo.com', password: 'demo123', role: 'Professor' },
+  { email: 'secretary@demo.com', password: 'demo123', role: 'Secretário' },
+  { email: 'student@demo.com', password: 'demo123', role: 'Aluno' },
 ];
 
 export default function Landing() {
   const [email, setEmail] = useState("admin@demo.com");
-  const [password, setPassword] = useState("admin123");
+  const [password, setPassword] = useState("demo123");
   const [stars, setStars] = useState<Array<{ id: number; x: number; y: number; size: number; animationDelay: number }>>([]);
 
   useEffect(() => {
@@ -40,12 +41,13 @@ export default function Landing() {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(credentials),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -55,7 +57,11 @@ export default function Landing() {
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Store token and user data
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
       // Redirect to main app
       window.location.href = '/';
     },

@@ -27,9 +27,9 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.BACKEND_URL || 'http://localhost:5052',
+        target: process.env.BACKEND_URL || 'https://erpapi.vision.dev.br',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       }
     }
   },

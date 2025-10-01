@@ -25,6 +25,26 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Staff position enum - cargos disponíveis
+export const staffPositionEnum = pgEnum('staff_position', [
+  'ceo',
+  'diretor',
+  'financeiro',
+  'administrativo',
+  'coordenador',
+  'instrutor',
+  'recepcionista',
+  'comercial',
+  'marketing'
+]);
+
+// Staff gender enum
+export const staffGenderEnum = pgEnum('staff_gender', ['masculino', 'feminino']);
+
+// Support ticket priority and status enums
+export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high', 'urgent']);
+export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
+
 // User roles enum - simplificado para 4 roles fixos
 export const userRoleEnum = pgEnum('user_role', [
   'admin',     // Administrativo - acesso total
@@ -112,11 +132,30 @@ export const staff = pgTable("staff", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
   unitId: varchar("unit_id").references(() => units.id),
-  employeeId: varchar("employee_id").unique(),
-  position: varchar("position"),
+  
+  // Informações pessoais
+  cpf: varchar("cpf", { length: 14 }).unique(),
+  birthDate: timestamp("birth_date"),
+  gender: staffGenderEnum("gender"),
+  
+  // Contatos
+  phone: varchar("phone"),
+  whatsapp: varchar("whatsapp"),
+  
+  // Endereço
+  cep: varchar("cep", { length: 9 }),
+  address: text("address"),
+  number: varchar("number"),
+  complement: varchar("complement"),
+  neighborhood: varchar("neighborhood"),
+  city: varchar("city"),
+  
+  // Informações profissionais
+  position: staffPositionEnum("position"),
   department: varchar("department"),
   salary: integer("salary"),
   hireDate: timestamp("hire_date"),
+  
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -530,10 +569,6 @@ export const userSettings = pgTable("user_settings", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
-
-// Support ticket priority and status enums
-export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high', 'urgent']);
-export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
 
 // Support Tickets table
 export const supportTickets = pgTable("support_tickets", {

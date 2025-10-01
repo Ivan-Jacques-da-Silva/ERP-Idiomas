@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -8,10 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "wouter";
+import { StaffModal } from "@/components/StaffModal";
 
 export default function Staff() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<any>(null);
 
   const { data: staff, isLoading } = useQuery<any[]>({
     queryKey: ["/api/staff"],
@@ -76,7 +79,13 @@ export default function Staff() {
           </div>
           
           {canManageStaff && (
-            <Button data-testid="button-new-staff">
+            <Button 
+              onClick={() => {
+                setSelectedStaff(null);
+                setModalOpen(true);
+              }}
+              data-testid="button-new-staff"
+            >
               <i className="fas fa-plus mr-2"></i>
               Novo Colaborador
             </Button>
@@ -116,7 +125,13 @@ export default function Staff() {
                   : "Não há colaboradores cadastrados no sistema."}
               </p>
               {canManageStaff && (
-                <Button data-testid="button-create-first-staff">
+                <Button 
+                  onClick={() => {
+                    setSelectedStaff(null);
+                    setModalOpen(true);
+                  }}
+                  data-testid="button-create-first-staff"
+                >
                   <i className="fas fa-plus mr-2"></i>
                   Adicionar primeiro colaborador
                 </Button>
@@ -171,12 +186,6 @@ export default function Staff() {
                         <span>{member.department}</span>
                       </div>
                     )}
-                    {member.employeeId && (
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <i className="fas fa-id-badge mr-2 w-4"></i>
-                        <span>ID: {member.employeeId}</span>
-                      </div>
-                    )}
                     <div className="flex items-center text-sm text-muted-foreground">
                       <i className="fas fa-circle mr-2 w-4 text-green-500"></i>
                       <span>{member.isActive ? 'Ativo' : 'Inativo'}</span>
@@ -184,7 +193,14 @@ export default function Staff() {
                   </div>
                   {canManageStaff && (
                     <div className="mt-4 flex space-x-2 flex-wrap">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedStaff(member);
+                          setModalOpen(true);
+                        }}
+                      >
                         <i className="fas fa-edit mr-2"></i>
                         Editar
                       </Button>
@@ -213,6 +229,14 @@ export default function Staff() {
         )}
       </div>
 
+      <StaffModal
+        open={modalOpen}
+        onOpenChange={(open) => {
+          setModalOpen(open);
+          if (!open) setSelectedStaff(null);
+        }}
+        staffMember={selectedStaff}
+      />
     </Layout>
   );
 }
