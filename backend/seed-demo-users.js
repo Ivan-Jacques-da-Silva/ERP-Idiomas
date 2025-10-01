@@ -9,10 +9,9 @@ const pool = new Pool({
 });
 
 const usuariosDemo = [
-  { email: "admin@demo.com",     first_name: "Admin",      last_name: "Sistema",   role: "admin" },
-  { email: "teacher@demo.com",   first_name: "Professor",  last_name: "Demo",      role: "teacher" },
-  { email: "secretary@demo.com", first_name: "Secretária", last_name: "Demo",      role: "secretary" },
-  { email: "student@demo.com",   first_name: "Aluno",      last_name: "Demo",      role: "student" },
+  { email: "admin@demo.com",     first_name: "Admin",      last_name: "Sistema",   role: "admin", password: "demo123" },
+  { email: "teacher@demo.com",   first_name: "Professor",  last_name: "Demo",      role: "teacher", password: "demo123" },
+  { email: "secretary@demo.com", first_name: "Secretária", last_name: "Demo",      role: "secretary", password: "demo123" },
 ];
 
 const unidadesDemo = [
@@ -122,11 +121,8 @@ export async function seedDatabase() {
 
     await upsertStaffPorEmail(client, "admin@demo.com",     unidadePrincipalId, "diretor",      "Administração", 10000);
     await upsertStaffPorEmail(client, "teacher@demo.com",   unidadePrincipalId, "instrutor",    "Ensino",         5000);
-    await upsertStaffPorEmail(client, "secretary@demo.com", unidadePrincipalId, "secretário",   "Administrativo", 3000);
+    await upsertStaffPorEmail(client, "secretary@demo.com", unidadePrincipalId, "recepcionista", "Administrativo", 3000);
     console.log("✅ staff atualizado");
-
-    await upsertAlunoPorEmail(client, "student@demo.com", "STU001", unidadePrincipalId);
-    console.log("✅ aluno atualizado");
 
     await client.query("COMMIT");
     console.log("🎉 Seed concluído com sucesso!");
@@ -167,10 +163,9 @@ async function main() {
   await pool.end();
 
   console.log("\n📋 Logins demo:");
-  console.log("👤 admin@demo.com (Admin)");
-  console.log("👤 teacher@demo.com (Professor)");
-  console.log("👤 secretary@demo.com (Secretária)");
-  console.log("👤 student@demo.com (Aluno)");
+  console.log("👤 admin@demo.com / demo123 (Admin)");
+  console.log("👤 teacher@demo.com / demo123 (Professor)");
+  console.log("👤 secretary@demo.com / demo123 (Secretária)");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

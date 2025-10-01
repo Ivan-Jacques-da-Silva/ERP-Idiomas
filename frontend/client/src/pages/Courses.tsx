@@ -76,13 +76,31 @@ export default function Courses() {
   // Fetch courses
   const { data: courses = [], isLoading: coursesLoading } = useQuery({
     queryKey: ["/api/courses"],
-    queryFn: () => fetch("/api/courses").then(res => res.json()) as Promise<Course[]>
+    queryFn: async () => {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch("/api/courses", {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch courses');
+      return response.json() as Promise<Course[]>;
+    }
   });
 
   // Fetch books
   const { data: books = [], isLoading: booksLoading } = useQuery({
     queryKey: ["/api/books"],
-    queryFn: () => fetch("/api/books").then(res => res.json()) as Promise<Book[]>
+    queryFn: async () => {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch("/api/books", {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch books');
+      return response.json() as Promise<Book[]>;
+    }
   });
 
   // Create course mutation
@@ -260,6 +278,7 @@ export default function Courses() {
   ];
 
   const getBooksByCourseid = (courseId: string) => {
+    if (!Array.isArray(books)) return [];
     return books.filter(book => book.courseId === courseId);
   };
 
@@ -272,7 +291,7 @@ export default function Courses() {
             <h1 className="text-3xl font-bold text-gradient">Gerenciar Cursos</h1>
             <p className="text-muted-foreground">Administre cursos, livros e conteúdo educacional</p>
           </div>
-          <Button 
+          <Button
             onClick={() => setIsCreateCourseOpen(true)}
             className="gap-2"
             data-testid="button-create-course"
@@ -297,7 +316,7 @@ export default function Courses() {
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {courses && courses.map((course) => (
+                {Array.isArray(courses) && courses.map((course) => (
                   <Card key={course.id} className="glassmorphism-card hover:shadow-lg transition-shadow" data-testid={`card-course-${course.id}`}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -337,7 +356,7 @@ export default function Courses() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setSelectedCourse(course)}
+                          onClick={() => { setSelectedCourse(course); document.querySelector('[data-state="inactive"][data-value="books"]')?.dispatchEvent(new MouseEvent('click', { bubbles:true })); }}
                           className="w-full"
                           data-testid={`button-view-books-${course.id}`}
                         >
@@ -359,7 +378,7 @@ export default function Courses() {
                 {selectedCourse ? `Livros do curso: ${selectedCourse.name}` : "Selecione um curso para gerenciar livros"}
               </p>
               {selectedCourse && (
-                <Button 
+                <Button
                   onClick={() => setIsCreateBookOpen(true)}
                   size="sm"
                   className="gap-2"
@@ -382,7 +401,7 @@ export default function Courses() {
                     <Card key={book.id} className="glassmorphism-card" data-testid={`card-book-${book.id}`}>
                       <CardHeader>
                         <div className="flex items-center gap-3">
-                          <div 
+                          <div
                             className="w-6 h-6 rounded-md border-2 border-white shadow-sm ring-1 ring-black/10"
                             style={{ backgroundColor: book.color }}
                             title={`Cor: ${book.color}`}
@@ -415,7 +434,7 @@ export default function Courses() {
                             <span>Total de dias:</span>
                             <span className="font-medium">{book.totalDays ?? 30}</span>
                           </div>
-                          
+
                           {/* PDF Section */}
                           <div className="space-y-2">
                             {book.pdfUrl ? (
@@ -487,17 +506,17 @@ export default function Courses() {
                     <FormItem>
                       <FormLabel>Nome do Curso</FormLabel>
                       <FormControl>
-                        <Input 
+                        <Input
                           placeholder="Ex: Inglês Básico"
                           data-testid="input-course-name"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={courseForm.control}
                   name="description"
@@ -505,10 +524,10 @@ export default function Courses() {
                     <FormItem>
                       <FormLabel>Descrição</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="Descrição do curso"
                           data-testid="input-course-description"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -574,11 +593,11 @@ export default function Courses() {
                       <FormItem>
                         <FormLabel>Duração (horas)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             placeholder="120"
                             data-testid="input-course-duration"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -593,11 +612,11 @@ export default function Courses() {
                       <FormItem>
                         <FormLabel>Preço (R$)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             placeholder="299"
                             data-testid="input-course-price"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -607,15 +626,15 @@ export default function Courses() {
                 </div>
 
                 <div className="flex gap-2 justify-end pt-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => setIsCreateCourseOpen(false)}
                   >
                     Cancelar
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={createCourseMutation.isPending || !courseForm.formState.isValid}
                     data-testid="button-save-course"
                   >
@@ -644,17 +663,17 @@ export default function Courses() {
                     <FormItem>
                       <FormLabel>Nome do Livro</FormLabel>
                       <FormControl>
-                        <Input 
+                        <Input
                           placeholder="Ex: English Basic - Book 1"
                           data-testid="input-book-name"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={bookForm.control}
                   name="description"
@@ -662,10 +681,10 @@ export default function Courses() {
                     <FormItem>
                       <FormLabel>Descrição</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="Descrição do livro"
                           data-testid="input-book-description"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -684,29 +703,28 @@ export default function Courses() {
                           <div className="space-y-3">
                             {/* Color Preview */}
                             <div className="flex items-center gap-3">
-                              <div 
+                              <div
                                 className="w-8 h-8 rounded-md border-2 border-muted shadow-sm"
                                 style={{ backgroundColor: field.value }}
                               ></div>
                               <span className="text-sm text-muted-foreground">Preview</span>
                             </div>
-                            
+
                             {/* Predefined Color Swatches */}
                             <div className="grid grid-cols-5 gap-2">
                               {predefinedColors.map((color) => (
                                 <button
                                   key={color}
                                   type="button"
-                                  className={`w-8 h-8 rounded-md border-2 transition-all hover:scale-110 ${
-                                    field.value === color ? 'border-primary' : 'border-muted'
-                                  }`}
+                                  className={`w-8 h-8 rounded-md border-2 transition-all hover:scale-110 ${field.value === color ? 'border-primary' : 'border-muted'
+                                    }`}
                                   style={{ backgroundColor: color }}
                                   onClick={() => field.onChange(color)}
                                   aria-label={`Select color ${color}`}
                                 />
                               ))}
                             </div>
-                            
+
                             {/* Color Input and Hex Input */}
                             <div className="flex gap-2">
                               <input
@@ -738,12 +756,12 @@ export default function Courses() {
                       <FormItem>
                         <FormLabel>Total de Dias</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             min="1"
                             placeholder="30"
                             data-testid="input-book-total-days"
-                            {...field} 
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -759,7 +777,7 @@ export default function Courses() {
                       <Upload className="w-4 h-4" />
                       <span className="font-medium">PDF do Livro</span>
                     </div>
-                    
+
                     {editingBook.pdfUrl ? (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -805,9 +823,9 @@ export default function Courses() {
                 )}
 
                 <div className="flex gap-2 justify-end pt-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => {
                       setIsCreateBookOpen(false);
                       setEditingBook(null);
@@ -816,12 +834,12 @@ export default function Courses() {
                   >
                     Cancelar
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={createBookMutation.isPending || updateBookMutation.isPending || !bookForm.formState.isValid}
                     data-testid="button-save-book"
                   >
-                    {editingBook 
+                    {editingBook
                       ? (updateBookMutation.isPending ? 'Atualizando...' : 'Atualizar Livro')
                       : (createBookMutation.isPending ? 'Criando...' : 'Criar Livro')
                     }
@@ -843,95 +861,130 @@ export default function Courses() {
             <DialogHeader>
               <DialogTitle>Editar Curso</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-course-name">Nome do Curso</Label>
-                <Input
-                  id="edit-course-name"
-                  value={courseForm.name}
-                  onChange={(e) => setCourseForm(prev => ({ ...prev, name: e.target.value }))}
-                  data-testid="input-edit-course-name"
+
+            <Form {...courseForm}>
+              <form onSubmit={courseForm.handleSubmit(handleUpdateCourse)} className="space-y-4">
+                <FormField
+                  control={courseForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Curso</FormLabel>
+                      <FormControl>
+                        <Input data-testid="input-edit-course-name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-course-description">Descrição</Label>
-                <Textarea
-                  id="edit-course-description"
-                  value={courseForm.description}
-                  onChange={(e) => setCourseForm(prev => ({ ...prev, description: e.target.value }))}
-                  data-testid="input-edit-course-description"
+
+                <FormField
+                  control={courseForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <FormControl>
+                        <Textarea data-testid="input-edit-course-description" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-course-language">Idioma</Label>
-                  <Select value={courseForm.language} onValueChange={(value) => setCourseForm(prev => ({ ...prev, language: value }))}>
-                    <SelectTrigger data-testid="select-edit-course-language">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="English">Inglês</SelectItem>
-                      <SelectItem value="Spanish">Espanhol</SelectItem>
-                      <SelectItem value="French">Francês</SelectItem>
-                      <SelectItem value="German">Alemão</SelectItem>
-                      <SelectItem value="Italian">Italiano</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-course-level">Nível</Label>
-                  <Select value={courseForm.level} onValueChange={(value) => setCourseForm(prev => ({ ...prev, level: value }))}>
-                    <SelectTrigger data-testid="select-edit-course-level">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Básico">Básico</SelectItem>
-                      <SelectItem value="Intermediário">Intermediário</SelectItem>
-                      <SelectItem value="Avançado">Avançado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-course-duration">Duração (horas)</Label>
-                  <Input
-                    id="edit-course-duration"
-                    type="number"
-                    value={courseForm.duration}
-                    onChange={(e) => setCourseForm(prev => ({ ...prev, duration: e.target.value }))}
-                    data-testid="input-edit-course-duration"
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={courseForm.control}
+                    name="language"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Idioma</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-edit-course-language">
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="English">Inglês</SelectItem>
+                            <SelectItem value="Spanish">Espanhol</SelectItem>
+                            <SelectItem value="French">Francês</SelectItem>
+                            <SelectItem value="German">Alemão</SelectItem>
+                            <SelectItem value="Italian">Italiano</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={courseForm.control}
+                    name="level"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nível</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-edit-course-level">
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Básico">Básico</SelectItem>
+                            <SelectItem value="Intermediário">Intermediário</SelectItem>
+                            <SelectItem value="Avançado">Avançado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-course-price">Preço (R$)</Label>
-                  <Input
-                    id="edit-course-price"
-                    type="number"
-                    value={courseForm.price}
-                    onChange={(e) => setCourseForm(prev => ({ ...prev, price: e.target.value }))}
-                    data-testid="input-edit-course-price"
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={courseForm.control}
+                    name="duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Duração (horas)</FormLabel>
+                        <FormControl>
+                          <Input type="number" data-testid="input-edit-course-duration" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={courseForm.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preço (R$)</FormLabel>
+                        <FormControl>
+                          <Input type="number" data-testid="input-edit-course-price" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => {
-                setEditingCourse(null);
-                resetCourseForm();
-              }}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleUpdateCourse} 
-                disabled={updateCourseMutation.isPending}
-                data-testid="button-update-course"
-              >
-                Atualizar
-              </Button>
-            </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" variant="outline" onClick={() => { setEditingCourse(null); courseForm.reset(); }}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={updateCourseMutation.isPending} data-testid="button-update-course">
+                    {updateCourseMutation.isPending ? 'Atualizando...' : 'Atualizar'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
+
 
         {/* Edit Book Dialog */}
         <Dialog open={!!editingBook} onOpenChange={(open) => {
@@ -944,75 +997,83 @@ export default function Courses() {
             <DialogHeader>
               <DialogTitle>Editar Livro</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-book-name">Nome do Livro</Label>
-                <Input
-                  id="edit-book-name"
-                  value={bookForm.name}
-                  onChange={(e) => setBookForm(prev => ({ ...prev, name: e.target.value }))}
-                  data-testid="input-edit-book-name"
+
+            <Form {...bookForm}>
+              <form onSubmit={bookForm.handleSubmit(handleUpdateBook)} className="space-y-4">
+                <FormField
+                  control={bookForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Livro</FormLabel>
+                      <FormControl>
+                        <Input data-testid="input-edit-book-name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-book-description">Descrição</Label>
-                <Textarea
-                  id="edit-book-description"
-                  value={bookForm.description}
-                  onChange={(e) => setBookForm(prev => ({ ...prev, description: e.target.value }))}
-                  data-testid="input-edit-book-description"
+
+                <FormField
+                  control={bookForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <FormControl>
+                        <Textarea data-testid="input-edit-book-description" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-book-color">Cor do Livro</Label>
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      id="edit-book-color"
-                      type="color"
-                      value={bookForm.color}
-                      onChange={(e) => setBookForm(prev => ({ ...prev, color: e.target.value }))}
-                      className="w-12 h-10 p-1"
-                      data-testid="input-edit-book-color"
-                    />
-                    <Input
-                      value={bookForm.color}
-                      onChange={(e) => setBookForm(prev => ({ ...prev, color: e.target.value }))}
-                      placeholder="#3b82f6"
-                      data-testid="input-edit-book-color-hex"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-book-totalDays">Total de Dias</Label>
-                  <Input
-                    id="edit-book-totalDays"
-                    type="number"
-                    min="1"
-                    value={bookForm.totalDays}
-                    onChange={(e) => setBookForm(prev => ({ ...prev, totalDays: e.target.value }))}
-                    data-testid="input-edit-book-total-days"
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={bookForm.control}
+                    name="color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cor do Livro</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2 items-center">
+                            <Input type="color" className="w-12 h-10 p-1" value={field.value} onChange={(e) => field.onChange(e.target.value)} data-testid="input-edit-book-color" />
+                            <Input value={field.value} onChange={(e) => field.onChange(e.target.value)} placeholder="#3b82f6" data-testid="input-edit-book-color-hex" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={bookForm.control}
+                    name="totalDays"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Total de Dias</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" data-testid="input-edit-book-total-days" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => {
-                setEditingBook(null);
-                resetBookForm();
-              }}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleUpdateBook} 
-                disabled={updateBookMutation.isPending}
-                data-testid="button-update-book"
-              >
-                Atualizar
-              </Button>
-            </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" variant="outline" onClick={() => { setEditingBook(null); bookForm.reset(); }}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={updateBookMutation.isPending} data-testid="button-update-book">
+                    {updateBookMutation.isPending ? 'Atualizando...' : 'Atualizar'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
+
 
         {/* Hidden file input for PDF uploads */}
         <input

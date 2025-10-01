@@ -32,9 +32,12 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       return response.json();
     },
     onSuccess: () => {
-      // Clear all queries and redirect to login
+      // Clear all queries and local storage
       queryClient.clear();
-      window.location.href = '/';
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      // Redirect to landing page
+      window.location.href = '/landing';
     },
   });
 

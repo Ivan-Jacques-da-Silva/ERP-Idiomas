@@ -1,42 +1,52 @@
 
-// Configuração global da API
-export const API_BASE = window.location.hostname === 'erp.vision.dev.br' 
-  ? 'https://erpapi.vision.dev.br' 
-  : '';
+// Detecta automaticamente o ambiente
+const isProduction = typeof window !== 'undefined' && (
+  window.location.hostname === 'erp.vision.dev.br'
+);
+
+const isReplit = typeof window !== 'undefined' && (
+  window.location.hostname.includes('.repl.co') || 
+  window.location.hostname.includes('replit.dev')
+);
+
+export const API_BASE = import.meta.env.VITE_API_URL || 
+  (isProduction ? 'https://erpapi.vision.dev.br' : 
+   isReplit ? 'https://erpapi.vision.dev.br' : 
+   'http://localhost:5052');
 
 // Interceptador para fetch
 export async function apiRequest(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('authToken');
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers as Record<string, string>,
+    ...(options.headers as Record<string, string> || {}),
   };
-  
+
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   const response = await fetch(`${API_BASE}${url}`, {
     ...options,
     credentials: 'include',
     headers,
   });
-  
+
   if (!response.ok) {
     // If token is invalid, clear it
     if (response.status === 401 && token) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       // Redirect to login if needed
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
+      if (window.location.pathname !== '/landing') {
+        window.location.href = '/landing';
       }
     }
-    
+
     const error = await response.text();
     throw new Error(`${response.status}: ${error}`);
   }
-  
+
   return response.json();
 }

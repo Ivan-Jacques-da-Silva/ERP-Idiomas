@@ -12,10 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from 'wouter';
-
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,12 +25,13 @@ export default function Layout({ children }: LayoutProps) {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [location] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Use StudentLayout for students
   if (user?.role === 'student') {
     return <StudentLayout>{children}</StudentLayout>;
   }
-  const { toast } = useToast();
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -49,8 +49,12 @@ export default function Layout({ children }: LayoutProps) {
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso.",
       });
-      // Redirecionar para a página de login
-      window.location.href = '/';
+      // Clear all queries and local storage
+      queryClient.clear();
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      // Redirect to landing page
+      window.location.href = '/landing';
     },
     onError: (error: Error) => {
       toast({
@@ -102,7 +106,7 @@ export default function Layout({ children }: LayoutProps) {
     return null; // Will be handled by the routing
   }
 
-  
+
 
 
   return (

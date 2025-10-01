@@ -3,21 +3,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { API_BASE } from "@/lib/api";
+import { Eye, EyeOff } from "lucide-react";
 
 // Demo users for display
 const demoUsers = [
-  { email: 'admin@demo.com', password: 'demo123', role: 'Administrador' },
-  { email: 'teacher@demo.com', password: 'demo123', role: 'Professor' },
-  { email: 'secretary@demo.com', password: 'demo123', role: 'Secretário' },
-  { email: 'student@demo.com', password: 'demo123', role: 'Aluno' },
+  { email: 'admin@demo.com', password: 'demo123', role: 'Administrador', disabled: false },
+  { email: 'teacher@demo.com', password: 'demo123', role: 'Professor', disabled: false },
+  { email: 'secretary@demo.com', password: 'demo123', role: 'Secretário', disabled: false },
+  { email: 'student@demo.com', password: 'demo123', role: 'Aluno', disabled: true },
 ];
 
 export default function Landing() {
   const [email, setEmail] = useState("admin@demo.com");
   const [password, setPassword] = useState("demo123");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorModal, setErrorModal] = useState({ open: false, message: "" });
   const [stars, setStars] = useState<Array<{ id: number; x: number; y: number; size: number; animationDelay: number }>>([]);
 
   useEffect(() => {
@@ -66,7 +70,7 @@ export default function Landing() {
       window.location.href = '/';
     },
     onError: (error: Error) => {
-      alert('Erro no login: ' + error.message);
+      setErrorModal({ open: true, message: error.message });
     },
   });
 
@@ -180,13 +184,21 @@ export default function Landing() {
                       key={index}
                       variant="outline"
                       size="sm"
-                      onClick={() => setDemoUser(user)}
-                      className="h-auto p-3 flex flex-col items-start bg-white/30 dark:bg-white/10 hover:bg-blue-50 dark:hover:bg-white/20 border-gray-200 dark:border-gray-600 text-left transition-all duration-200"
+                      onClick={() => !user.disabled && setDemoUser(user)}
+                      disabled={user.disabled}
+                      className={`h-auto p-3 flex flex-col items-start border-gray-200 dark:border-gray-600 text-left transition-all duration-200 ${
+                        user.disabled 
+                          ? 'bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed' 
+                          : 'bg-white/30 dark:bg-white/10 hover:bg-blue-50 dark:hover:bg-white/20'
+                      }`}
                     >
                       <span className="font-medium text-xs">{user.role}</span>
                       <span className="text-xs text-muted-foreground truncate w-full">
                         {user.email}
                       </span>
+                      {user.disabled && (
+                        <span className="text-xs text-red-500 mt-1">Em breve</span>
+                      )}
                     </Button>
                   ))}
                 </div>
@@ -222,14 +234,29 @@ export default function Landing() {
                   <Label htmlFor="password" className="text-sm font-medium">
                     Senha
                   </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-10 sm:h-12 bg-white/30 dark:bg-white/10 border-gray-200 dark:border-gray-600 focus:border-primary dark:focus:border-primary"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-10 sm:h-12 bg-white/30 dark:bg-white/10 border-gray-200 dark:border-gray-600 focus:border-primary dark:focus:border-primary pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-10 sm:h-12 px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -270,6 +297,29 @@ export default function Landing() {
           </div>
         </div>
       </div>
+
+      {/* Error Modal */}
+      <Dialog open={errorModal.open} onOpenChange={(open) => setErrorModal({ ...errorModal, open })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <i className="fas fa-exclamation-circle"></i>
+              Erro no Login
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              {errorModal.message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end pt-4">
+            <Button 
+              onClick={() => setErrorModal({ open: false, message: "" })}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Entendi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

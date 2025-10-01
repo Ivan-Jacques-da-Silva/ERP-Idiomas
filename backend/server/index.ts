@@ -12,6 +12,11 @@ const allowedOrigins = [
   'http://localhost:5051',
   'http://localhost:5052',
   'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5051',
+  'http://127.0.0.1:5052',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5000',
   process.env.FRONTEND_URL,
   process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null,
   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
