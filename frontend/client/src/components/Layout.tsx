@@ -33,40 +33,19 @@ export default function Layout({ children }: LayoutProps) {
     return <StudentLayout>{children}</StudentLayout>;
   }
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        throw new Error('Erro ao fazer logout');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso.",
-      });
-      // Clear all queries and local storage
-      queryClient.clear();
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      // Redirect to landing page
-      window.location.href = '/landing';
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro no logout",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleLogout = () => {
-    logoutMutation.mutate();
+    // Clear all queries and local storage (JWT logout is client-side only)
+    queryClient.clear();
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    
+    toast({
+      title: "Logout realizado",
+      description: "Você foi desconectado com sucesso.",
+    });
+    
+    // Redirect to landing page
+    window.location.href = '/landing';
   };
 
   // Detectar se é mobile

@@ -8,7 +8,7 @@ const app = express();
 // CORS configuration for separated frontend/backend
 const allowedOrigins = [
   'https://erp.vision.dev.br',
-  'https://erpapi.vision.dev.br', 
+  'https://erpapi.vision.dev.br',
   'http://localhost:5051',
   'http://localhost:5052',
   'http://localhost:3000',
@@ -27,19 +27,19 @@ console.log('🔧 CORS Origins permitidas:', allowedOrigins);
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     console.log('🌐 Requisição de origin:', origin);
-    
+
     // Permitir requisições sem origin (mobile apps, postman, etc)
     if (!origin) {
       console.log('✅ Origin undefined - permitindo');
       return callback(null, true);
     }
-    
+
     // Verificar se a origin está na lista de permitidas
     if (allowedOrigins.includes(origin)) {
       console.log('✅ Origin permitida:', origin);
       return callback(null, true);
     }
-    
+
     console.log('❌ Origin rejeitada:', origin);
     callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
@@ -51,6 +51,15 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// OPTIONS preflight handler para todas as rotas /api
+app.options('/api/*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 function log(message: string) {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

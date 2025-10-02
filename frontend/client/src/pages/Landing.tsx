@@ -55,8 +55,8 @@ export default function Landing() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
+        const error = await response.json().catch(() => ({ message: 'Erro ao fazer login' }));
+        throw new Error(error.message || 'Credenciais inválidas');
       }
 
       return response.json();
@@ -70,7 +70,7 @@ export default function Landing() {
       window.location.href = '/';
     },
     onError: (error: Error) => {
-      setErrorModal({ open: true, message: error.message });
+      setErrorModal({ open: true, message: error.message || 'Erro ao fazer login' });
     },
   });
 

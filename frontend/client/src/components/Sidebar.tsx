@@ -123,37 +123,13 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
 
   const { toast } = useToast();
 
-  const handleLogout = async () => {
-    try {
-      // Try to call logout endpoint, but don't fail if it errors
-      try {
-        await apiRequest("/api/auth/logout", {
-          method: "POST",
-        });
-      } catch (apiError) {
-        console.warn('Logout API call failed, continuing with local logout:', apiError);
-      }
+  const handleLogout = () => {
+    // Clear authentication data (JWT logout is client-side only)
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
 
-      // Always clear local storage regardless of API call result
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-
-      // Redirect to landing page
-      window.location.href = '/landing';
-    } catch (error) {
-      console.error('Logout error:', error);
-
-      // Even if there's an error, clear storage and redirect
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/landing';
-
-      toast({
-        title: "Erro no logout",
-        description: "Erro ao fazer logout, mas você foi desconectado localmente",
-        variant: "destructive",
-      });
-    }
+    // Redirect to landing page
+    window.location.href = '/landing';
   };
 
   return (
