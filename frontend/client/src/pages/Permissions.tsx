@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,8 @@ export default function Permissions() {
   const [createRoleModalOpen, setCreateRoleModalOpen] = useState(false);
   const [editRoleModalOpen, setEditRoleModalOpen] = useState(false);
   const [roleToEdit, setRoleToEdit] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<any>(null);
 
   // Apenas admin pode acessar (removido developer conforme solicitado)
   if (!user || user.role !== 'admin') {
@@ -317,8 +320,15 @@ export default function Permissions() {
       return;
     }
 
-    if (confirm(`Tem certeza que deseja remover o nível "${role.displayName}"? Esta ação não pode ser desfeita.`)) {
-      deleteRoleMutation.mutate(role.id);
+    setRoleToDelete(role);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteRole = () => {
+    if (roleToDelete) {
+      deleteRoleMutation.mutate(roleToDelete.id);
+      setIsDeleteDialogOpen(false);
+      setRoleToDelete(null);
     }
   };
 
@@ -765,6 +775,28 @@ export default function Permissions() {
             </Form>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent data-testid="dialog-delete-role">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja remover o nível <strong>"{roleToDelete?.displayName}"</strong>?
+                Esta ação não pode ser desfeita e todos os usuários com este nível perderão suas permissões associadas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel data-testid="button-cancel-delete-role">Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDeleteRole} 
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="button-confirm-delete-role"
+              >
+                {deleteRoleMutation.isPending ? "Excluindo..." : "Excluir Nível"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );

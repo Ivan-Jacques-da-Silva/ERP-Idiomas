@@ -40,6 +40,8 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
     city: "",
     position: "",
     unitId: "",
+    login: "",
+    password: "",
   });
 
   const [cpfError, setCpfError] = useState("");
@@ -68,6 +70,8 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         city: staffMember.city || "",
         position: staffMember.position || "",
         unitId: staffMember.unitId || "",
+        login: staffMember.login || "",
+        password: "",
       });
     } else {
       setFormData({
@@ -87,6 +91,8 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         city: "",
         position: "",
         unitId: "",
+        login: "",
+        password: "",
       });
     }
   }, [staffMember]);
@@ -194,6 +200,8 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
       city: formData.city,
       position: formData.position || null,
       unitId: formData.unitId || null,
+      login: formData.login,
+      password: formData.password || null,
     };
 
     if (isEditing) {
@@ -471,8 +479,38 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
 
+          {/* Credenciais de Acesso */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Credenciais de Acesso</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="login">Login *</Label>
+                <Input
+                  id="login"
+                  data-testid="input-login"
+                  required
+                  value={formData.login}
+                  onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha {!isEditing && "*"}</Label>
+                <Input
+                  id="password"
+                  data-testid="input-password"
+                  type="password"
+                  required={!isEditing}
+                  placeholder={isEditing ? "Deixe em branco para manter a senha atual" : ""}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+              </div>
+            </div>
           </div>
 
           <DialogFooter>

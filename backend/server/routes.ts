@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { storage } from "./storage.js";
+import { setupVite, serveStatic } from "./vite.js";
 import { 
   insertUnitSchema, 
   insertStaffSchema, 
@@ -21,6 +22,9 @@ import {
   insertUserSettingsSchema,
   insertSupportTicketSchema,
   insertSupportTicketResponseSchema,
+  insertGuardianSchema,
+  insertFinancialResponsibleSchema,
+  insertFranchiseUnitSchema,
 } from "../shared/schema.js";
 import { z } from "zod";
 
@@ -86,6 +90,34 @@ const bookUploads = multer({
       const bookId = req.params.id;
       const ext = path.extname(file.originalname);
       cb(null, `book_${bookId}_${Date.now()}${ext}`);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed!') as any, false);
+    }
+  },
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit
+  }
+});
+
+// Configure multer for franchise unit file uploads
+const franchiseUploads = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = './uploads/franchise-units';
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      const fieldName = file.fieldname;
+      cb(null, `${fieldName}_${Date.now()}${ext}`);
     }
   }),
   fileFilter: (req, file, cb) => {
@@ -248,23 +280,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/staff", isAuthenticated, async (req, res) => {
     try {
-      const staffData = insertStaffSchema.parse(req.body);
+      const { firstName, lastName, email, ...staffFields } = req.body;
+      
+      // Create user first
+      const user = await storage.createUser({
+        email,
+        firstName,
+        lastName,
+        role: 'admin', // or based on position
+      });
+      
+      // Create staff with userId
+      const staffData = insertStaffSchema.parse({
+        ...staffFields,
+        userId: user.id,
+      });
+      
       const staff = await storage.createStaff(staffData);
       res.status(201).json(staff);
     } catch (error) {
       console.error("Error creating staff member:", error);
-      res.status(400).json({ message: "Invalid staff data" });
+      res.status(400).json({ message: error.message || "Invalid staff data" });
     }
   });
 
   app.put("/api/staff/:id", isAuthenticated, async (req, res) => {
     try {
-      const staffData = insertStaffSchema.partial().parse(req.body);
+      const { firstName, lastName, email, userId, ...staffFields } = req.body;
+      
+      // Update user if data provided
+      if (userId && (firstName || lastName || email)) {
+        await storage.updateUser(userId, {
+          ...(firstName && { firstName }),
+          ...(lastName && { lastName }),
+          ...(email && { email }),
+        });
+      }
+      
+      // Update staff
+      const staffData = insertStaffSchema.partial().parse(staffFields);
       const staff = await storage.updateStaff(req.params.id, staffData);
       res.json(staff);
     } catch (error) {
       console.error("Error updating staff member:", error);
-      res.status(400).json({ message: "Invalid staff data" });
+      res.status(400).json({ message: error.message || "Invalid staff data" });
     }
   });
 
@@ -304,23 +363,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/students", isAuthenticated, async (req, res) => {
     try {
-      const studentData = insertStudentSchema.parse(req.body);
+      const { firstName, lastName, email, guardian, ...studentFields } = req.body;
+      
+      // Create user first
+      const user = await storage.createUser({
+        email,
+        firstName,
+        lastName,
+        role: 'student',
+      });
+      
+      let guardianId = null;
+      
+      // Create guardian if provided
+      if (guardian) {
+        const { financialResponsible, ...guardianFields } = guardian;
+        const guardianData = insertGuardianSchema.parse(guardianFields);
+        const createdGuardian = await storage.createGuardian(guardianData);
+        guardianId = createdGuardian.id;
+        
+        // Create financial responsible if provided
+        if (financialResponsible) {
+          const financialData = insertFinancialResponsibleSchema.parse({
+            ...financialResponsible,
+            guardianId: createdGuardian.id,
+          });
+          await storage.createFinancialResponsible(financialData);
+        }
+      }
+      
+      // Create student with userId and guardianId
+      const studentData = insertStudentSchema.parse({
+        ...studentFields,
+        userId: user.id,
+        guardianId,
+      });
+      
       const student = await storage.createStudent(studentData);
       res.status(201).json(student);
     } catch (error) {
       console.error("Error creating student:", error);
-      res.status(400).json({ message: "Invalid student data" });
+      res.status(400).json({ message: error.message || "Invalid student data" });
     }
   });
 
   app.put("/api/students/:id", isAuthenticated, async (req, res) => {
     try {
-      const studentData = insertStudentSchema.partial().parse(req.body);
+      const { firstName, lastName, email, userId, guardian, ...studentFields } = req.body;
+      
+      // Update user if data provided
+      if (userId && (firstName || lastName || email)) {
+        await storage.updateUser(userId, {
+          ...(firstName && { firstName }),
+          ...(lastName && { lastName }),
+          ...(email && { email }),
+        });
+      }
+      
+      // Handle guardian updates if provided
+      if (guardian) {
+        const { financialResponsible, ...guardianFields } = guardian;
+        
+        // If student already has a guardian, update it, otherwise create new
+        const currentStudent = await storage.getStudent(req.params.id);
+        if (currentStudent?.guardianId) {
+          await storage.updateGuardian(currentStudent.guardianId, guardianFields);
+          
+          // Handle financial responsible
+          if (financialResponsible) {
+            // Check if guardian already has financial responsible
+            const guardianWithFinancial = await storage.getGuardianWithFinancial(currentStudent.guardianId);
+            if (guardianWithFinancial?.financialResponsible) {
+              await storage.updateFinancialResponsible(guardianWithFinancial.financialResponsible.id, financialResponsible);
+            } else {
+              const financialData = insertFinancialResponsibleSchema.parse({
+                ...financialResponsible,
+                guardianId: currentStudent.guardianId,
+              });
+              await storage.createFinancialResponsible(financialData);
+            }
+          }
+        } else {
+          // Create new guardian
+          const guardianData = insertGuardianSchema.parse(guardianFields);
+          const createdGuardian = await storage.createGuardian(guardianData);
+          studentFields.guardianId = createdGuardian.id;
+          
+          // Create financial responsible if provided
+          if (financialResponsible) {
+            const financialData = insertFinancialResponsibleSchema.parse({
+              ...financialResponsible,
+              guardianId: createdGuardian.id,
+            });
+            await storage.createFinancialResponsible(financialData);
+          }
+        }
+      }
+      
+      // Update student
+      const studentData = insertStudentSchema.partial().parse(studentFields);
       const student = await storage.updateStudent(req.params.id, studentData);
       res.json(student);
     } catch (error) {
       console.error("Error updating student:", error);
-      res.status(400).json({ message: "Invalid student data" });
+      res.status(400).json({ message: error.message || "Invalid student data" });
     }
   });
 
@@ -1194,6 +1340,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Franchise Units routes
+  app.get("/api/franchise-units", isAuthenticated, async (req, res) => {
+    try {
+      const franchiseUnits = await storage.getFranchiseUnits();
+      res.json(franchiseUnits);
+    } catch (error) {
+      console.error("Error fetching franchise units:", error);
+      res.status(500).json({ message: "Failed to fetch franchise units" });
+    }
+  });
+
+  app.get("/api/franchise-units/:id", isAuthenticated, async (req, res) => {
+    try {
+      const franchiseUnit = await storage.getFranchiseUnit(req.params.id);
+      if (!franchiseUnit) {
+        return res.status(404).json({ message: "Franchise unit not found" });
+      }
+      res.json(franchiseUnit);
+    } catch (error) {
+      console.error("Error fetching franchise unit:", error);
+      res.status(500).json({ message: "Failed to fetch franchise unit" });
+    }
+  });
+
+  app.post("/api/franchise-units", isAuthenticated, requireAdminOnly, franchiseUploads.any(), async (req: any, res) => {
+    try {
+      const files = req.files as Express.Multer.File[] || [];
+      const franchiseUnitData = { ...req.body };
+      
+      // Map uploaded files to their field names
+      files.forEach((file) => {
+        const relativePath = `/uploads/franchise-units/${file.filename}`;
+        franchiseUnitData[file.fieldname] = relativePath;
+      });
+      
+      const validatedData = insertFranchiseUnitSchema.parse(franchiseUnitData);
+      const newFranchiseUnit = await storage.createFranchiseUnit(validatedData);
+      res.status(201).json(newFranchiseUnit);
+    } catch (error: any) {
+      console.error("Error creating franchise unit:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create franchise unit" });
+    }
+  });
+
+  app.put("/api/franchise-units/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      const franchiseUnitData = insertFranchiseUnitSchema.partial().parse(req.body);
+      const updatedFranchiseUnit = await storage.updateFranchiseUnit(req.params.id, franchiseUnitData);
+      res.json(updatedFranchiseUnit);
+    } catch (error: any) {
+      console.error("Error updating franchise unit:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      if (error.message?.includes("not found")) {
+        return res.status(404).json({ message: "Franchise unit not found" });
+      }
+      res.status(500).json({ message: "Failed to update franchise unit" });
+    }
+  });
+
+  app.delete("/api/franchise-units/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+    try {
+      await storage.deleteFranchiseUnit(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting franchise unit:", error);
+      res.status(500).json({ message: "Failed to delete franchise unit" });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // Setup Vite in development or serve static files in production
+  if (process.env.NODE_ENV === "development") {
+    await setupVite(app, httpServer);
+  } else {
+    serveStatic(app);
+  }
+  
   return httpServer;
 }

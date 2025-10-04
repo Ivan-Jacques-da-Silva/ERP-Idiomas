@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Units from "@/pages/Units";
+import FranchiseUnits from "@/pages/FranchiseUnits";
 import Staff from "@/pages/Staff";
 import Students from "@/pages/Students";
 import Courses from "@/pages/Courses";
@@ -56,6 +57,7 @@ function Router() {
         <>
           <Route path="/" component={Dashboard} />
           <Route path="/units" component={Units} />
+          <Route path="/franchise-units" component={FranchiseUnits} />
           <Route path="/staff" component={Staff} />
           <Route path="/students" component={Students} />
           <Route path="/courses" component={Courses} />

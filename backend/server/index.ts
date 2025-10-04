@@ -24,6 +24,18 @@ const allowedOrigins = [
 
 console.log('🔧 CORS Origins permitidas:', allowedOrigins);
 
+// OPTIONS preflight handler ANTES do CORS (prioridade máxima)
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  res.sendStatus(204);
+});
+
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     console.log('🌐 Requisição de origin:', origin);
@@ -51,15 +63,6 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// OPTIONS preflight handler para todas as rotas /api
-app.options('/api/*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
 
 function log(message: string) {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

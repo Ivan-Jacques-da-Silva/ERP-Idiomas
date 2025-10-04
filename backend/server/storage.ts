@@ -14,6 +14,10 @@ import type {
   InsertUserSettings,
   InsertSupportTicket,
   InsertSupportTicketResponse,
+  InsertUser,
+  InsertGuardian,
+  InsertFinancialResponsible,
+  InsertFranchiseUnit,
   Unit,
   Staff,
   Student,
@@ -23,6 +27,9 @@ import type {
   Book,
   User,
   UpsertUser,
+  Guardian,
+  FinancialResponsible,
+  FranchiseUnit,
   StaffWithUser,
   StudentWithUser,
   ClassWithDetails,
@@ -44,6 +51,8 @@ import {
   users,
   staff,
   students,
+  guardians,
+  financialResponsibles,
   courses,
   classes,
   lessons,
@@ -56,6 +65,7 @@ import {
   userSettings,
   supportTickets,
   supportTicketResponses,
+  franchiseUnits,
 } from "../shared/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -708,6 +718,12 @@ let demoUserPermissions: UserPermission[] = [];
 
 // User permissions demo data - permissões individuais de usuário
 
+// Guardians demo data
+let demoGuardians: Guardian[] = [];
+
+// Financial Responsibles demo data
+let demoFinancialResponsibles: FinancialResponsible[] = [];
+
 // User settings demo data
 let demoUserSettings: UserSettings[] = [];
 
@@ -717,10 +733,24 @@ let demoSupportTickets: SupportTicket[] = [];
 // Support ticket responses demo data
 let demoSupportTicketResponses: SupportTicketResponse[] = [];
 
+// Franchise units demo data
+let demoFranchiseUnits: FranchiseUnit[] = [];
+
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise < User | undefined > ;
   upsertUser(user: UpsertUser): Promise < User > ;
+  createUser(user: InsertUser): Promise < User > ;
+  updateUser(id: string, user: Partial < InsertUser > ): Promise < User > ;
+
+  // Guardians
+  createGuardian(guardian: InsertGuardian): Promise < Guardian > ;
+  updateGuardian(id: string, guardian: Partial < InsertGuardian > ): Promise < Guardian > ;
+  getGuardianWithFinancial(id: string): Promise < Guardian & { financialResponsible?: FinancialResponsible } | undefined > ;
+
+  // Financial Responsibles
+  createFinancialResponsible(financialResponsible: InsertFinancialResponsible): Promise < FinancialResponsible > ;
+  updateFinancialResponsible(id: string, financialResponsible: Partial < InsertFinancialResponsible > ): Promise < FinancialResponsible > ;
 
   // Units
   getUnits(): Promise < Unit[] > ;
@@ -829,6 +859,14 @@ export interface IStorage {
 
   // Support Ticket Responses
   createSupportTicketResponse(response: InsertSupportTicketResponse): Promise<SupportTicketResponse>;
+
+  // Franchise Units
+  getFranchiseUnits(): Promise<FranchiseUnit[]>;
+  getFranchiseUnit(id: string): Promise<FranchiseUnit | undefined>;
+  createFranchiseUnit(franchiseUnit: InsertFranchiseUnit): Promise<FranchiseUnit>;
+  updateFranchiseUnit(id: string, franchiseUnit: Partial<InsertFranchiseUnit>): Promise<FranchiseUnit>;
+  deleteFranchiseUnit(id: string): Promise<void>;
+  getRolePermissionsByName(roleName: string): Promise<(RolePermission & { permission: Permission })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -976,6 +1014,193 @@ export class DatabaseStorage implements IStorage {
       demoUsers.push(newUser);
     }
     return newUser;
+  }
+
+  async createUser(userData: InsertUser): Promise < User > {
+    if (!db) {
+      const id = crypto.randomUUID();
+      const newUser: User = {
+        id,
+        ...userData,
+        isActive: userData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoUsers.push(newUser);
+      return newUser;
+    }
+    try {
+      const result = await db.insert(users).values({
+        ...userData,
+        isActive: userData.isActive ?? true,
+      }).returning();
+      return result[0];
+    } catch (error) {
+      const id = crypto.randomUUID();
+      const newUser: User = {
+        id,
+        ...userData,
+        isActive: userData.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoUsers.push(newUser);
+      return newUser;
+    }
+  }
+
+  async updateUser(id: string, userData: Partial < InsertUser > ): Promise < User > {
+    if (!db) {
+      const index = demoUsers.findIndex(u => u.id === id);
+      if (index === -1) throw new Error('User not found');
+      const updatedUser = { ...demoUsers[index], ...userData, updatedAt: new Date() };
+      demoUsers[index] = updatedUser;
+      return updatedUser;
+    }
+    try {
+      const result = await db.update(users)
+        .set({ ...userData, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      if (result.length === 0) throw new Error('User not found');
+      return result[0];
+    } catch (error) {
+      const index = demoUsers.findIndex(u => u.id === id);
+      if (index === -1) throw new Error('User not found');
+      const updatedUser = { ...demoUsers[index], ...userData, updatedAt: new Date() };
+      demoUsers[index] = updatedUser;
+      return updatedUser;
+    }
+  }
+
+  async createGuardian(guardianData: InsertGuardian): Promise < Guardian > {
+    if (!db) {
+      const id = crypto.randomUUID();
+      const newGuardian: Guardian = {
+        id,
+        ...guardianData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoGuardians.push(newGuardian);
+      return newGuardian;
+    }
+    try {
+      const result = await db.insert(guardians).values(guardianData).returning();
+      return result[0];
+    } catch (error) {
+      const id = crypto.randomUUID();
+      const newGuardian: Guardian = {
+        id,
+        ...guardianData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoGuardians.push(newGuardian);
+      return newGuardian;
+    }
+  }
+
+  async updateGuardian(id: string, guardianData: Partial < InsertGuardian > ): Promise < Guardian > {
+    if (!db) {
+      const index = demoGuardians.findIndex(g => g.id === id);
+      if (index === -1) throw new Error('Guardian not found');
+      const updatedGuardian = { ...demoGuardians[index], ...guardianData, updatedAt: new Date() };
+      demoGuardians[index] = updatedGuardian;
+      return updatedGuardian;
+    }
+    try {
+      const result = await db.update(guardians)
+        .set({ ...guardianData, updatedAt: new Date() })
+        .where(eq(guardians.id, id))
+        .returning();
+      if (result.length === 0) throw new Error('Guardian not found');
+      return result[0];
+    } catch (error) {
+      const index = demoGuardians.findIndex(g => g.id === id);
+      if (index === -1) throw new Error('Guardian not found');
+      const updatedGuardian = { ...demoGuardians[index], ...guardianData, updatedAt: new Date() };
+      demoGuardians[index] = updatedGuardian;
+      return updatedGuardian;
+    }
+  }
+
+  async getGuardianWithFinancial(id: string): Promise < Guardian & { financialResponsible?: FinancialResponsible } | undefined > {
+    if (!db) {
+      const guardian = demoGuardians.find(g => g.id === id);
+      if (!guardian) return undefined;
+      const financialResponsible = demoFinancialResponsibles.find(f => f.guardianId === id);
+      return { ...guardian, financialResponsible };
+    }
+    try {
+      const result = await db.select()
+        .from(guardians)
+        .leftJoin(financialResponsibles, eq(guardians.id, financialResponsibles.guardianId))
+        .where(eq(guardians.id, id))
+        .limit(1);
+      if (result.length === 0) return undefined;
+      return {
+        ...result[0].guardians,
+        financialResponsible: result[0].financial_responsibles || undefined,
+      };
+    } catch (error) {
+      const guardian = demoGuardians.find(g => g.id === id);
+      if (!guardian) return undefined;
+      const financialResponsible = demoFinancialResponsibles.find(f => f.guardianId === id);
+      return { ...guardian, financialResponsible };
+    }
+  }
+
+  async createFinancialResponsible(financialData: InsertFinancialResponsible): Promise < FinancialResponsible > {
+    if (!db) {
+      const id = crypto.randomUUID();
+      const newFinancial: FinancialResponsible = {
+        id,
+        ...financialData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoFinancialResponsibles.push(newFinancial);
+      return newFinancial;
+    }
+    try {
+      const result = await db.insert(financialResponsibles).values(financialData).returning();
+      return result[0];
+    } catch (error) {
+      const id = crypto.randomUUID();
+      const newFinancial: FinancialResponsible = {
+        id,
+        ...financialData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      demoFinancialResponsibles.push(newFinancial);
+      return newFinancial;
+    }
+  }
+
+  async updateFinancialResponsible(id: string, financialData: Partial < InsertFinancialResponsible > ): Promise < FinancialResponsible > {
+    if (!db) {
+      const index = demoFinancialResponsibles.findIndex(f => f.id === id);
+      if (index === -1) throw new Error('Financial responsible not found');
+      const updated = { ...demoFinancialResponsibles[index], ...financialData, updatedAt: new Date() };
+      demoFinancialResponsibles[index] = updated;
+      return updated;
+    }
+    try {
+      const result = await db.update(financialResponsibles)
+        .set({ ...financialData, updatedAt: new Date() })
+        .where(eq(financialResponsibles.id, id))
+        .returning();
+      if (result.length === 0) throw new Error('Financial responsible not found');
+      return result[0];
+    } catch (error) {
+      const index = demoFinancialResponsibles.findIndex(f => f.id === id);
+      if (index === -1) throw new Error('Financial responsible not found');
+      const updated = { ...demoFinancialResponsibles[index], ...financialData, updatedAt: new Date() };
+      demoFinancialResponsibles[index] = updated;
+      return updated;
+    }
   }
 
   // Units
@@ -3122,6 +3347,62 @@ export class DatabaseStorage implements IStorage {
     };
     demoSupportTicketResponses.push(newResponse);
     return newResponse;
+  }
+
+  // Franchise Units
+  async getFranchiseUnits(): Promise<FranchiseUnit[]> {
+    return [...demoFranchiseUnits].sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
+  }
+
+  async getFranchiseUnit(id: string): Promise<FranchiseUnit | undefined> {
+    return demoFranchiseUnits.find(f => f.id === id);
+  }
+
+  async createFranchiseUnit(franchiseUnit: InsertFranchiseUnit): Promise<FranchiseUnit> {
+    const id = crypto.randomUUID();
+    const newFranchiseUnit: FranchiseUnit = {
+      id,
+      ...franchiseUnit,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    demoFranchiseUnits.push(newFranchiseUnit);
+    return newFranchiseUnit;
+  }
+
+  async updateFranchiseUnit(id: string, franchiseUnit: Partial<InsertFranchiseUnit>): Promise<FranchiseUnit> {
+    const index = demoFranchiseUnits.findIndex(f => f.id === id);
+    if (index === -1) throw new Error('Franchise unit not found');
+
+    const updatedFranchiseUnit = {
+      ...demoFranchiseUnits[index],
+      ...franchiseUnit,
+      updatedAt: new Date(),
+    };
+    demoFranchiseUnits[index] = updatedFranchiseUnit;
+    return updatedFranchiseUnit;
+  }
+
+  async deleteFranchiseUnit(id: string): Promise<void> {
+    const index = demoFranchiseUnits.findIndex(f => f.id === id);
+    if (index !== -1) {
+      demoFranchiseUnits.splice(index, 1);
+    }
+  }
+
+  async getRolePermissionsByName(roleName: string): Promise<(RolePermission & { permission: Permission })[]> {
+    const role = demoRoles.find(r => r.name === roleName);
+    if (!role) return [];
+
+    const rolePermissions = demoRolePermissions.filter(rp => rp.roleId === role.id);
+    return rolePermissions.map(rp => {
+      const permission = demoPermissions.find(p => p.id === rp.permissionId);
+      return {
+        ...rp,
+        permission: permission!,
+      };
+    }).filter(rp => rp.permission);
   }
 }
 

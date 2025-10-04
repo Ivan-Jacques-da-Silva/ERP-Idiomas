@@ -10,16 +10,65 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { StudentModal } from "@/components/StudentModal";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function Students() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<any>(null);
 
   const { data: students, isLoading } = useQuery<any[]>({
     queryKey: ["/api/students"],
     retry: false,
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/students/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      toast({
+        title: "Sucesso",
+        description: "Aluno deletado com sucesso",
+      });
+      setIsDeleteDialogOpen(false);
+      setStudentToDelete(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao deletar aluno",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreate = () => {
+    setSelectedStudent(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (student: any) => {
+    setSelectedStudent(student);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (student: any) => {
+    setStudentToDelete(student);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (studentToDelete) {
+      deleteMutation.mutate(studentToDelete.id);
+    }
+  };
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -86,7 +135,7 @@ export default function Students() {
           </div>
           
           {canManageStudents && (
-            <Button data-testid="button-new-student">
+            <Button onClick={handleCreate} data-testid="button-new-student">
               <i className="fas fa-plus mr-2"></i>
               Novo Aluno
             </Button>
@@ -148,7 +197,7 @@ export default function Students() {
                   : "Não há alunos cadastrados no sistema."}
               </p>
               {canManageStudents && !searchTerm && (
-                <Button data-testid="button-create-first-student">
+                <Button onClick={handleCreate} data-testid="button-create-first-student">
                   <i className="fas fa-plus mr-2"></i>
                   Cadastrar primeiro aluno
                 </Button>
@@ -212,13 +261,17 @@ export default function Students() {
                     </div>
                     {canManageStudents && (
                       <div className="mt-4 flex space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(student)} data-testid={`button-edit-${student.id}`}>
                           <i className="fas fa-edit mr-2"></i>
                           Editar
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" data-testid={`button-view-${student.id}`}>
                           <i className="fas fa-eye mr-2"></i>
                           Ver perfil
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(student)} data-testid={`button-delete-${student.id}`}>
+                          <i className="fas fa-trash mr-2"></i>
+                          Excluir
                         </Button>
                       </div>
                     )}
@@ -229,6 +282,34 @@ export default function Students() {
           </>
         )}
       </div>
+
+      <StudentModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        student={selectedStudent}
+      />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-delete-student">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o aluno <strong>{studentToDelete?.user?.firstName} {studentToDelete?.user?.lastName}</strong>?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }

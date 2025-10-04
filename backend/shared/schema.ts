@@ -41,6 +41,12 @@ export const staffPositionEnum = pgEnum('staff_position', [
 // Staff gender enum
 export const staffGenderEnum = pgEnum('staff_gender', ['masculino', 'feminino']);
 
+// Student gender enum
+export const studentGenderEnum = pgEnum('student_gender', ['masculino', 'feminino']);
+
+// Billing type enum
+export const billingTypeEnum = pgEnum('billing_type', ['mensalidade', 'trimestral', 'semestral', 'anual', 'avulso']);
+
 // Support ticket priority and status enums
 export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high', 'urgent']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
@@ -156,7 +162,74 @@ export const staff = pgTable("staff", {
   salary: integer("salary"),
   hireDate: timestamp("hire_date"),
   
+  // Credenciais de acesso
+  login: varchar("login").unique(),
+  password: varchar("password"),
+  
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Guardians table - responsáveis/tutores legais para menores de idade
+export const guardians = pgTable("guardians", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Informações pessoais
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  cpf: varchar("cpf", { length: 14 }).unique(),
+  birthDate: timestamp("birth_date"),
+  gender: studentGenderEnum("gender"),
+  
+  // Contatos
+  email: varchar("email"),
+  phone: varchar("phone"),
+  whatsapp: varchar("whatsapp"),
+  
+  // Endereço
+  cep: varchar("cep", { length: 9 }),
+  address: text("address"),
+  number: varchar("number"),
+  complement: varchar("complement"),
+  neighborhood: varchar("neighborhood"),
+  city: varchar("city"),
+  
+  // Relação com o aluno
+  relationship: varchar("relationship"), // pai, mãe, tutor, etc.
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Financial Responsibles table - responsáveis financeiros/avalistas
+export const financialResponsibles = pgTable("financial_responsibles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  guardianId: varchar("guardian_id").references(() => guardians.id).notNull(),
+  
+  // Informações pessoais
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  cpf: varchar("cpf", { length: 14 }).unique(),
+  birthDate: timestamp("birth_date"),
+  gender: studentGenderEnum("gender"),
+  
+  // Contatos
+  email: varchar("email"),
+  phone: varchar("phone"),
+  whatsapp: varchar("whatsapp"),
+  
+  // Endereço
+  cep: varchar("cep", { length: 9 }),
+  address: text("address"),
+  number: varchar("number"),
+  complement: varchar("complement"),
+  neighborhood: varchar("neighborhood"),
+  city: varchar("city"),
+  
+  // Relação com o responsável legal
+  relationship: varchar("relationship"), // cônjuge, familiar, etc.
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -167,6 +240,34 @@ export const students = pgTable("students", {
   userId: varchar("user_id").references(() => users.id).notNull(),
   studentId: varchar("student_id").unique(),
   unitId: varchar("unit_id").references(() => units.id),
+  
+  // Informações pessoais
+  cpf: varchar("cpf", { length: 14 }).unique(),
+  birthDate: timestamp("birth_date"),
+  gender: studentGenderEnum("gender"),
+  
+  // Contatos
+  phone: varchar("phone"),
+  whatsapp: varchar("whatsapp"),
+  
+  // Endereço
+  cep: varchar("cep", { length: 9 }),
+  address: text("address"),
+  number: varchar("number"),
+  complement: varchar("complement"),
+  neighborhood: varchar("neighborhood"),
+  city: varchar("city"),
+  
+  // Informações de cobrança
+  billingType: billingTypeEnum("billing_type"),
+  
+  // Credenciais de acesso
+  login: varchar("login").unique(),
+  password: varchar("password"),
+  
+  // Responsável (se menor de idade)
+  guardianId: varchar("guardian_id").references(() => guardians.id),
+  
   enrollmentDate: timestamp("enrollment_date"),
   status: varchar("status").default('active'), // active, inactive, graduated
   emergencyContact: text("emergency_contact"),
@@ -346,6 +447,21 @@ export const staffRelations = relations(staff, ({ one }) => ({
   }),
 }));
 
+export const guardiansRelations = relations(guardians, ({ one, many }) => ({
+  students: many(students),
+  financialResponsible: one(financialResponsibles, {
+    fields: [guardians.id],
+    references: [financialResponsibles.guardianId],
+  }),
+}));
+
+export const financialResponsiblesRelations = relations(financialResponsibles, ({ one }) => ({
+  guardian: one(guardians, {
+    fields: [financialResponsibles.guardianId],
+    references: [guardians.id],
+  }),
+}));
+
 export const studentsRelations = relations(students, ({ one, many }) => ({
   user: one(users, {
     fields: [students.userId],
@@ -354,6 +470,10 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
   unit: one(units, {
     fields: [students.unitId],
     references: [units.id],
+  }),
+  guardian: one(guardians, {
+    fields: [students.guardianId],
+    references: [guardians.id],
   }),
   enrollments: many(classEnrollments),
 }));
@@ -425,6 +545,18 @@ export const insertStaffSchema = createInsertSchema(staff).omit({
   updatedAt: true,
 });
 
+export const insertGuardianSchema = createInsertSchema(guardians).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFinancialResponsibleSchema = createInsertSchema(financialResponsibles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
   createdAt: true,
@@ -490,6 +622,8 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertUnit = z.infer<typeof insertUnitSchema>;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
+export type InsertGuardian = z.infer<typeof insertGuardianSchema>;
+export type InsertFinancialResponsible = z.infer<typeof insertFinancialResponsibleSchema>;
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type InsertClass = z.infer<typeof insertClassSchema>;
@@ -503,6 +637,8 @@ export type InsertUserPermission = z.infer<typeof insertUserPermissionSchema>;
 
 export type Unit = typeof units.$inferSelect;
 export type Staff = typeof staff.$inferSelect;
+export type Guardian = typeof guardians.$inferSelect;
+export type FinancialResponsible = typeof financialResponsibles.$inferSelect;
 export type Student = typeof students.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type Book = typeof books.$inferSelect;
@@ -523,6 +659,10 @@ export type UserWithPermissions = User & {
 };
 export type StaffWithUser = Staff & { user: User };
 export type StudentWithUser = Student & { user: User };
+export type StudentWithGuardian = Student & { 
+  user: User;
+  guardian: Guardian & { financialResponsible?: FinancialResponsible } | null;
+};
 export type ClassWithDetails = Class & { 
   book: Book & { course: Course };
   teacher: User; 
@@ -594,6 +734,55 @@ export const supportTicketResponses = pgTable("support_ticket_responses", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Franchise Units Registration table
+export const franchiseUnits = pgTable("franchise_units", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Tipo de cadastro
+  entityType: varchar("entity_type").notNull(), // "pessoa_fisica" ou "pessoa_juridica"
+  
+  // Dados Pessoa Física
+  fullName: text("full_name"),
+  cpfNumber: varchar("cpf_number"),
+  cpfDocument: text("cpf_document"),
+  rgNumber: varchar("rg_number"),
+  rgDocument: text("rg_document"),
+  addressProof: text("address_proof"),
+  addressProofDocument: text("address_proof_document"),
+  maritalStatus: text("marital_status"),
+  maritalStatusDocument: text("marital_status_document"),
+  resumeDocument: text("resume_document"),
+  assetDeclarationDocument: text("asset_declaration_document"),
+  incomeProofDocument: text("income_proof_document"),
+  
+  // Dados Pessoa Jurídica
+  socialContractDocument: text("social_contract_document"),
+  cnpjNumber: varchar("cnpj_number"),
+  cnpjDocument: text("cnpj_document"),
+  stateRegistrationNumber: varchar("state_registration_number"),
+  stateRegistrationDocument: text("state_registration_document"),
+  partnersDocuments: text("partners_documents"),
+  partnersDocumentsNumber: varchar("partners_documents_number"),
+  negativeCertificatesDocument: text("negative_certificates_document"),
+  
+  // Dados Financeiros
+  initialCapitalDocument: text("initial_capital_document"),
+  cashFlowProofDocument: text("cash_flow_proof_document"),
+  taxReturnDocument: text("tax_return_document"),
+  bankReferencesContacts: text("bank_references_contacts"),
+  bankReferencesDocument: text("bank_references_document"),
+  
+  // Dados Imobiliários
+  desiredLocation: text("desired_location"),
+  propertyDocuments: text("property_documents"),
+  leaseContractDocument: text("lease_contract_document"),
+  floorPlanDocument: text("floor_plan_document"),
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas for new tables
 export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
   id: true,
@@ -617,6 +806,12 @@ export const insertSupportTicketResponseSchema = createInsertSchema(supportTicke
   userId: true,
 });
 
+export const insertFranchiseUnitSchema = createInsertSchema(franchiseUnits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types for new tables
 export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
 export type UserSettings = typeof userSettings.$inferSelect;
@@ -624,6 +819,8 @@ export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicketResponse = z.infer<typeof insertSupportTicketResponseSchema>;
 export type SupportTicketResponse = typeof supportTicketResponses.$inferSelect;
+export type InsertFranchiseUnit = z.infer<typeof insertFranchiseUnitSchema>;
+export type FranchiseUnit = typeof franchiseUnits.$inferSelect;
 
 // Extended types with relations
 export type SupportTicketWithResponses = SupportTicket & {
