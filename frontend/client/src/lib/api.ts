@@ -5,14 +5,16 @@ const isProduction = typeof window !== 'undefined' && (
 );
 
 const isReplit = typeof window !== 'undefined' && (
-  window.location.hostname.includes('.repl.co') || 
+  window.location.hostname.includes('.repl.co') ||
   window.location.hostname.includes('replit.dev')
 );
 
-export const API_BASE = import.meta.env.VITE_API_URL || 
-  (isProduction ? 'https://erpapi.vision.dev.br' : 
-   isReplit ? 'https://erpapi.vision.dev.br' : 
-   'http://localhost:5052');
+// Use porta 5052 se estiver rodando localmente na VPS, senão use HTTPS sem porta
+export const API_BASE = import.meta.env.VITE_API_URL ||
+  (isProduction ? 'https://erpapi.vision.dev.br'
+    : isReplit ? 'https://erpapi.vision.dev.br'
+      : 'http://localhost:5052');
+
 
 // Interceptador para fetch
 export async function apiRequest(url: string, options: RequestInit = {}) {

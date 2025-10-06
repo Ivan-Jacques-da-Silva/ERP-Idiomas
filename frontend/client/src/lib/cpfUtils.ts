@@ -72,3 +72,37 @@ export async function fetchAddressByCEP(cep: string): Promise<{
   
   return data;
 }
+
+export function formatDateToInput(date: any): string {
+  if (!date) return "";
+  
+  try {
+    const dateObj = new Date(date);
+    
+    if (isNaN(dateObj.getTime())) {
+      return "";
+    }
+    
+    return dateObj.toISOString().slice(0, 10);
+  } catch (error) {
+    console.error('Error formatting date to input:', error);
+    return "";
+  }
+}
+
+export function formatDateToISO(dateString: string): string | null {
+  if (!dateString) return null;
+  
+  try {
+    const dateObj = new Date(dateString);
+    
+    if (isNaN(dateObj.getTime())) {
+      return null;
+    }
+    
+    return dateObj.toISOString();
+  } catch (error) {
+    console.error('Error formatting date to ISO:', error);
+    return null;
+  }
+}

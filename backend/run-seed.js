@@ -1,14 +1,11 @@
-
-#!/usr/bin/env node
-
-import { seedDatabase, checkTables } from './seed-demo-users.js';
+import { seedDatabase, verificarTabelas } from './seed-demo-users.js';
 
 async function main() {
   try {
     console.log('🌱 Executando seed dos usuários demo...');
     
     // Verificar se as tabelas existem
-    const tablesExist = await checkTables();
+    const tablesExist = await verificarTabelas();
     if (!tablesExist) {
       console.log('❌ Tabelas não encontradas. Execute primeiro:');
       console.log('   node setup.js');

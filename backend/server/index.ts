@@ -4,19 +4,19 @@ import cors from "cors";
 import { registerRoutes } from "./routes.js";
 
 const app = express();
+app.set('trust proxy', 1);
+
 
 // CORS configuration for separated frontend/backend
 const allowedOrigins = [
   'https://erp.vision.dev.br',
-  'https://erpapi.vision.dev.br',
+  'http://erp.vision.dev.br',
+  'http://erp.vision.dev.br:5051',
+  'https://erp.vision.dev.br:5051',
   'http://localhost:5051',
   'http://localhost:5052',
-  'http://localhost:3000',
-  'http://localhost:5000',
   'http://127.0.0.1:5051',
   'http://127.0.0.1:5052',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5000',
   process.env.FRONTEND_URL,
   process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null,
   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
@@ -26,15 +26,18 @@ console.log('🔧 CORS Origins permitidas:', allowedOrigins);
 
 // OPTIONS preflight handler ANTES do CORS (prioridade máxima)
 app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  res.sendStatus(204);
+  const origin = req.headers.origin || '';
+  const ok = allowedOrigins.includes(origin);
+  res.header('Vary', 'Origin');
+  res.header('Access-Control-Allow-Origin', ok ? origin : 'https://erp.vision.dev.br');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Max-Age', '86400');
+
+  return res.sendStatus(204);
 });
+
 
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {

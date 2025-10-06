@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { validateCPF, formatCPF, formatCEP, formatPhone, fetchAddressByCEP } from "@/lib/cpfUtils";
+import { validateCPF, formatCPF, formatCEP, formatPhone, fetchAddressByCEP, formatDateToInput, formatDateToISO } from "@/lib/cpfUtils";
 
 interface StudentModalProps {
   open: boolean;
@@ -93,7 +93,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
         firstName: student.user?.firstName || "",
         lastName: student.user?.lastName || "",
         cpf: student.cpf || "",
-        birthDate: student.birthDate ? new Date(student.birthDate).toISOString().split('T')[0] : "",
+        birthDate: formatDateToInput(student.birthDate),
         email: student.user?.email || "",
         phone: student.phone || "",
         whatsapp: student.whatsapp || "",
@@ -115,7 +115,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
           firstName: student.guardian.firstName || "",
           lastName: student.guardian.lastName || "",
           cpf: student.guardian.cpf || "",
-          birthDate: student.guardian.birthDate ? new Date(student.guardian.birthDate).toISOString().split('T')[0] : "",
+          birthDate: formatDateToInput(student.guardian.birthDate),
           email: student.guardian.email || "",
           phone: student.guardian.phone || "",
           whatsapp: student.guardian.whatsapp || "",
@@ -135,7 +135,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
             firstName: student.guardian.financialResponsible.firstName || "",
             lastName: student.guardian.financialResponsible.lastName || "",
             cpf: student.guardian.financialResponsible.cpf || "",
-            birthDate: student.guardian.financialResponsible.birthDate ? new Date(student.guardian.financialResponsible.birthDate).toISOString().split('T')[0] : "",
+            birthDate: formatDateToInput(student.guardian.financialResponsible.birthDate),
             email: student.guardian.financialResponsible.email || "",
             phone: student.guardian.financialResponsible.phone || "",
             whatsapp: student.guardian.financialResponsible.whatsapp || "",
@@ -376,7 +376,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
       lastName: formData.lastName,
       email: formData.email,
       cpf: formData.cpf.replace(/\D/g, ""),
-      birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : null,
+      birthDate: formatDateToISO(formData.birthDate),
       gender: formData.gender || null,
       phone: formData.phone,
       whatsapp: formData.whatsapp,
@@ -396,7 +396,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
         firstName: guardianData.firstName,
         lastName: guardianData.lastName,
         cpf: guardianData.cpf.replace(/\D/g, ""),
-        birthDate: guardianData.birthDate ? new Date(guardianData.birthDate).toISOString() : null,
+        birthDate: formatDateToISO(guardianData.birthDate),
         email: guardianData.email,
         phone: guardianData.phone,
         whatsapp: guardianData.whatsapp,
@@ -415,7 +415,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
           firstName: financialData.firstName,
           lastName: financialData.lastName,
           cpf: financialData.cpf.replace(/\D/g, ""),
-          birthDate: financialData.birthDate ? new Date(financialData.birthDate).toISOString() : null,
+          birthDate: formatDateToISO(financialData.birthDate),
           email: financialData.email,
           phone: financialData.phone,
           whatsapp: financialData.whatsapp,

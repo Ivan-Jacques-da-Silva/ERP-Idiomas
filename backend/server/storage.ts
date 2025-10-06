@@ -45,6 +45,11 @@ import type {
   SupportTicket,
   SupportTicketResponse,
   SupportTicketWithResponses,
+  CourseUnit,
+  CourseVideo,
+  CourseActivity,
+  StudentProgress,
+  StudentCourseEnrollment,
 } from "../shared/schema.js";
 import {
   units,
@@ -66,6 +71,11 @@ import {
   supportTickets,
   supportTicketResponses,
   franchiseUnits,
+  courseUnits,
+  courseVideos,
+  courseActivities,
+  studentProgress,
+  studentCourseEnrollments,
 } from "../shared/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -3403,6 +3413,364 @@ export class DatabaseStorage implements IStorage {
         permission: permission!,
       };
     }).filter(rp => rp.permission);
+  }
+
+  // ===================== STUDENT COURSE AREA METHODS =====================
+
+  async getStudentCourses(userId: string): Promise<any[]> {
+    const result = await db
+      .select()
+      .from(studentCourseEnrollments)
+      .innerJoin(students, eq(studentCourseEnrollments.studentId, students.id))
+      .innerJoin(users, eq(students.userId, users.id))
+      .innerJoin(courses, eq(studentCourseEnrollments.courseId, courses.id))
+      .where(eq(users.id, userId));
+
+    return result.map(r => ({
+      ...r.student_course_enrollments,
+      course: r.courses,
+    }));
+  }
+
+  async getStudentCourseDetails(userId: string, courseId: string): Promise<any> {
+    const enrollment = await db
+      .select()
+      .from(studentCourseEnrollments)
+      .innerJoin(students, eq(studentCourseEnrollments.studentId, students.id))
+      .innerJoin(users, eq(students.userId, users.id))
+      .innerJoin(courses, eq(studentCourseEnrollments.courseId, courses.id))
+      .where(and(
+        eq(users.id, userId),
+        eq(studentCourseEnrollments.courseId, courseId)
+      ))
+      .limit(1);
+
+    if (!enrollment.length) return null;
+    
+    const studentId = enrollment[0].students.id;
+
+    const booksData = await db
+      .select()
+      .from(books)
+      .where(eq(books.courseId, courseId))
+      .orderBy(books.displayOrder);
+
+    const unitsData = await db
+      .select()
+      .from(courseUnits)
+      .where(sql`${courseUnits.bookId} IN (SELECT id FROM ${books} WHERE ${books.courseId} = ${courseId})`)
+      .orderBy(courseUnits.displayOrder);
+
+    const videosData = await db
+      .select()
+      .from(courseVideos)
+      .where(sql`${courseVideos.unitId} IN (SELECT id FROM ${courseUnits} WHERE ${courseUnits.bookId} IN (SELECT id FROM ${books} WHERE ${books.courseId} = ${courseId}))`)
+      .orderBy(courseVideos.displayOrder);
+
+    const progressData = await db
+      .select()
+      .from(studentProgress)
+      .where(and(
+        eq(studentProgress.studentId, studentId),
+        sql`${studentProgress.videoId} IN (SELECT id FROM ${courseVideos} WHERE ${courseVideos.unitId} IN (SELECT id FROM ${courseUnits} WHERE ${courseUnits.bookId} IN (SELECT id FROM ${books} WHERE ${books.courseId} = ${courseId})))`
+      ));
+
+    const progressMap = new Map(progressData.map(p => [p.videoId, p]));
+    const videosMap = new Map<string, any[]>();
+    
+    videosData.forEach(video => {
+      if (!videosMap.has(video.unitId!)) {
+        videosMap.set(video.unitId!, []);
+      }
+      videosMap.get(video.unitId!)!.push({
+        ...video,
+        progress: progressMap.get(video.id) || null,
+      });
+    });
+
+    const unitsMap = new Map<string, any[]>();
+    unitsData.forEach(unit => {
+      if (!unitsMap.has(unit.bookId!)) {
+        unitsMap.set(unit.bookId!, []);
+      }
+      unitsMap.get(unit.bookId!)!.push({
+        ...unit,
+        videos: videosMap.get(unit.id) || [],
+      });
+    });
+
+    const result = {
+      ...enrollment[0].student_course_enrollments,
+      course: {
+        ...enrollment[0].courses,
+        books: booksData.map(book => ({
+          ...book,
+          units: unitsMap.get(book.id) || [],
+        })),
+      },
+    };
+
+    return result;
+  }
+
+  async getUnitVideosWithProgress(userId: string, unitId: string): Promise<any[]> {
+    const [student] = await db
+      .select()
+      .from(students)
+      .innerJoin(users, eq(students.userId, users.id))
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!student) throw new Error("Student not found");
+
+    const [unit] = await db
+      .select()
+      .from(courseUnits)
+      .innerJoin(books, eq(courseUnits.bookId, books.id))
+      .where(eq(courseUnits.id, unitId))
+      .limit(1);
+
+    if (!unit) throw new Error("Unit not found");
+
+    const [enrollment] = await db
+      .select()
+      .from(studentCourseEnrollments)
+      .where(and(
+        eq(studentCourseEnrollments.studentId, student.students.id),
+        eq(studentCourseEnrollments.courseId, unit.books.courseId!)
+      ))
+      .limit(1);
+
+    if (!enrollment) throw new Error("Student not enrolled in this course");
+
+    const videosData = await db
+      .select()
+      .from(courseVideos)
+      .where(eq(courseVideos.unitId, unitId))
+      .orderBy(courseVideos.displayOrder);
+
+    const progressData = await db
+      .select()
+      .from(studentProgress)
+      .where(and(
+        eq(studentProgress.studentId, student.students.id),
+        sql`${studentProgress.videoId} IN (SELECT id FROM ${courseVideos} WHERE ${courseVideos.unitId} = ${unitId})`
+      ));
+
+    const activitiesData = await db
+      .select()
+      .from(courseActivities)
+      .where(sql`${courseActivities.videoId} IN (SELECT id FROM ${courseVideos} WHERE ${courseVideos.unitId} = ${unitId})`)
+      .orderBy(courseActivities.displayOrder);
+
+    const progressMap = new Map(progressData.map(p => [p.videoId, p]));
+    const activitiesMap = new Map<string, any[]>();
+    
+    activitiesData.forEach(activity => {
+      if (!activitiesMap.has(activity.videoId!)) {
+        activitiesMap.set(activity.videoId!, []);
+      }
+      activitiesMap.get(activity.videoId!)!.push(activity);
+    });
+
+    return videosData.map(video => ({
+      ...video,
+      activities: activitiesMap.get(video.id) || [],
+      progress: progressMap.get(video.id) || null,
+    }));
+  }
+
+  async updateVideoProgress(userId: string, videoId: string, progressData: { isCompleted: boolean; watchedDuration: number }): Promise<any> {
+    const [student] = await db
+      .select()
+      .from(students)
+      .innerJoin(users, eq(students.userId, users.id))
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!student) throw new Error("Student not found");
+
+    const [video] = await db
+      .select()
+      .from(courseVideos)
+      .innerJoin(courseUnits, eq(courseVideos.unitId, courseUnits.id))
+      .innerJoin(books, eq(courseUnits.bookId, books.id))
+      .where(eq(courseVideos.id, videoId))
+      .limit(1);
+
+    if (!video) throw new Error("Video not found");
+
+    const [enrollment] = await db
+      .select()
+      .from(studentCourseEnrollments)
+      .where(and(
+        eq(studentCourseEnrollments.studentId, student.students.id),
+        eq(studentCourseEnrollments.courseId, video.books.courseId!)
+      ))
+      .limit(1);
+
+    if (!enrollment) throw new Error("Student not enrolled in this course");
+
+    const [existing] = await db
+      .select()
+      .from(studentProgress)
+      .where(and(
+        eq(studentProgress.studentId, student.students.id),
+        eq(studentProgress.videoId, videoId)
+      ))
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await db
+        .update(studentProgress)
+        .set({
+          isCompleted: progressData.isCompleted,
+          watchedDuration: progressData.watchedDuration,
+          completedAt: progressData.isCompleted ? new Date() : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(studentProgress.id, existing.id))
+        .returning();
+
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(studentProgress)
+        .values({
+          studentId: student.students.id,
+          videoId,
+          isCompleted: progressData.isCompleted,
+          watchedDuration: progressData.watchedDuration,
+          completedAt: progressData.isCompleted ? new Date() : null,
+        })
+        .returning();
+
+      return created;
+    }
+  }
+
+  async updateActivityProgress(userId: string, activityId: string, progressData: { isCompleted: boolean; studentAnswer?: string; score: number }): Promise<any> {
+    const [student] = await db
+      .select()
+      .from(students)
+      .innerJoin(users, eq(students.userId, users.id))
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!student) throw new Error("Student not found");
+
+    const [activity] = await db
+      .select()
+      .from(courseActivities)
+      .innerJoin(courseVideos, eq(courseActivities.videoId, courseVideos.id))
+      .innerJoin(courseUnits, eq(courseVideos.unitId, courseUnits.id))
+      .innerJoin(books, eq(courseUnits.bookId, books.id))
+      .where(eq(courseActivities.id, activityId))
+      .limit(1);
+
+    if (!activity) throw new Error("Activity not found");
+
+    const [enrollment] = await db
+      .select()
+      .from(studentCourseEnrollments)
+      .where(and(
+        eq(studentCourseEnrollments.studentId, student.students.id),
+        eq(studentCourseEnrollments.courseId, activity.books.courseId!)
+      ))
+      .limit(1);
+
+    if (!enrollment) throw new Error("Student not enrolled in this course");
+
+    const [existing] = await db
+      .select()
+      .from(studentProgress)
+      .where(and(
+        eq(studentProgress.studentId, student.students.id),
+        eq(studentProgress.activityId, activityId)
+      ))
+      .limit(1);
+
+    if (existing) {
+      const updateData: any = {
+        isCompleted: progressData.isCompleted,
+        score: progressData.score,
+        attempts: sql`${studentProgress.attempts} + 1`,
+        completedAt: progressData.isCompleted ? new Date() : null,
+        updatedAt: new Date(),
+      };
+      
+      if (progressData.studentAnswer !== undefined) {
+        updateData.studentAnswer = progressData.studentAnswer;
+      } else {
+        updateData.studentAnswer = null;
+      }
+
+      const [updated] = await db
+        .update(studentProgress)
+        .set(updateData)
+        .where(eq(studentProgress.id, existing.id))
+        .returning();
+
+      return updated;
+    } else {
+      const insertData: any = {
+        studentId: student.students.id,
+        activityId,
+        isCompleted: progressData.isCompleted,
+        score: progressData.score,
+        attempts: 1,
+        completedAt: progressData.isCompleted ? new Date() : null,
+      };
+      
+      if (progressData.studentAnswer !== undefined) {
+        insertData.studentAnswer = progressData.studentAnswer;
+      } else {
+        insertData.studentAnswer = null;
+      }
+
+      const [created] = await db
+        .insert(studentProgress)
+        .values(insertData)
+        .returning();
+
+      return created;
+    }
+  }
+
+  async getUnitProgress(userId: string, unitId: string): Promise<any> {
+    const [student] = await db
+      .select()
+      .from(students)
+      .innerJoin(users, eq(students.userId, users.id))
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!student) throw new Error("Student not found");
+
+    const videosData = await db
+      .select()
+      .from(courseVideos)
+      .where(eq(courseVideos.unitId, unitId));
+
+    const completedCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(studentProgress)
+      .innerJoin(courseVideos, eq(studentProgress.videoId, courseVideos.id))
+      .where(and(
+        eq(studentProgress.studentId, student.students.id),
+        eq(courseVideos.unitId, unitId),
+        eq(studentProgress.isCompleted, true)
+      ));
+
+    const totalVideos = videosData.length;
+    const completedVideos = Number(completedCount[0]?.count || 0);
+    const progress = totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
+
+    return {
+      totalVideos,
+      completedVideos,
+      progress,
+    };
   }
 }
 

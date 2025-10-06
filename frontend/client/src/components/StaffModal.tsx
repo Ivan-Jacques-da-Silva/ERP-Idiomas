@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { validateCPF, formatCPF, formatCEP, formatPhone, fetchAddressByCEP } from "@/lib/cpfUtils";
+import { validateCPF, formatCPF, formatCEP, formatPhone, fetchAddressByCEP, formatDateToInput, formatDateToISO } from "@/lib/cpfUtils";
 
 interface StaffModalProps {
   open: boolean;
@@ -58,7 +58,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         lastName: staffMember.user?.lastName || "",
         email: staffMember.user?.email || "",
         cpf: staffMember.cpf || "",
-        birthDate: staffMember.birthDate ? new Date(staffMember.birthDate).toISOString().split('T')[0] : "",
+        birthDate: formatDateToInput(staffMember.birthDate),
         gender: staffMember.gender || "",
         phone: staffMember.phone || "",
         whatsapp: staffMember.whatsapp || "",
@@ -188,7 +188,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
       lastName: formData.lastName,
       email: formData.email,
       cpf: formData.cpf.replace(/\D/g, ""),
-      birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : null,
+      birthDate: formatDateToISO(formData.birthDate),
       gender: formData.gender || null,
       phone: formData.phone,
       whatsapp: formData.whatsapp,

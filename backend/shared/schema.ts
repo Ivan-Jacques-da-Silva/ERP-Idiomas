@@ -51,6 +51,9 @@ export const billingTypeEnum = pgEnum('billing_type', ['mensalidade', 'trimestra
 export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high', 'urgent']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
 
+// Franchisee type enum
+export const franchiseeTypeEnum = pgEnum('franchisee_type', ['pessoa_fisica', 'pessoa_juridica']);
+
 // User roles enum - simplificado para 4 roles fixos
 export const userRoleEnum = pgEnum('user_role', [
   'admin',     // Administrativo - acesso total
@@ -128,6 +131,46 @@ export const units = pgTable("units", {
   phone: varchar("phone"),
   email: varchar("email"),
   managerId: varchar("manager_id").references(() => users.id),
+  
+  // Tipo de franqueado
+  franchiseeType: franchiseeTypeEnum("franchisee_type"),
+  
+  // Dados Franqueado - Pessoa Física
+  franchiseeName: varchar("franchisee_name"),
+  franchiseeCpf: varchar("franchisee_cpf"),
+  franchiseeCpfDoc: varchar("franchisee_cpf_doc"), // URL do documento
+  franchiseeRg: varchar("franchisee_rg"),
+  franchiseeRgDoc: varchar("franchisee_rg_doc"), // URL do documento
+  franchiseeResidenceAddress: text("franchisee_residence_address"),
+  franchiseeResidenceDoc: varchar("franchisee_residence_doc"), // URL do comprovante
+  franchiseeMaritalStatus: varchar("franchisee_marital_status"),
+  franchiseeMaritalStatusDoc: varchar("franchisee_marital_status_doc"), // URL do documento
+  franchiseeCurriculumDoc: varchar("franchisee_curriculum_doc"), // URL do currículo
+  franchiseeAssetsDoc: varchar("franchisee_assets_doc"), // URL declaração de bens
+  franchiseeIncomeDoc: varchar("franchisee_income_doc"), // URL comprovante de renda
+  
+  // Dados Franqueado - Pessoa Jurídica
+  franchiseeSocialContractDoc: varchar("franchisee_social_contract_doc"), // URL contrato social
+  franchiseeCnpj: varchar("franchisee_cnpj"),
+  franchiseeCnpjDoc: varchar("franchisee_cnpj_doc"), // URL do documento
+  franchiseeStateRegistration: varchar("franchisee_state_registration"),
+  franchiseeStateRegistrationDoc: varchar("franchisee_state_registration_doc"), // URL do documento
+  franchiseePartnersDocsDoc: varchar("franchisee_partners_docs_doc"), // URL docs dos sócios
+  franchiseeCertificatesDoc: varchar("franchisee_certificates_doc"), // URL certidões negativas
+  
+  // Dados Financeiros
+  financialCapitalDoc: varchar("financial_capital_doc"), // URL capital disponível
+  financialCashFlowDoc: varchar("financial_cash_flow_doc"), // URL capacidade de giro
+  financialTaxReturnsDoc: varchar("financial_tax_returns_doc"), // URL declaração IR
+  financialBankReferences: text("financial_bank_references"), // Contatos
+  financialBankReferencesDoc: varchar("financial_bank_references_doc"), // URL do documento
+  
+  // Dados Imobiliários
+  realEstateLocation: varchar("real_estate_location"), // Link da localização
+  realEstatePropertyDoc: varchar("real_estate_property_doc"), // URL docs do imóvel
+  realEstateLeaseDoc: varchar("real_estate_lease_doc"), // URL contrato de locação
+  realEstateFloorPlanDoc: varchar("real_estate_floor_plan_doc"), // URL planta baixa
+  
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -355,6 +398,119 @@ export const lessons = pgTable("lessons", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Course Units table - Unidades dentro de cada book (cada unit tem 6 dias de vídeo)
+export const courseUnits = pgTable("course_units", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookId: varchar("book_id").references(() => books.id, { onDelete: 'cascade' }).notNull(),
+  name: varchar("name").notNull(), // Unit 01, Unit 02, etc
+  description: text("description"),
+  displayOrder: integer("display_order").notNull(), // ordem dentro do book
+  unitType: varchar("unit_type").default('lesson'), // 'lesson', 'checkpoint', 'review', 'conversation'
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Course Videos table - Vídeos para cada dia da unit (6 vídeos por unit)
+export const courseVideos = pgTable("course_videos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  unitId: varchar("unit_id").references(() => courseUnits.id, { onDelete: 'cascade' }).notNull(),
+  dayNumber: integer("day_number").notNull(), // 1 a 6
+  title: varchar("title").notNull(),
+  description: text("description"),
+  videoUrl: varchar("video_url").notNull(), // URL do vídeo
+  thumbnailUrl: varchar("thumbnail_url"), // URL da thumbnail
+  duration: integer("duration"), // duração em segundos
+  hasSubtitles: boolean("has_subtitles").default(false),
+  subtitlesUrl: varchar("subtitles_url"), // URL do arquivo de legendas
+  displayOrder: integer("display_order").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Course Activities table - Atividades para cada dia
+export const courseActivities = pgTable("course_activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  videoId: varchar("video_id").references(() => courseVideos.id, { onDelete: 'cascade' }).notNull(),
+  activityType: varchar("activity_type").notNull(), // 'multiple_choice', 'fill_blank', 'speaking', 'listening', 'writing', 'unscramble'
+  title: varchar("title").notNull(),
+  description: text("description"),
+  instruction: text("instruction"), // Instrução específica da atividade
+  content: text("content").notNull(), // JSON com o conteúdo da atividade
+  correctAnswer: text("correct_answer"), // JSON com a resposta correta
+  points: integer("points").default(10),
+  displayOrder: integer("display_order").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Course Workbooks table - Material de apoio/workbooks
+export const courseWorkbooks = pgTable("course_workbooks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookId: varchar("book_id").references(() => books.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  pdfUrl: varchar("pdf_url"), // URL do PDF do workbook
+  content: text("content"), // Conteúdo em texto/JSON se não for PDF
+  displayOrder: integer("display_order").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Course Exams table - Provas e checkpoints
+export const courseExams = pgTable("course_exams", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookId: varchar("book_id").references(() => books.id, { onDelete: 'cascade' }).notNull(),
+  unitId: varchar("unit_id").references(() => courseUnits.id), // pode ser associado a uma unit específica
+  title: varchar("title").notNull(),
+  description: text("description"),
+  examType: varchar("exam_type").notNull(), // 'checkpoint', 'final', 'review'
+  content: text("content").notNull(), // JSON com as questões
+  totalPoints: integer("total_points").default(100),
+  passingScore: integer("passing_score").default(70), // nota mínima para passar
+  timeLimit: integer("time_limit"), // tempo limite em minutos
+  displayOrder: integer("display_order").notNull(),
+  requiresTeacherReview: boolean("requires_teacher_review").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Student Progress table - Progresso do aluno por vídeo/atividade
+export const studentProgress = pgTable("student_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").references(() => students.id, { onDelete: 'cascade' }).notNull(),
+  videoId: varchar("video_id").references(() => courseVideos.id),
+  activityId: varchar("activity_id").references(() => courseActivities.id),
+  examId: varchar("exam_id").references(() => courseExams.id),
+  isCompleted: boolean("is_completed").default(false),
+  completedAt: timestamp("completed_at"),
+  score: integer("score"), // pontuação obtida
+  attempts: integer("attempts").default(0),
+  studentAnswer: text("student_answer"), // JSON com a resposta do aluno
+  teacherFeedback: text("teacher_feedback"),
+  watchedDuration: integer("watched_duration"), // para vídeos, tempo assistido em segundos
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Student Course Enrollments - Matrícula do aluno em cursos específicos
+export const studentCourseEnrollments = pgTable("student_course_enrollments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").references(() => students.id, { onDelete: 'cascade' }).notNull(),
+  courseId: varchar("course_id").references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+  enrollmentDate: timestamp("enrollment_date").defaultNow(),
+  currentBookId: varchar("current_book_id").references(() => books.id), // book atual do aluno
+  currentUnitId: varchar("current_unit_id").references(() => courseUnits.id), // unit atual do aluno
+  status: varchar("status").default('active'), // 'active', 'completed', 'paused'
+  overallProgress: integer("overall_progress").default(0), // 0-100
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // User permissions table - permissões individuais por usuário baseadas nas páginas do menu
 export const userPermissions = pgTable("user_permissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -526,6 +682,89 @@ export const lessonsRelations = relations(lessons, ({ one }) => ({
   }),
 }));
 
+export const courseUnitsRelations = relations(courseUnits, ({ one, many }) => ({
+  book: one(books, {
+    fields: [courseUnits.bookId],
+    references: [books.id],
+  }),
+  videos: many(courseVideos),
+  exams: many(courseExams),
+}));
+
+export const courseVideosRelations = relations(courseVideos, ({ one, many }) => ({
+  unit: one(courseUnits, {
+    fields: [courseVideos.unitId],
+    references: [courseUnits.id],
+  }),
+  activities: many(courseActivities),
+  studentProgress: many(studentProgress),
+}));
+
+export const courseActivitiesRelations = relations(courseActivities, ({ one, many }) => ({
+  video: one(courseVideos, {
+    fields: [courseActivities.videoId],
+    references: [courseVideos.id],
+  }),
+  studentProgress: many(studentProgress),
+}));
+
+export const courseWorkbooksRelations = relations(courseWorkbooks, ({ one }) => ({
+  book: one(books, {
+    fields: [courseWorkbooks.bookId],
+    references: [books.id],
+  }),
+}));
+
+export const courseExamsRelations = relations(courseExams, ({ one, many }) => ({
+  book: one(books, {
+    fields: [courseExams.bookId],
+    references: [books.id],
+  }),
+  unit: one(courseUnits, {
+    fields: [courseExams.unitId],
+    references: [courseUnits.id],
+  }),
+  studentProgress: many(studentProgress),
+}));
+
+export const studentProgressRelations = relations(studentProgress, ({ one }) => ({
+  student: one(students, {
+    fields: [studentProgress.studentId],
+    references: [students.id],
+  }),
+  video: one(courseVideos, {
+    fields: [studentProgress.videoId],
+    references: [courseVideos.id],
+  }),
+  activity: one(courseActivities, {
+    fields: [studentProgress.activityId],
+    references: [courseActivities.id],
+  }),
+  exam: one(courseExams, {
+    fields: [studentProgress.examId],
+    references: [courseExams.id],
+  }),
+}));
+
+export const studentCourseEnrollmentsRelations = relations(studentCourseEnrollments, ({ one }) => ({
+  student: one(students, {
+    fields: [studentCourseEnrollments.studentId],
+    references: [students.id],
+  }),
+  course: one(courses, {
+    fields: [studentCourseEnrollments.courseId],
+    references: [courses.id],
+  }),
+  currentBook: one(books, {
+    fields: [studentCourseEnrollments.currentBookId],
+    references: [books.id],
+  }),
+  currentUnit: one(courseUnits, {
+    fields: [studentCourseEnrollments.currentUnitId],
+    references: [courseUnits.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -587,6 +826,48 @@ export const insertBookSchema = createInsertSchema(books).omit({
   updatedAt: true,
 });
 
+export const insertCourseUnitSchema = createInsertSchema(courseUnits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCourseVideoSchema = createInsertSchema(courseVideos).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCourseActivitySchema = createInsertSchema(courseActivities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCourseWorkbookSchema = createInsertSchema(courseWorkbooks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCourseExamSchema = createInsertSchema(courseExams).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentProgressSchema = createInsertSchema(studentProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentCourseEnrollmentSchema = createInsertSchema(studentCourseEnrollments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertPermissionCategorySchema = createInsertSchema(permissionCategories).omit({
   id: true,
   createdAt: true,
@@ -629,6 +910,13 @@ export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type InsertClass = z.infer<typeof insertClassSchema>;
 export type InsertLesson = z.infer<typeof insertLessonSchema>;
 export type InsertBook = z.infer<typeof insertBookSchema>;
+export type InsertCourseUnit = z.infer<typeof insertCourseUnitSchema>;
+export type InsertCourseVideo = z.infer<typeof insertCourseVideoSchema>;
+export type InsertCourseActivity = z.infer<typeof insertCourseActivitySchema>;
+export type InsertCourseWorkbook = z.infer<typeof insertCourseWorkbookSchema>;
+export type InsertCourseExam = z.infer<typeof insertCourseExamSchema>;
+export type InsertStudentProgress = z.infer<typeof insertStudentProgressSchema>;
+export type InsertStudentCourseEnrollment = z.infer<typeof insertStudentCourseEnrollmentSchema>;
 export type InsertPermissionCategory = z.infer<typeof insertPermissionCategorySchema>;
 export type InsertPermission = z.infer<typeof insertPermissionSchema>;
 export type InsertRole = z.infer<typeof insertRoleSchema>;
@@ -642,6 +930,13 @@ export type FinancialResponsible = typeof financialResponsibles.$inferSelect;
 export type Student = typeof students.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type Book = typeof books.$inferSelect;
+export type CourseUnit = typeof courseUnits.$inferSelect;
+export type CourseVideo = typeof courseVideos.$inferSelect;
+export type CourseActivity = typeof courseActivities.$inferSelect;
+export type CourseWorkbook = typeof courseWorkbooks.$inferSelect;
+export type CourseExam = typeof courseExams.$inferSelect;
+export type StudentProgress = typeof studentProgress.$inferSelect;
+export type StudentCourseEnrollment = typeof studentCourseEnrollments.$inferSelect;
 export type Class = typeof classes.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type ClassEnrollment = typeof classEnrollments.$inferSelect;
@@ -679,6 +974,33 @@ export type BookWithDetails = Book & {
 // Novo tipo para cursos com todos os detalhes
 export type CourseWithDetails = Course & {
   books: (Book & { classes: Class[] })[];
+};
+
+// Tipos estendidos para área do aluno
+export type CourseUnitWithVideos = CourseUnit & {
+  videos: (CourseVideo & {
+    activities: CourseActivity[];
+  })[];
+};
+
+export type BookWithUnits = Book & {
+  course: Course;
+  units: CourseUnitWithVideos[];
+  workbooks: CourseWorkbook[];
+  exams: CourseExam[];
+};
+
+export type StudentCourseEnrollmentWithDetails = StudentCourseEnrollment & {
+  course: Course & {
+    books: BookWithUnits[];
+  };
+  currentBook?: Book;
+  currentUnit?: CourseUnit;
+};
+
+export type VideoWithProgress = CourseVideo & {
+  activities: CourseActivity[];
+  progress?: StudentProgress;
 };
 
 // Tipos para sistema de permissões

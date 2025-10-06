@@ -76,18 +76,27 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "..", "..", "frontend", "dist", "public");
+  const caminhosPossiveis = [
+    process.env.FRONT_DIST || "",                       // <<< permite apontar absoluto
+    path.resolve(__dirname, "..", "..", "frontend", "client", "dist"),
+    path.resolve(__dirname, "..", "..", "frontend", "dist"),
+    "/var/www/erp/front",                               // <<< teu caminho atual
+  ].filter(Boolean);
 
-  if (!fs.existsSync(distPath)) {
+
+  const distEncontrado = caminhosPossiveis.find((p) => fs.existsSync(p));
+  if (!distEncontrado) {
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `Build não encontrado. Rode o build do front:
+- cd /var/www/erp/frontend && npm ci && npm run build
+Tentado: 
+${caminhosPossiveis.join("\n")}`
     );
   }
 
-  app.use(express.static(distPath));
-
-  // fallback para index.html
+  app.use(express.static(distEncontrado));
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(path.resolve(distEncontrado, "index.html"));
   });
 }
+

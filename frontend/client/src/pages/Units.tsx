@@ -1,75 +1,22 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUnitSchema } from "@shared/schema";
-import type { z } from "zod";
 import { PageLoader, FadeIn, StaggeredFadeIn } from "@/components/PageLoader";
-
-type UnitFormData = z.infer<typeof insertUnitSchema>;
+import { UnitModal } from "@/components/UnitModal";
 
 export default function Units() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<any>(null);
 
   const { data: units, isLoading } = useQuery<any[]>({
     queryKey: ["/api/units"],
     retry: false,
-  });
-
-  const form = useForm<UnitFormData>({
-    resolver: zodResolver(insertUnitSchema),
-    defaultValues: {
-      name: "",
-      address: "",
-      phone: "",
-      email: "",
-    },
-  });
-
-  const createUnitMutation = useMutation({
-    mutationFn: async (data: UnitFormData) => {
-      await apiRequest("POST", "/api/units", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
-      toast({
-        title: "Sucesso!",
-        description: "Unidade criada com sucesso.",
-      });
-      setIsDialogOpen(false);
-      form.reset();
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Erro",
-        description: "Falha ao criar unidade. Tente novamente.",
-        variant: "destructive",
-      });
-    },
   });
 
   // Redirect to login if not authenticated
@@ -87,8 +34,14 @@ export default function Units() {
     }
   }, [isAuthenticated, authLoading, toast]);
 
-  const onSubmit = (data: UnitFormData) => {
-    createUnitMutation.mutate(data);
+  const handleNewUnit = () => {
+    setSelectedUnit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditUnit = (unit: any) => {
+    setSelectedUnit(unit);
+    setIsModalOpen(true);
   };
 
   if (authLoading || !isAuthenticated) {
@@ -114,87 +67,10 @@ export default function Units() {
               </div>
 
               {canManageUnits && (
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button data-testid="button-new-unit">
-                      <i className="fas fa-plus mr-2"></i>
-                      Nova Unidade
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Nova Unidade</DialogTitle>
-                    </DialogHeader>
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Nome da Unidade</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Ex: Unidade Centro" {...field} data-testid="input-unit-name" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="address"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Endereço</FormLabel>
-                              <FormControl>
-                                <Textarea placeholder="Endereço completo da unidade" {...field} value={field.value ?? ""} data-testid="input-unit-address" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Telefone</FormLabel>
-                              <FormControl>
-                                <Input placeholder="(11) 99999-9999" {...field} value={field.value ?? ""} data-testid="input-unit-phone" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>E-mail</FormLabel>
-                              <FormControl>
-                                <Input type="email" placeholder="contato@unidade.com" {...field} value={field.value ?? ""} data-testid="input-unit-email" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="flex justify-end space-x-2">
-                          <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                            Cancelar
-                          </Button>
-                          <Button
-                            type="submit"
-                            disabled={createUnitMutation.isPending}
-                            data-testid="button-save-unit"
-                          >
-                            {createUnitMutation.isPending ? "Salvando..." : "Salvar"}
-                          </Button>
-                        </div>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
+                <Button onClick={handleNewUnit} data-testid="button-new-unit">
+                  <i className="fas fa-plus mr-2"></i>
+                  Nova Unidade
+                </Button>
               )}
             </div>
           </FadeIn>
@@ -227,7 +103,7 @@ export default function Units() {
                     : "Não há unidades cadastradas no sistema."}
                 </p>
                 {canManageUnits && (
-                  <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-first-unit">
+                  <Button onClick={handleNewUnit} data-testid="button-create-first-unit">
                     <i className="fas fa-plus mr-2"></i>
                     Criar primeira unidade
                   </Button>
@@ -270,11 +146,20 @@ export default function Units() {
                       </div>
                       {canManageUnits && (
                         <div className="mt-4 flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditUnit(unit)}
+                            data-testid={`button-edit-${unit.id}`}
+                          >
                             <i className="fas fa-edit mr-2"></i>
                             Editar
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            data-testid={`button-delete-${unit.id}`}
+                          >
                             <i className="fas fa-trash mr-2"></i>
                             Excluir
                           </Button>
@@ -288,6 +173,12 @@ export default function Units() {
           )}
         </div>
       </PageLoader>
+      
+      <UnitModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        unit={selectedUnit}
+      />
     </Layout>
   );
 }

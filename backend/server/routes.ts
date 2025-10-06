@@ -187,6 +187,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload endpoint for unit documents
+  app.post('/api/upload/unit-document', isAuthenticated, franchiseUploads.single('file'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'Nenhum arquivo enviado' });
+      }
+
+      const fileUrl = `/uploads/franchise-units/${req.file.filename}`;
+      res.json({ 
+        url: fileUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      res.status(500).json({ message: 'Erro ao fazer upload do arquivo' });
+    }
+  });
+
   // Dashboard stats
   app.get("/api/dashboard/stats", isAuthenticated, async (req, res) => {
     try {
@@ -1411,6 +1431,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting franchise unit:", error);
       res.status(500).json({ message: "Failed to delete franchise unit" });
+    }
+  });
+
+  // ===================== STUDENT COURSE AREA ROUTES =====================
+  
+  // Middleware to ensure user is a student
+  const requireStudentRole = (req: any, res: any, next: any) => {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: "Access denied. Student role required." });
+    }
+    next();
+  };
+  
+  // Get student's enrolled courses
+  app.get("/api/student/courses", isAuthenticated, requireStudentRole, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const courses = await storage.getStudentCourses(userId);
+      res.json(courses);
+    } catch (error: any) {
+      console.error("Error fetching student courses:", error);
+      res.status(500).json({ message: "Failed to fetch student courses" });
+    }
+  });
+
+  // Get detailed course with books, units, videos and progress
+  app.get("/api/student/courses/:courseId", isAuthenticated, requireStudentRole, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const courseId = req.params.courseId;
+      const courseDetails = await storage.getStudentCourseDetails(userId, courseId);
+      
+      if (!courseDetails) {
+        return res.status(404).json({ message: "Course not found or not enrolled" });
+      }
+      
+      res.json(courseDetails);
+    } catch (error: any) {
+      console.error("Error fetching course details:", error);
+      res.status(500).json({ message: "Failed to fetch course details" });
+    }
+  });
+
+  // Get unit videos with progress
+  app.get("/api/student/units/:unitId/videos", isAuthenticated, requireStudentRole, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const unitId = req.params.unitId;
+      const videos = await storage.getUnitVideosWithProgress(userId, unitId);
+      res.json(videos);
+    } catch (error: any) {
+      console.error("Error fetching unit videos:", error);
+      res.status(500).json({ message: "Failed to fetch unit videos" });
+    }
+  });
+
+  // Update video progress
+  app.post("/api/student/progress/video/:videoId", isAuthenticated, requireStudentRole, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const videoId = req.params.videoId;
+      
+      const progressSchema = z.object({
+        isCompleted: z.boolean(),
+        watchedDuration: z.number().min(0),
+      });
+      
+      const validatedData = progressSchema.parse(req.body);
+      
+      const progress = await storage.updateVideoProgress(userId, videoId, validatedData);
+      
+      res.json(progress);
+    } catch (error: any) {
+      console.error("Error updating video progress:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update video progress" });
+    }
+  });
+
+  // Update activity progress
+  app.post("/api/student/progress/activity/:activityId", isAuthenticated, requireStudentRole, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const activityId = req.params.activityId;
+      
+      const progressSchema = z.object({
+        isCompleted: z.boolean(),
+        studentAnswer: z.any().optional(),
+        score: z.number().min(0).max(100),
+      });
+      
+      const validatedData = progressSchema.parse(req.body);
+      
+      const progressPayload: {
+        isCompleted: boolean;
+        studentAnswer?: string;
+        score: number;
+      } = {
+        isCompleted: validatedData.isCompleted,
+        score: validatedData.score,
+      };
+      
+      if (validatedData.studentAnswer !== undefined) {
+        progressPayload.studentAnswer = JSON.stringify(validatedData.studentAnswer);
+      }
+      
+      const progress = await storage.updateActivityProgress(userId, activityId, progressPayload);
+      
+      res.json(progress);
+    } catch (error: any) {
+      console.error("Error updating activity progress:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      if (error.message?.includes("not enrolled") || error.message?.includes("not found")) {
+        return res.status(403).json({ message: error.message });
+      }
+      res.status(500).json({ message: "Failed to update activity progress" });
+    }
+  });
+
+  // Get student progress for a specific unit
+  app.get("/api/student/units/:unitId/progress", isAuthenticated, requireStudentRole, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const unitId = req.params.unitId;
+      const progress = await storage.getUnitProgress(userId, unitId);
+      res.json(progress);
+    } catch (error: any) {
+      console.error("Error fetching unit progress:", error);
+      res.status(500).json({ message: "Failed to fetch unit progress" });
     }
   });
 

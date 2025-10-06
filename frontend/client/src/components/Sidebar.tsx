@@ -90,7 +90,8 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       path: "/student-area",
       icon: "fas fa-book-open",
       label: "Área do Aluno",
-      permission: "access_student_area"
+      permission: "access_student_area",
+      hideForAdmin: true
     }
   ];
 
@@ -165,6 +166,7 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
           {/* Main Menu Items */}
           {menuItems
             .filter(item => canAccess(item.permission))
+            .filter(item => !(user?.role === 'admin' && item.hideForAdmin))
             .map((item) => (
               <Link key={item.path} href={item.path}>
                 <a
