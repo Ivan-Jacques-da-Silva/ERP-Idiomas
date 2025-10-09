@@ -39,6 +39,7 @@ const demoUsers = [
   { id: '1', email: 'admin@demo.com', password: 'demo123', firstName: 'Admin', lastName: 'Sistema', role: 'admin' },
   { id: '2', email: 'teacher@demo.com', password: 'demo123', firstName: 'Professor', lastName: 'Demo', role: 'teacher' },
   { id: '3', email: 'secretary@demo.com', password: 'demo123', firstName: 'Secretária', lastName: 'Demo', role: 'secretary' },
+  { id: '4', email: 'student@demo.com', password: 'demo123', firstName: 'Aluno', lastName: 'Demo', role: 'student' },
 ];
 
 // JWT Secret

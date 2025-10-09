@@ -105,7 +105,7 @@ export default function Courses() {
 
   // Create course mutation
   const createCourseMutation = useMutation({
-    mutationFn: (data: z.infer<typeof courseFormSchema>) => apiRequest("/api/courses", "POST", data),
+    mutationFn: (data: z.infer<typeof courseFormSchema>) => apiRequest("POST", "/api/courses", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
       toast({ title: "Curso criado com sucesso!" });
@@ -119,7 +119,7 @@ export default function Courses() {
 
   // Update course mutation
   const updateCourseMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: z.infer<typeof courseFormSchema> }) => apiRequest(`/api/courses/${id}`, "PUT", data),
+    mutationFn: ({ id, data }: { id: string, data: z.infer<typeof courseFormSchema> }) => apiRequest("PUT", `/api/courses/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
       toast({ title: "Curso atualizado com sucesso!" });
@@ -133,7 +133,7 @@ export default function Courses() {
 
   // Delete course mutation
   const deleteCourseMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/courses/${id}`, "DELETE"),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/courses/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
       toast({ title: "Curso excluído com sucesso!" });
@@ -145,7 +145,7 @@ export default function Courses() {
 
   // Create book mutation
   const createBookMutation = useMutation({
-    mutationFn: (data: z.infer<typeof bookFormSchema>) => apiRequest("/api/books", "POST", data),
+    mutationFn: (data: z.infer<typeof bookFormSchema>) => apiRequest("POST", "/api/books", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/books"] });
       toast({ title: "Livro criado com sucesso!" });
@@ -159,7 +159,7 @@ export default function Courses() {
 
   // Update book mutation
   const updateBookMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: Partial<z.infer<typeof bookFormSchema>> }) => apiRequest(`/api/books/${id}`, "PUT", data),
+    mutationFn: ({ id, data }: { id: string, data: Partial<z.infer<typeof bookFormSchema>> }) => apiRequest("PUT", `/api/books/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/books"] });
       toast({ title: "Livro atualizado com sucesso!" });
@@ -194,7 +194,7 @@ export default function Courses() {
 
   // Delete book mutation
   const deleteBookMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/books/${id}`, "DELETE"),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/books/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/books"] });
       toast({ title: "Livro excluído com sucesso!" });

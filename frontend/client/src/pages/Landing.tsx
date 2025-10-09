@@ -14,7 +14,7 @@ const demoUsers = [
   { email: 'admin@demo.com', password: 'demo123', role: 'Administrador', disabled: false },
   { email: 'teacher@demo.com', password: 'demo123', role: 'Professor', disabled: false },
   { email: 'secretary@demo.com', password: 'demo123', role: 'Secretário', disabled: false },
-  { email: 'student@demo.com', password: 'demo123', role: 'Aluno', disabled: true },
+  { email: 'student@demo.com', password: 'demo123', role: 'Aluno', disabled: false },
 ];
 
 export default function Landing() {

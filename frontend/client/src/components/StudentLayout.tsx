@@ -85,109 +85,48 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Top Header - Minimal */}
-      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <i className="fas fa-graduation-cap text-white text-sm"></i>
-              </div>
-              <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                OpenLife
-              </span>
-            </div>
-
-            {/* User Menu */}
-            {user && (
-              <div className="flex items-center space-x-3">
-                <ThemeToggle />
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    className="flex items-center space-x-3 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors cursor-pointer focus:outline-none"
-                    data-testid="dropdown-user"
-                  >
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {user.firstName} {user.lastName}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {user.role === "admin" && "Administrador"}
-                        {user.role === "teacher" && "Professor"}
-                        {user.role === "secretary" && "Secretário"}
-                        {user.role === "student" && "Estudante"}
-                      </p>
-                    </div>
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {user.firstName?.[0]}
-                        {user.lastName?.[0]}
-                      </span>
-                    </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      className="cursor-default"
-                      data-testid="menu-item-settings"
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Configurações</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-default"
-                      data-testid="menu-item-notifications"
-                    >
-                      <Bell className="mr-2 h-4 w-4" />
-                      <span>Notificações</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="cursor-pointer"
-                      data-testid="menu-item-logout"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Sair</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
+    <div className="min-h-screen flex bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Sidebar */}
+      <aside className="w-64 hidden md:flex md:flex-col bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-700/50">
+        <div className="h-16 px-4 flex items-center gap-3 border-b border-gray-200/50 dark:border-gray-700/50">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+            <i className="fas fa-graduation-cap text-white text-sm"></i>
           </div>
+          <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">OpenLife</span>
         </div>
-      </header>
+        <nav className="p-3 space-y-1">
+          {studentMenuItems.map((item) => (
+            <Link key={item.path} href={item.path}>
+              <a className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  isActive(item.path)
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-700/50'
+                }`}>
+                <i className={`${item.icon}`}></i>
+                <span>{item.label}</span>
+              </a>
+            </Link>
+          ))}
+        </nav>
+        <div className="mt-auto p-3 border-t border-gray-200/50 dark:border-gray-700/50">
+          <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-700/50">
+            <LogOut className="h-4 w-4" /> Sair
+          </button>
+        </div>
+      </aside>
 
-      {/* Student Navigation Menu */}
-      <nav className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-b border-gray-200/30 dark:border-gray-700/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center py-4">
-            <div className="flex space-x-1 sm:space-x-2">
-              {studentMenuItems.map((item) => (
-                <Link key={item.path} href={item.path}>
-                  <a
-                    className={`flex items-center space-x-2 px-3 py-2 sm:px-4 sm:py-3 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                      isActive(item.path)
-                        ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transform scale-105"
-                        : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
-                    }`}
-                    data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                  >
-                    <i className={`${item.icon} text-sm`}></i>
-                    <span className="hidden sm:inline">{item.label}</span>
-                  </a>
-                </Link>
-              ))}
-            </div>
+      {/* Content area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="md:hidden sticky top-0 z-40 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50">
+          <div className="h-14 px-4 flex items-center justify-between">
+            <span className="text-base font-semibold">OpenLife</span>
+            <ThemeToggle />
           </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+        </header>
+        <main className="px-4 sm:px-6 lg:px-8 py-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

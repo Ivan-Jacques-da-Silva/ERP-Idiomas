@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import StudentLayout from "@/components/StudentLayout";
@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/api";
+import StudentCourseShelf from "@/components/StudentCourseShelf";
 
 export default function StudentArea() {
   const { toast } = useToast();
@@ -44,7 +47,10 @@ export default function StudentArea() {
 
   return (
     <StudentLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
+        {/* Netflix-like shelves */}
+        <StudentCoursesNetflix />
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
@@ -235,5 +241,30 @@ export default function StudentArea() {
         </div>
       </div>
     </StudentLayout>
+  );
+}
+
+function StudentCoursesNetflix() {
+  const { data: enrollments = [] } = useQuery<any[]>({
+    queryKey: ["student-courses"],
+    queryFn: async () => apiRequest('/api/student/courses'),
+  });
+
+  const activeCourse = useMemo(() => enrollments[0], [enrollments]);
+
+  if (!enrollments || enrollments.length === 0) return null;
+
+  return (
+    <div className="space-y-6">
+      {enrollments.map((enroll: any) => (
+        <StudentCourseShelf
+          key={enroll.course.id}
+          courseId={enroll.course.id}
+          title={`${enroll.course.name} • ${enroll.course.level || ''}`}
+          currentBookId={enroll.currentBookId || enroll.current_book_id}
+          disabled={activeCourse?.course?.id !== enroll.course.id}
+        />
+      ))}
+    </div>
   );
 }

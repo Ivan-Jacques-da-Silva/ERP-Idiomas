@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Paperclip, Trash2 } from "lucide-react";
 import { formatCPF, validateCPF } from "@/lib/cpfUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -68,6 +69,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
   });
 
   const [cpfError, setCpfError] = useState("");
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
 
   useEffect(() => {
     if (unit) {
@@ -176,7 +178,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/units", "POST", data);
+      return await apiRequest("POST", "/api/units", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
@@ -198,7 +200,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest(`/api/units/${unit.id}`, "PUT", data);
+      return await apiRequest("PUT", `/api/units/${unit.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
@@ -271,6 +273,60 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
       createMutation.mutate(submitData);
     }
   };
+
+  const handleUploadPdf = async (fieldName: keyof typeof formData) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf,.pdf';
+    input.onchange = async (e: any) => {
+      const file: File | undefined = e.target.files?.[0];
+      if (!file) return;
+      setUploadingField(fieldName as string);
+      try {
+        const token = localStorage.getItem('authToken');
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch('/api/upload/unit-document', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd,
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || 'Falha ao enviar PDF');
+        }
+        const payload = await res.json();
+        setFormData(prev => ({ ...prev, [fieldName]: payload.url }));
+        toast({ title: 'Arquivo anexado', description: 'PDF anexado com sucesso.' });
+      } catch (err: any) {
+        toast({ title: 'Erro ao anexar', description: err.message || 'Falha ao enviar PDF', variant: 'destructive' });
+      } finally {
+        setUploadingField(null);
+      }
+    };
+    input.click();
+  };
+
+  const removeUploaded = (fieldName: keyof typeof formData) => {
+    setFormData(prev => ({ ...prev, [fieldName]: "" }));
+  };
+
+  const AttachInput = ({ id, label, field }: { id: string; label: string; field: keyof typeof formData }) => (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label} (PDF)</Label>
+      <div className="flex gap-2">
+        <Input id={id} readOnly value={formData[field] ? 'Anexado' : ''} />
+        <Button type="button" variant="secondary" onClick={() => handleUploadPdf(field)} disabled={uploadingField === field}>
+          <Paperclip className="h-4 w-4 mr-1" /> {uploadingField === field ? 'Enviando...' : 'Anexar PDF'}
+        </Button>
+        {formData[field] && (
+          <Button type="button" variant="destructive" onClick={() => removeUploaded(field)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -400,13 +456,18 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
 
                       <div className="space-y-2">
                         <Label htmlFor="franchiseeCpfDoc">Anexo CPF (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeCpfDoc"
-                          data-testid="input-franchiseeCpfDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeCpfDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeCpfDoc: e.target.value })}
-                        />
+                      <Input
+                      id="franchiseeCpfDoc"
+                      data-testid="input-franchiseeCpfDoc"
+                      placeholder="URL do documento"
+                      value={formData.franchiseeCpfDoc}
+                      onChange={(e) => setFormData({ ...formData, franchiseeCpfDoc: e.target.value })}
+                      />
+                      <div className="flex justify-end">
+                        <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeCpfDoc')} disabled={uploadingField==='franchiseeCpfDoc'}>
+                          <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeCpfDoc' ? 'Enviando...' : 'Anexar PDF'}
+                        </Button>
+                      </div>
                       </div>
 
                       <div className="space-y-2">
@@ -427,7 +488,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeRgDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeRgDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeRgDoc')} disabled={uploadingField==='franchiseeRgDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeRgDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -448,7 +514,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeResidenceDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeResidenceDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeResidenceDoc')} disabled={uploadingField==='franchiseeResidenceDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeResidenceDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -469,7 +540,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeMaritalStatusDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeMaritalStatusDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeMaritalStatusDoc')} disabled={uploadingField==='franchiseeMaritalStatusDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeMaritalStatusDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -480,7 +556,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeCurriculumDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeCurriculumDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeCurriculumDoc')} disabled={uploadingField==='franchiseeCurriculumDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeCurriculumDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -491,7 +572,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeAssetsDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeAssetsDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeAssetsDoc')} disabled={uploadingField==='franchiseeAssetsDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeAssetsDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -502,7 +588,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeIncomeDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeIncomeDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeIncomeDoc')} disabled={uploadingField==='franchiseeIncomeDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeIncomeDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -521,7 +612,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeSocialContractDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeSocialContractDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeSocialContractDoc')} disabled={uploadingField==='franchiseeSocialContractDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeSocialContractDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -547,7 +643,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeCnpjDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeCnpjDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeCnpjDoc')} disabled={uploadingField==='franchiseeCnpjDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeCnpjDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -568,7 +669,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeStateRegistrationDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeStateRegistrationDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeStateRegistrationDoc')} disabled={uploadingField==='franchiseeStateRegistrationDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeStateRegistrationDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -579,7 +685,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseePartnersDocsDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseePartnersDocsDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseePartnersDocsDoc')} disabled={uploadingField==='franchiseePartnersDocsDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseePartnersDocsDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -590,7 +701,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           placeholder="URL do documento"
                           value={formData.franchiseeCertificatesDoc}
                           onChange={(e) => setFormData({ ...formData, franchiseeCertificatesDoc: e.target.value })}
-                        />
+                          />
+                        <div className="flex justify-end">
+                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeCertificatesDoc')} disabled={uploadingField==='franchiseeCertificatesDoc'}>
+                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeCertificatesDoc' ? 'Enviando...' : 'Anexar PDF'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -612,7 +728,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       placeholder="URL do documento"
                       value={formData.financialCapitalDoc}
                       onChange={(e) => setFormData({ ...formData, financialCapitalDoc: e.target.value })}
-                    />
+                      />
+                    <div className="flex justify-end">
+                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('financialCapitalDoc')} disabled={uploadingField==='financialCapitalDoc'}>
+                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='financialCapitalDoc' ? 'Enviando...' : 'Anexar PDF'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -623,7 +744,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       placeholder="URL do documento"
                       value={formData.financialCashFlowDoc}
                       onChange={(e) => setFormData({ ...formData, financialCashFlowDoc: e.target.value })}
-                    />
+                      />
+                    <div className="flex justify-end">
+                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('financialCashFlowDoc')} disabled={uploadingField==='financialCashFlowDoc'}>
+                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='financialCashFlowDoc' ? 'Enviando...' : 'Anexar PDF'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -634,7 +760,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       placeholder="URL do documento"
                       value={formData.financialTaxReturnsDoc}
                       onChange={(e) => setFormData({ ...formData, financialTaxReturnsDoc: e.target.value })}
-                    />
+                      />
+                    <div className="flex justify-end">
+                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('financialTaxReturnsDoc')} disabled={uploadingField==='financialTaxReturnsDoc'}>
+                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='financialTaxReturnsDoc' ? 'Enviando...' : 'Anexar PDF'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -656,7 +787,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       placeholder="URL do documento"
                       value={formData.financialBankReferencesDoc}
                       onChange={(e) => setFormData({ ...formData, financialBankReferencesDoc: e.target.value })}
-                    />
+                      />
+                    <div className="flex justify-end">
+                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('financialBankReferencesDoc')} disabled={uploadingField==='financialBankReferencesDoc'}>
+                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='financialBankReferencesDoc' ? 'Enviando...' : 'Anexar PDF'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -687,7 +823,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       placeholder="URL do documento"
                       value={formData.realEstatePropertyDoc}
                       onChange={(e) => setFormData({ ...formData, realEstatePropertyDoc: e.target.value })}
-                    />
+                      />
+                    <div className="flex justify-end">
+                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('realEstatePropertyDoc')} disabled={uploadingField==='realEstatePropertyDoc'}>
+                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='realEstatePropertyDoc' ? 'Enviando...' : 'Anexar PDF'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -698,7 +839,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       placeholder="URL do documento"
                       value={formData.realEstateLeaseDoc}
                       onChange={(e) => setFormData({ ...formData, realEstateLeaseDoc: e.target.value })}
-                    />
+                      />
+                    <div className="flex justify-end">
+                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('realEstateLeaseDoc')} disabled={uploadingField==='realEstateLeaseDoc'}>
+                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='realEstateLeaseDoc' ? 'Enviando...' : 'Anexar PDF'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -709,7 +855,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       placeholder="URL do documento"
                       value={formData.realEstateFloorPlanDoc}
                       onChange={(e) => setFormData({ ...formData, realEstateFloorPlanDoc: e.target.value })}
-                    />
+                      />
+                    <div className="flex justify-end">
+                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('realEstateFloorPlanDoc')} disabled={uploadingField==='realEstateFloorPlanDoc'}>
+                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='realEstateFloorPlanDoc' ? 'Enviando...' : 'Anexar PDF'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

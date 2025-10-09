@@ -311,7 +311,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/students", "POST", data);
+      return await apiRequest("POST", "/api/students", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
@@ -333,7 +333,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest(`/api/students/${student.id}`, "PUT", data);
+      return await apiRequest("PUT", `/api/students/${student.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });

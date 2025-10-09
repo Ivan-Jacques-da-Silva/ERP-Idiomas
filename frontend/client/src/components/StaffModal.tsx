@@ -134,7 +134,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/staff", "POST", data);
+      return await apiRequest("POST", "/api/staff", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
@@ -155,7 +155,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest(`/api/staff/${staffMember.id}`, "PUT", data);
+      return await apiRequest("PUT", `/api/staff/${staffMember.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
