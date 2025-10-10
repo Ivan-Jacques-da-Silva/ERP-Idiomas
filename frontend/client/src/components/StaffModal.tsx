@@ -227,14 +227,54 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle data-testid="modal-title">
-            {isEditing ? "Editar Colaborador" : "Novo Colaborador"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing 
-              ? "Atualize as informações do colaborador" 
-              : "Preencha os dados para cadastrar um novo colaborador"}
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <DialogTitle data-testid="modal-title">
+                {isEditing ? "Editar Colaborador" : "Novo Colaborador"}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing 
+                  ? "Atualize as informações do colaborador" 
+                  : "Preencha os dados para cadastrar um novo colaborador"}
+              </DialogDescription>
+            </div>
+            {!isEditing && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData({
+                    firstName: "Maria",
+                    lastName: "Oliveira Santos",
+                    email: "maria.oliveira@teste.com.br",
+                    cpf: "987.654.321-00",
+                    birthDate: "1990-05-15",
+                    gender: "feminino",
+                    phone: "(11) 3456-7890",
+                    whatsapp: "(11) 98765-4321",
+                    cep: "01310-100",
+                    address: "Av. Paulista",
+                    number: "1000",
+                    complement: "Sala 501",
+                    neighborhood: "Bela Vista",
+                    city: "São Paulo - SP",
+                    position: "instrutor",
+                    unitId: units?.[0]?.id || "",
+                    login: "maria.oliveira",
+                    password: "teste123",
+                  });
+                  toast({
+                    title: "Dados de teste carregados",
+                    description: "Formulário preenchido com dados exemplares",
+                  });
+                }}
+                className="ml-2"
+              >
+                📝 Dados de Teste
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

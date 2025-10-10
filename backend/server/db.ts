@@ -1,23 +1,15 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
 import * as schema from "../shared/schema.js";
 
-const connectionString = process.env.DATABASE_URL;
+neonConfig.webSocketConstructor = ws;
 
-// Handle the case when DATABASE_URL is not set or invalid
-let db = null;
-
-try {
-  if (connectionString && connectionString.trim() !== '') {
-    const sql = neon(connectionString);
-    db = drizzle(sql, { schema });
-    console.log("✅ Database connected");
-  } else {
-    console.log("⚠️  DATABASE_URL not set, using demo data");
-  }
-} catch (error) {
-  console.warn("⚠️  Database connection failed, using demo data:", error.message);
-  db = null;
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
 }
 
-export { db };
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool, schema });

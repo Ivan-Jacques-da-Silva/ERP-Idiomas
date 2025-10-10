@@ -190,9 +190,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
       resetForm();
     },
     onError: (error: any) => {
+      console.error("Erro ao cadastrar:", error);
+      const errorDetails = error?.response?.data?.details || error?.response?.data?.error || error.message;
       toast({
         title: "Erro",
-        description: error.message || "Erro ao cadastrar unidade",
+        description: `Erro ao cadastrar unidade: ${JSON.stringify(errorDetails)}`,
         variant: "destructive",
       });
     },
@@ -211,9 +213,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Erro ao atualizar:", error);
+      const errorDetails = error?.response?.data?.details || error?.response?.data?.error || error.message;
       toast({
         title: "Erro",
-        description: error.message || "Erro ao atualizar unidade",
+        description: `Erro ao atualizar unidade: ${JSON.stringify(errorDetails)}`,
         variant: "destructive",
       });
     },
@@ -222,50 +226,64 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.name.trim()) {
+      toast({
+        title: "Erro",
+        description: "Nome da unidade é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (formData.franchiseeType === "pessoa_fisica" && formData.franchiseeCpf && !validateCPF(formData.franchiseeCpf)) {
       setCpfError("CPF inválido");
       return;
     }
 
+    // Helper function to convert empty strings to null
+    const toNullIfEmpty = (value: string) => value === "" ? null : value;
+
     const submitData: any = {
-      name: formData.name,
-      address: formData.address || null,
-      phone: formData.phone || null,
-      email: formData.email || null,
-      franchiseeType: formData.franchiseeType || null,
+      name: formData.name.trim(),
+      address: toNullIfEmpty(formData.address),
+      phone: toNullIfEmpty(formData.phone),
+      email: toNullIfEmpty(formData.email),
+      franchiseeType: formData.franchiseeType === "" ? null : formData.franchiseeType,
       
-      franchiseeName: formData.franchiseeName || null,
+      franchiseeName: toNullIfEmpty(formData.franchiseeName),
       franchiseeCpf: formData.franchiseeCpf ? formData.franchiseeCpf.replace(/\D/g, "") : null,
-      franchiseeCpfDoc: formData.franchiseeCpfDoc || null,
-      franchiseeRg: formData.franchiseeRg || null,
-      franchiseeRgDoc: formData.franchiseeRgDoc || null,
-      franchiseeResidenceAddress: formData.franchiseeResidenceAddress || null,
-      franchiseeResidenceDoc: formData.franchiseeResidenceDoc || null,
-      franchiseeMaritalStatus: formData.franchiseeMaritalStatus || null,
-      franchiseeMaritalStatusDoc: formData.franchiseeMaritalStatusDoc || null,
-      franchiseeCurriculumDoc: formData.franchiseeCurriculumDoc || null,
-      franchiseeAssetsDoc: formData.franchiseeAssetsDoc || null,
-      franchiseeIncomeDoc: formData.franchiseeIncomeDoc || null,
+      franchiseeCpfDoc: toNullIfEmpty(formData.franchiseeCpfDoc),
+      franchiseeRg: toNullIfEmpty(formData.franchiseeRg),
+      franchiseeRgDoc: toNullIfEmpty(formData.franchiseeRgDoc),
+      franchiseeResidenceAddress: toNullIfEmpty(formData.franchiseeResidenceAddress),
+      franchiseeResidenceDoc: toNullIfEmpty(formData.franchiseeResidenceDoc),
+      franchiseeMaritalStatus: toNullIfEmpty(formData.franchiseeMaritalStatus),
+      franchiseeMaritalStatusDoc: toNullIfEmpty(formData.franchiseeMaritalStatusDoc),
+      franchiseeCurriculumDoc: toNullIfEmpty(formData.franchiseeCurriculumDoc),
+      franchiseeAssetsDoc: toNullIfEmpty(formData.franchiseeAssetsDoc),
+      franchiseeIncomeDoc: toNullIfEmpty(formData.franchiseeIncomeDoc),
       
-      franchiseeSocialContractDoc: formData.franchiseeSocialContractDoc || null,
+      franchiseeSocialContractDoc: toNullIfEmpty(formData.franchiseeSocialContractDoc),
       franchiseeCnpj: formData.franchiseeCnpj ? formData.franchiseeCnpj.replace(/\D/g, "") : null,
-      franchiseeCnpjDoc: formData.franchiseeCnpjDoc || null,
-      franchiseeStateRegistration: formData.franchiseeStateRegistration || null,
-      franchiseeStateRegistrationDoc: formData.franchiseeStateRegistrationDoc || null,
-      franchiseePartnersDocsDoc: formData.franchiseePartnersDocsDoc || null,
-      franchiseeCertificatesDoc: formData.franchiseeCertificatesDoc || null,
+      franchiseeCnpjDoc: toNullIfEmpty(formData.franchiseeCnpjDoc),
+      franchiseeStateRegistration: toNullIfEmpty(formData.franchiseeStateRegistration),
+      franchiseeStateRegistrationDoc: toNullIfEmpty(formData.franchiseeStateRegistrationDoc),
+      franchiseePartnersDocsDoc: toNullIfEmpty(formData.franchiseePartnersDocsDoc),
+      franchiseeCertificatesDoc: toNullIfEmpty(formData.franchiseeCertificatesDoc),
       
-      financialCapitalDoc: formData.financialCapitalDoc || null,
-      financialCashFlowDoc: formData.financialCashFlowDoc || null,
-      financialTaxReturnsDoc: formData.financialTaxReturnsDoc || null,
-      financialBankReferences: formData.financialBankReferences || null,
-      financialBankReferencesDoc: formData.financialBankReferencesDoc || null,
+      financialCapitalDoc: toNullIfEmpty(formData.financialCapitalDoc),
+      financialCashFlowDoc: toNullIfEmpty(formData.financialCashFlowDoc),
+      financialTaxReturnsDoc: toNullIfEmpty(formData.financialTaxReturnsDoc),
+      financialBankReferences: toNullIfEmpty(formData.financialBankReferences),
+      financialBankReferencesDoc: toNullIfEmpty(formData.financialBankReferencesDoc),
       
-      realEstateLocation: formData.realEstateLocation || null,
-      realEstatePropertyDoc: formData.realEstatePropertyDoc || null,
-      realEstateLeaseDoc: formData.realEstateLeaseDoc || null,
-      realEstateFloorPlanDoc: formData.realEstateFloorPlanDoc || null,
+      realEstateLocation: toNullIfEmpty(formData.realEstateLocation),
+      realEstatePropertyDoc: toNullIfEmpty(formData.realEstatePropertyDoc),
+      realEstateLeaseDoc: toNullIfEmpty(formData.realEstateLeaseDoc),
+      realEstateFloorPlanDoc: toNullIfEmpty(formData.realEstateFloorPlanDoc),
     };
+
+    console.log('Dados sendo enviados:', submitData);
 
     if (isEditing) {
       updateMutation.mutate(submitData);
@@ -332,14 +350,69 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle data-testid="modal-title">
-            {isEditing ? "Editar Unidade / Franquia" : "Nova Unidade / Franquia"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing 
-              ? "Atualize as informações da unidade e dados de franquia" 
-              : "Preencha os dados para cadastrar uma nova unidade franqueada"}
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <DialogTitle data-testid="modal-title">
+                {isEditing ? "Editar Unidade / Franquia" : "Nova Unidade / Franquia"}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing 
+                  ? "Atualize as informações da unidade e dados de franquia" 
+                  : "Preencha os dados para cadastrar uma nova unidade franqueada"}
+              </DialogDescription>
+            </div>
+            {!isEditing && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData({
+                    name: "Unidade Centro - Teste",
+                    address: "Rua das Flores, 123 - Centro",
+                    phone: "(11) 98765-4321",
+                    email: "centro@teste.com.br",
+                    franchiseeType: "pessoa_fisica",
+                    franchiseeName: "João da Silva Santos",
+                    franchiseeCpf: "123.456.789-09",
+                    franchiseeCpfDoc: "",
+                    franchiseeRg: "12.345.678-9",
+                    franchiseeRgDoc: "",
+                    franchiseeResidenceAddress: "Av. Principal, 456 - Jardins",
+                    franchiseeResidenceDoc: "",
+                    franchiseeMaritalStatus: "Casado - Comunhão Parcial",
+                    franchiseeMaritalStatusDoc: "",
+                    franchiseeCurriculumDoc: "",
+                    franchiseeAssetsDoc: "",
+                    franchiseeIncomeDoc: "",
+                    franchiseeSocialContractDoc: "",
+                    franchiseeCnpj: "",
+                    franchiseeCnpjDoc: "",
+                    franchiseeStateRegistration: "",
+                    franchiseeStateRegistrationDoc: "",
+                    franchiseePartnersDocsDoc: "",
+                    franchiseeCertificatesDoc: "",
+                    financialCapitalDoc: "",
+                    financialCashFlowDoc: "",
+                    financialTaxReturnsDoc: "",
+                    financialBankReferences: "Banco do Brasil - Ag 1234-5",
+                    financialBankReferencesDoc: "",
+                    realEstateLocation: "https://maps.google.com/?q=-23.550520,-46.633308",
+                    realEstatePropertyDoc: "",
+                    realEstateLeaseDoc: "",
+                    realEstateFloorPlanDoc: "",
+                  });
+                  toast({
+                    title: "Dados de teste carregados",
+                    description: "Formulário preenchido com dados exemplares",
+                  });
+                }}
+                className="ml-2"
+              >
+                📝 Dados de Teste
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -454,21 +527,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                         {cpfError && <p className="text-sm text-red-500">{cpfError}</p>}
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeCpfDoc">Anexo CPF (URL do PDF)</Label>
-                      <Input
-                      id="franchiseeCpfDoc"
-                      data-testid="input-franchiseeCpfDoc"
-                      placeholder="URL do documento"
-                      value={formData.franchiseeCpfDoc}
-                      onChange={(e) => setFormData({ ...formData, franchiseeCpfDoc: e.target.value })}
+                      <AttachInput
+                        id="franchiseeCpfDoc"
+                        label="Anexo CPF"
+                        field="franchiseeCpfDoc"
                       />
-                      <div className="flex justify-end">
-                        <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeCpfDoc')} disabled={uploadingField==='franchiseeCpfDoc'}>
-                          <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeCpfDoc' ? 'Enviando...' : 'Anexar PDF'}
-                        </Button>
-                      </div>
-                      </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="franchiseeRg">RG</Label>
@@ -480,21 +543,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeRgDoc">Anexo RG (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeRgDoc"
-                          data-testid="input-franchiseeRgDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeRgDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeRgDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeRgDoc')} disabled={uploadingField==='franchiseeRgDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeRgDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeRgDoc"
+                        label="Anexo RG"
+                        field="franchiseeRgDoc"
+                      />
 
                       <div className="space-y-2">
                         <Label htmlFor="franchiseeResidenceAddress">Endereço de Residência</Label>
@@ -506,21 +559,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeResidenceDoc">Comprovante de Residência (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeResidenceDoc"
-                          data-testid="input-franchiseeResidenceDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeResidenceDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeResidenceDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeResidenceDoc')} disabled={uploadingField==='franchiseeResidenceDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeResidenceDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeResidenceDoc"
+                        label="Comprovante de Residência"
+                        field="franchiseeResidenceDoc"
+                      />
 
                       <div className="space-y-2">
                         <Label htmlFor="franchiseeMaritalStatus">Estado Civil e Regime de Bens</Label>
@@ -532,69 +575,29 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeMaritalStatusDoc">Anexo Estado Civil (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeMaritalStatusDoc"
-                          data-testid="input-franchiseeMaritalStatusDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeMaritalStatusDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeMaritalStatusDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeMaritalStatusDoc')} disabled={uploadingField==='franchiseeMaritalStatusDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeMaritalStatusDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeMaritalStatusDoc"
+                        label="Anexo Estado Civil"
+                        field="franchiseeMaritalStatusDoc"
+                      />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeCurriculumDoc">Currículo/Histórico Profissional (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeCurriculumDoc"
-                          data-testid="input-franchiseeCurriculumDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeCurriculumDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeCurriculumDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeCurriculumDoc')} disabled={uploadingField==='franchiseeCurriculumDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeCurriculumDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeCurriculumDoc"
+                        label="Currículo/Histórico Profissional"
+                        field="franchiseeCurriculumDoc"
+                      />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeAssetsDoc">Declaração de Bens (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeAssetsDoc"
-                          data-testid="input-franchiseeAssetsDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeAssetsDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeAssetsDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeAssetsDoc')} disabled={uploadingField==='franchiseeAssetsDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeAssetsDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeAssetsDoc"
+                        label="Declaração de Bens"
+                        field="franchiseeAssetsDoc"
+                      />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeIncomeDoc">Comprovante de Renda (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeIncomeDoc"
-                          data-testid="input-franchiseeIncomeDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeIncomeDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeIncomeDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeIncomeDoc')} disabled={uploadingField==='franchiseeIncomeDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeIncomeDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeIncomeDoc"
+                        label="Comprovante de Renda"
+                        field="franchiseeIncomeDoc"
+                      />
                     </div>
                   </div>
                 )}
@@ -604,21 +607,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                     <h4 className="font-semibold">Pessoa Jurídica</h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeSocialContractDoc">Contrato Social/Estatuto (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeSocialContractDoc"
-                          data-testid="input-franchiseeSocialContractDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeSocialContractDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeSocialContractDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeSocialContractDoc')} disabled={uploadingField==='franchiseeSocialContractDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeSocialContractDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeSocialContractDoc"
+                        label="Contrato Social/Estatuto"
+                        field="franchiseeSocialContractDoc"
+                      />
 
                       <div className="space-y-2">
                         <Label htmlFor="franchiseeCnpj">CNPJ</Label>
@@ -635,21 +628,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeCnpjDoc">Anexo CNPJ (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeCnpjDoc"
-                          data-testid="input-franchiseeCnpjDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeCnpjDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeCnpjDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeCnpjDoc')} disabled={uploadingField==='franchiseeCnpjDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeCnpjDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeCnpjDoc"
+                        label="Anexo CNPJ"
+                        field="franchiseeCnpjDoc"
+                      />
 
                       <div className="space-y-2">
                         <Label htmlFor="franchiseeStateRegistration">Inscrição Estadual/Municipal</Label>
@@ -661,53 +644,23 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeStateRegistrationDoc">Anexo Inscrição (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeStateRegistrationDoc"
-                          data-testid="input-franchiseeStateRegistrationDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeStateRegistrationDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeStateRegistrationDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeStateRegistrationDoc')} disabled={uploadingField==='franchiseeStateRegistrationDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeStateRegistrationDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeStateRegistrationDoc"
+                        label="Anexo Inscrição"
+                        field="franchiseeStateRegistrationDoc"
+                      />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseePartnersDocsDoc">Documentos dos Sócios (URL do PDF)</Label>
-                        <Input
-                          id="franchiseePartnersDocsDoc"
-                          data-testid="input-franchiseePartnersDocsDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseePartnersDocsDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseePartnersDocsDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseePartnersDocsDoc')} disabled={uploadingField==='franchiseePartnersDocsDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseePartnersDocsDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseePartnersDocsDoc"
+                        label="Documentos dos Sócios"
+                        field="franchiseePartnersDocsDoc"
+                      />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeCertificatesDoc">Certidões Negativas (URL do PDF)</Label>
-                        <Input
-                          id="franchiseeCertificatesDoc"
-                          data-testid="input-franchiseeCertificatesDoc"
-                          placeholder="URL do documento"
-                          value={formData.franchiseeCertificatesDoc}
-                          onChange={(e) => setFormData({ ...formData, franchiseeCertificatesDoc: e.target.value })}
-                          />
-                        <div className="flex justify-end">
-                          <Button type="button" variant="secondary" onClick={() => handleUploadPdf('franchiseeCertificatesDoc')} disabled={uploadingField==='franchiseeCertificatesDoc'}>
-                            <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='franchiseeCertificatesDoc' ? 'Enviando...' : 'Anexar PDF'}
-                          </Button>
-                        </div>
-                      </div>
+                      <AttachInput
+                        id="franchiseeCertificatesDoc"
+                        label="Certidões Negativas"
+                        field="franchiseeCertificatesDoc"
+                      />
                     </div>
                   </div>
                 )}
@@ -720,53 +673,23 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                 <h3 className="text-lg font-semibold border-b pb-2">Dados Financeiros</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="financialCapitalDoc">Capital Disponível para Investimento (URL do PDF)</Label>
-                    <Input
-                      id="financialCapitalDoc"
-                      data-testid="input-financialCapitalDoc"
-                      placeholder="URL do documento"
-                      value={formData.financialCapitalDoc}
-                      onChange={(e) => setFormData({ ...formData, financialCapitalDoc: e.target.value })}
-                      />
-                    <div className="flex justify-end">
-                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('financialCapitalDoc')} disabled={uploadingField==='financialCapitalDoc'}>
-                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='financialCapitalDoc' ? 'Enviando...' : 'Anexar PDF'}
-                      </Button>
-                    </div>
-                  </div>
+                  <AttachInput
+                    id="financialCapitalDoc"
+                    label="Capital Disponível para Investimento"
+                    field="financialCapitalDoc"
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="financialCashFlowDoc">Prova de Capacidade de Giro (URL do PDF)</Label>
-                    <Input
-                      id="financialCashFlowDoc"
-                      data-testid="input-financialCashFlowDoc"
-                      placeholder="URL do documento"
-                      value={formData.financialCashFlowDoc}
-                      onChange={(e) => setFormData({ ...formData, financialCashFlowDoc: e.target.value })}
-                      />
-                    <div className="flex justify-end">
-                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('financialCashFlowDoc')} disabled={uploadingField==='financialCashFlowDoc'}>
-                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='financialCashFlowDoc' ? 'Enviando...' : 'Anexar PDF'}
-                      </Button>
-                    </div>
-                  </div>
+                  <AttachInput
+                    id="financialCashFlowDoc"
+                    label="Prova de Capacidade de Giro"
+                    field="financialCashFlowDoc"
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="financialTaxReturnsDoc">Declaração de Imposto de Renda (URL do PDF)</Label>
-                    <Input
-                      id="financialTaxReturnsDoc"
-                      data-testid="input-financialTaxReturnsDoc"
-                      placeholder="URL do documento"
-                      value={formData.financialTaxReturnsDoc}
-                      onChange={(e) => setFormData({ ...formData, financialTaxReturnsDoc: e.target.value })}
-                      />
-                    <div className="flex justify-end">
-                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('financialTaxReturnsDoc')} disabled={uploadingField==='financialTaxReturnsDoc'}>
-                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='financialTaxReturnsDoc' ? 'Enviando...' : 'Anexar PDF'}
-                      </Button>
-                    </div>
-                  </div>
+                  <AttachInput
+                    id="financialTaxReturnsDoc"
+                    label="Declaração de Imposto de Renda"
+                    field="financialTaxReturnsDoc"
+                  />
 
                   <div className="space-y-2">
                     <Label htmlFor="financialBankReferences">Referências Bancárias e Comerciais</Label>
@@ -779,21 +702,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="financialBankReferencesDoc">Anexo Referências (URL do PDF)</Label>
-                    <Input
-                      id="financialBankReferencesDoc"
-                      data-testid="input-financialBankReferencesDoc"
-                      placeholder="URL do documento"
-                      value={formData.financialBankReferencesDoc}
-                      onChange={(e) => setFormData({ ...formData, financialBankReferencesDoc: e.target.value })}
-                      />
-                    <div className="flex justify-end">
-                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('financialBankReferencesDoc')} disabled={uploadingField==='financialBankReferencesDoc'}>
-                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='financialBankReferencesDoc' ? 'Enviando...' : 'Anexar PDF'}
-                      </Button>
-                    </div>
-                  </div>
+                  <AttachInput
+                    id="financialBankReferencesDoc"
+                    label="Anexo Referências"
+                    field="financialBankReferencesDoc"
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -815,53 +728,23 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="realEstatePropertyDoc">Documentos do Imóvel (URL do PDF)</Label>
-                    <Input
-                      id="realEstatePropertyDoc"
-                      data-testid="input-realEstatePropertyDoc"
-                      placeholder="URL do documento"
-                      value={formData.realEstatePropertyDoc}
-                      onChange={(e) => setFormData({ ...formData, realEstatePropertyDoc: e.target.value })}
-                      />
-                    <div className="flex justify-end">
-                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('realEstatePropertyDoc')} disabled={uploadingField==='realEstatePropertyDoc'}>
-                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='realEstatePropertyDoc' ? 'Enviando...' : 'Anexar PDF'}
-                      </Button>
-                    </div>
-                  </div>
+                  <AttachInput
+                    id="realEstatePropertyDoc"
+                    label="Documentos do Imóvel"
+                    field="realEstatePropertyDoc"
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="realEstateLeaseDoc">Contrato de Locação (URL do PDF)</Label>
-                    <Input
-                      id="realEstateLeaseDoc"
-                      data-testid="input-realEstateLeaseDoc"
-                      placeholder="URL do documento"
-                      value={formData.realEstateLeaseDoc}
-                      onChange={(e) => setFormData({ ...formData, realEstateLeaseDoc: e.target.value })}
-                      />
-                    <div className="flex justify-end">
-                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('realEstateLeaseDoc')} disabled={uploadingField==='realEstateLeaseDoc'}>
-                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='realEstateLeaseDoc' ? 'Enviando...' : 'Anexar PDF'}
-                      </Button>
-                    </div>
-                  </div>
+                  <AttachInput
+                    id="realEstateLeaseDoc"
+                    label="Contrato de Locação"
+                    field="realEstateLeaseDoc"
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="realEstateFloorPlanDoc">Planta Baixa/Croqui (URL do PDF)</Label>
-                    <Input
-                      id="realEstateFloorPlanDoc"
-                      data-testid="input-realEstateFloorPlanDoc"
-                      placeholder="URL do documento"
-                      value={formData.realEstateFloorPlanDoc}
-                      onChange={(e) => setFormData({ ...formData, realEstateFloorPlanDoc: e.target.value })}
-                      />
-                    <div className="flex justify-end">
-                      <Button type="button" variant="secondary" onClick={() => handleUploadPdf('realEstateFloorPlanDoc')} disabled={uploadingField==='realEstateFloorPlanDoc'}>
-                        <Paperclip className="h-4 w-4 mr-1" /> {uploadingField==='realEstateFloorPlanDoc' ? 'Enviando...' : 'Anexar PDF'}
-                      </Button>
-                    </div>
-                  </div>
+                  <AttachInput
+                    id="realEstateFloorPlanDoc"
+                    label="Planta Baixa/Croqui"
+                    field="realEstateFloorPlanDoc"
+                  />
                 </div>
               </div>
             </TabsContent>

@@ -1,12 +1,16 @@
-// .env
-POSTGRES_URL="postgresql://user:password@host:port/database"
-POSTGRES_USER="user"
-POSTGRES_PASSWORD="password"
-POSTGRES_HOST="host"
-POSTGRES_PORT="5432"
-POSTGRES_DB="database"
+import { defineConfig } from "drizzle-kit";
 
-JWT_SECRET="your-super-secret-jwt-key"
-NODE_ENV="development"
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
+}
 
-# Configurações adicionais conforme necessário
+export default defineConfig({
+  out: "./migrations",
+  schema: "./shared/schema.ts",
+  dialect: "postgresql",
+  dbCredentials: {
+    url: process.env.DATABASE_URL,
+  },
+});

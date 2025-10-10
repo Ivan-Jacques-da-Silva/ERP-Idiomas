@@ -442,14 +442,71 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle data-testid="modal-title">
-            {isEditing ? "Editar Aluno" : "Novo Aluno"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing 
-              ? "Atualize as informações do aluno" 
-              : "Preencha os dados para cadastrar um novo aluno"}
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <DialogTitle data-testid="modal-title">
+                {isEditing ? "Editar Aluno" : "Novo Aluno"}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing 
+                  ? "Atualize as informações do aluno" 
+                  : "Preencha os dados para cadastrar um novo aluno"}
+              </DialogDescription>
+            </div>
+            {!isEditing && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData({
+                    firstName: "Pedro",
+                    lastName: "Silva Costa",
+                    cpf: "111.222.333-44",
+                    birthDate: "2010-03-20",
+                    email: "pedro.silva@teste.com.br",
+                    phone: "(11) 2345-6789",
+                    whatsapp: "(11) 99876-5432",
+                    gender: "masculino",
+                    cep: "04538-133",
+                    address: "Av. Brigadeiro Faria Lima",
+                    number: "2000",
+                    complement: "Apto 101",
+                    neighborhood: "Itaim Bibi",
+                    city: "São Paulo - SP",
+                    billingType: "mensalidade",
+                    login: "pedro.silva",
+                    password: "teste123",
+                  });
+                  setHasGuardian(true);
+                  setGuardianData({
+                    firstName: "Ana",
+                    lastName: "Silva Costa",
+                    cpf: "555.666.777-88",
+                    birthDate: "1985-08-10",
+                    email: "ana.silva@teste.com.br",
+                    phone: "(11) 2345-6789",
+                    whatsapp: "(11) 99876-5432",
+                    gender: "feminino",
+                    cep: "04538-133",
+                    address: "Av. Brigadeiro Faria Lima",
+                    number: "2000",
+                    complement: "Apto 101",
+                    neighborhood: "Itaim Bibi",
+                    city: "São Paulo - SP",
+                    relationship: "mae",
+                  });
+                  toast({
+                    title: "Dados de teste carregados",
+                    description: "Formulário preenchido com dados exemplares (aluno menor de idade)",
+                  });
+                }}
+                className="ml-2"
+              >
+                📝 Dados de Teste
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

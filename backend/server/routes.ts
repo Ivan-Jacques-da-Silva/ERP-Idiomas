@@ -245,12 +245,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/units", isAuthenticated, async (req, res) => {
     try {
+      console.log("Dados recebidos:", JSON.stringify(req.body, null, 2));
       const unitData = insertUnitSchema.parse(req.body);
+      console.log("Dados validados:", unitData);
       const unit = await storage.createUnit(unitData);
       res.status(201).json(unit);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating unit:", error);
-      res.status(400).json({ message: "Invalid unit data" });
+      console.error("Error details:", error.message);
+      if (error.errors) {
+        console.error("Validation errors:", JSON.stringify(error.errors, null, 2));
+      }
+      res.status(400).json({ 
+        message: "Invalid unit data", 
+        error: error.message,
+        details: error.errors || error.issues || []
+      });
     }
   });
 

@@ -89,7 +89,7 @@ export default function FranchiseUnits() {
       const response = await fetch("/api/franchise-units", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
         },
         body: formData,
       });

@@ -24,10 +24,30 @@ const allowedOrigins = [
 
 console.log('🔧 CORS Origins permitidas:', allowedOrigins);
 
+// Function to check if origin is allowed
+function isOriginAllowed(origin: string): boolean {
+  // Check exact match
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+  
+  // Check if it's a Replit dev domain (with any port)
+  if (origin.includes('.replit.dev')) {
+    return true;
+  }
+  
+  // Check localhost with any port
+  if (origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/)) {
+    return true;
+  }
+  
+  return false;
+}
+
 // OPTIONS preflight handler ANTES do CORS (prioridade máxima)
 app.options('*', (req, res) => {
   const origin = req.headers.origin || '';
-  const ok = allowedOrigins.includes(origin);
+  const ok = isOriginAllowed(origin);
   res.header('Vary', 'Origin');
   res.header('Access-Control-Allow-Origin', ok ? origin : 'https://erp.vision.dev.br');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -49,8 +69,8 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Verificar se a origin está na lista de permitidas
-    if (allowedOrigins.includes(origin)) {
+    // Verificar se a origin está permitida
+    if (isOriginAllowed(origin)) {
       console.log('✅ Origin permitida:', origin);
       return callback(null, true);
     }
@@ -119,7 +139,7 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5052");
+  const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5000");
   server.listen(port, "0.0.0.0", () => {
     log(`Backend API serving on port ${port}`);
   });
