@@ -13,6 +13,8 @@ const allowedOrigins = [
   'http://erp.vision.dev.br',
   'http://erp.vision.dev.br:5051',
   'https://erp.vision.dev.br:5051',
+  'https://erpapi.vision.dev.br',
+  'http://erpapi.vision.dev.br',
   'http://localhost:5051',
   'http://localhost:5052',
   'http://127.0.0.1:5051',

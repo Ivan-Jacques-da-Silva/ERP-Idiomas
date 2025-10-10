@@ -331,14 +331,147 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
 
   const AttachInput = ({ id, label, field }: { id: string; label: string; field: keyof typeof formData }) => (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label} (PDF)</Label>
-      <div className="flex gap-2">
-        <Input id={id} readOnly value={formData[field] ? 'Anexado' : ''} />
-        <Button type="button" variant="secondary" onClick={() => handleUploadPdf(field)} disabled={uploadingField === field}>
-          <Paperclip className="h-4 w-4 mr-1" /> {uploadingField === field ? 'Enviando...' : 'Anexar PDF'}
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex gap-2 items-center">
+        <Button 
+          type="button" 
+          variant={formData[field] ? "default" : "secondary"} 
+          onClick={() => handleUploadPdf(field)} 
+          disabled={uploadingField === field}
+          className="flex-1"
+        >
+          <Paperclip className="h-4 w-4 mr-2" /> 
+          {uploadingField === field ? 'Enviando...' : formData[field] ? 'PDF Anexado' : 'Anexar PDF'}
         </Button>
         {formData[field] && (
-          <Button type="button" variant="destructive" onClick={() => removeUploaded(field)}>
+          <Button type="button" variant="destructive" size="icon" onClick={() => removeUploaded(field)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  const InputWithAttach = ({ 
+    inputId, 
+    label, 
+    inputField, 
+    attachField,
+    type = "text",
+    placeholder = "",
+    maxLength,
+    onInputChange,
+    onInputBlur
+  }: { 
+    inputId: string; 
+    label: string; 
+    inputField: keyof typeof formData;
+    attachField: keyof typeof formData;
+    type?: string;
+    placeholder?: string;
+    maxLength?: number;
+    onInputChange?: (value: string) => void;
+    onInputBlur?: () => void;
+  }) => (
+    <div className="space-y-2">
+      <Label htmlFor={inputId}>{label}</Label>
+      <div className="flex gap-2 items-center">
+        <Input
+          id={inputId}
+          data-testid={`input-${inputField}`}
+          type={type}
+          placeholder={placeholder}
+          value={formData[inputField] as string}
+          onChange={(e) => {
+            if (onInputChange) {
+              onInputChange(e.target.value);
+            } else {
+              setFormData({ ...formData, [inputField]: e.target.value });
+            }
+          }}
+          onBlur={onInputBlur}
+          maxLength={maxLength}
+          className="flex-1"
+        />
+        <Button 
+          type="button" 
+          variant={formData[attachField] ? "default" : "outline"} 
+          size="icon"
+          onClick={() => handleUploadPdf(attachField)} 
+          disabled={uploadingField === attachField}
+          data-testid={`button-attach-${attachField}`}
+          title={uploadingField === attachField ? 'Enviando...' : formData[attachField] ? 'PDF Anexado - Clique para trocar' : 'Anexar PDF'}
+        >
+          {uploadingField === attachField ? (
+            <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+          ) : (
+            <Paperclip className="h-4 w-4" />
+          )}
+        </Button>
+        {formData[attachField] && (
+          <Button 
+            type="button" 
+            variant="destructive" 
+            size="icon" 
+            onClick={() => removeUploaded(attachField)}
+            data-testid={`button-remove-${attachField}`}
+            title="Remover anexo"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  const TextareaWithAttach = ({ 
+    textareaId, 
+    label, 
+    textareaField, 
+    attachField,
+    placeholder = ""
+  }: { 
+    textareaId: string; 
+    label: string; 
+    textareaField: keyof typeof formData;
+    attachField: keyof typeof formData;
+    placeholder?: string;
+  }) => (
+    <div className="space-y-2">
+      <Label htmlFor={textareaId}>{label}</Label>
+      <div className="flex gap-2 items-start">
+        <Textarea
+          id={textareaId}
+          data-testid={`input-${textareaField}`}
+          placeholder={placeholder}
+          value={formData[textareaField] as string}
+          onChange={(e) => setFormData({ ...formData, [textareaField]: e.target.value })}
+          className="flex-1"
+        />
+        <Button 
+          type="button" 
+          variant={formData[attachField] ? "default" : "outline"} 
+          size="icon"
+          onClick={() => handleUploadPdf(attachField)} 
+          disabled={uploadingField === attachField}
+          data-testid={`button-attach-${attachField}`}
+          title={uploadingField === attachField ? 'Enviando...' : formData[attachField] ? 'PDF Anexado - Clique para trocar' : 'Anexar PDF'}
+        >
+          {uploadingField === attachField ? (
+            <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+          ) : (
+            <Paperclip className="h-4 w-4" />
+          )}
+        </Button>
+        {formData[attachField] && (
+          <Button 
+            type="button" 
+            variant="destructive" 
+            size="icon" 
+            onClick={() => removeUploaded(attachField)}
+            data-testid={`button-remove-${attachField}`}
+            title="Remover anexo"
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         )}
@@ -510,75 +643,42 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="franchiseeCpf">CPF</Label>
-                        <Input
-                          id="franchiseeCpf"
-                          data-testid="input-franchiseeCpf"
+                        <InputWithAttach
+                          inputId="franchiseeCpf"
+                          label="CPF"
+                          inputField="franchiseeCpf"
+                          attachField="franchiseeCpfDoc"
                           placeholder="000.000.000-00"
-                          value={formData.franchiseeCpf}
-                          onChange={(e) => {
-                            const formatted = formatCPF(e.target.value);
+                          maxLength={14}
+                          onInputChange={(value) => {
+                            const formatted = formatCPF(value);
                             setFormData({ ...formData, franchiseeCpf: formatted });
                             setCpfError("");
                           }}
-                          onBlur={handleCPFBlur}
-                          maxLength={14}
+                          onInputBlur={handleCPFBlur}
                         />
                         {cpfError && <p className="text-sm text-red-500">{cpfError}</p>}
                       </div>
 
-                      <AttachInput
-                        id="franchiseeCpfDoc"
-                        label="Anexo CPF"
-                        field="franchiseeCpfDoc"
+                      <InputWithAttach
+                        inputId="franchiseeRg"
+                        label="RG"
+                        inputField="franchiseeRg"
+                        attachField="franchiseeRgDoc"
                       />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeRg">RG</Label>
-                        <Input
-                          id="franchiseeRg"
-                          data-testid="input-franchiseeRg"
-                          value={formData.franchiseeRg}
-                          onChange={(e) => setFormData({ ...formData, franchiseeRg: e.target.value })}
-                        />
-                      </div>
-
-                      <AttachInput
-                        id="franchiseeRgDoc"
-                        label="Anexo RG"
-                        field="franchiseeRgDoc"
+                      <InputWithAttach
+                        inputId="franchiseeResidenceAddress"
+                        label="Endereço de Residência"
+                        inputField="franchiseeResidenceAddress"
+                        attachField="franchiseeResidenceDoc"
                       />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeResidenceAddress">Endereço de Residência</Label>
-                        <Input
-                          id="franchiseeResidenceAddress"
-                          data-testid="input-franchiseeResidenceAddress"
-                          value={formData.franchiseeResidenceAddress}
-                          onChange={(e) => setFormData({ ...formData, franchiseeResidenceAddress: e.target.value })}
-                        />
-                      </div>
-
-                      <AttachInput
-                        id="franchiseeResidenceDoc"
-                        label="Comprovante de Residência"
-                        field="franchiseeResidenceDoc"
-                      />
-
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeMaritalStatus">Estado Civil e Regime de Bens</Label>
-                        <Input
-                          id="franchiseeMaritalStatus"
-                          data-testid="input-franchiseeMaritalStatus"
-                          value={formData.franchiseeMaritalStatus}
-                          onChange={(e) => setFormData({ ...formData, franchiseeMaritalStatus: e.target.value })}
-                        />
-                      </div>
-
-                      <AttachInput
-                        id="franchiseeMaritalStatusDoc"
-                        label="Anexo Estado Civil"
-                        field="franchiseeMaritalStatusDoc"
+                      <InputWithAttach
+                        inputId="franchiseeMaritalStatus"
+                        label="Estado Civil e Regime de Bens"
+                        inputField="franchiseeMaritalStatus"
+                        attachField="franchiseeMaritalStatusDoc"
                       />
 
                       <AttachInput
@@ -613,41 +713,24 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                         field="franchiseeSocialContractDoc"
                       />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeCnpj">CNPJ</Label>
-                        <Input
-                          id="franchiseeCnpj"
-                          data-testid="input-franchiseeCnpj"
-                          placeholder="00.000.000/0000-00"
-                          value={formData.franchiseeCnpj}
-                          onChange={(e) => {
-                            const formatted = formatCNPJ(e.target.value);
-                            setFormData({ ...formData, franchiseeCnpj: formatted });
-                          }}
-                          maxLength={18}
-                        />
-                      </div>
-
-                      <AttachInput
-                        id="franchiseeCnpjDoc"
-                        label="Anexo CNPJ"
-                        field="franchiseeCnpjDoc"
+                      <InputWithAttach
+                        inputId="franchiseeCnpj"
+                        label="CNPJ"
+                        inputField="franchiseeCnpj"
+                        attachField="franchiseeCnpjDoc"
+                        placeholder="00.000.000/0000-00"
+                        maxLength={18}
+                        onInputChange={(value) => {
+                          const formatted = formatCNPJ(value);
+                          setFormData({ ...formData, franchiseeCnpj: formatted });
+                        }}
                       />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="franchiseeStateRegistration">Inscrição Estadual/Municipal</Label>
-                        <Input
-                          id="franchiseeStateRegistration"
-                          data-testid="input-franchiseeStateRegistration"
-                          value={formData.franchiseeStateRegistration}
-                          onChange={(e) => setFormData({ ...formData, franchiseeStateRegistration: e.target.value })}
-                        />
-                      </div>
-
-                      <AttachInput
-                        id="franchiseeStateRegistrationDoc"
-                        label="Anexo Inscrição"
-                        field="franchiseeStateRegistrationDoc"
+                      <InputWithAttach
+                        inputId="franchiseeStateRegistration"
+                        label="Inscrição Estadual/Municipal"
+                        inputField="franchiseeStateRegistration"
+                        attachField="franchiseeStateRegistrationDoc"
                       />
 
                       <AttachInput
@@ -691,21 +774,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                     field="financialTaxReturnsDoc"
                   />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="financialBankReferences">Referências Bancárias e Comerciais</Label>
-                    <Textarea
-                      id="financialBankReferences"
-                      data-testid="input-financialBankReferences"
-                      placeholder="Contatos de referências"
-                      value={formData.financialBankReferences}
-                      onChange={(e) => setFormData({ ...formData, financialBankReferences: e.target.value })}
-                    />
-                  </div>
-
-                  <AttachInput
-                    id="financialBankReferencesDoc"
-                    label="Anexo Referências"
-                    field="financialBankReferencesDoc"
+                  <TextareaWithAttach
+                    textareaId="financialBankReferences"
+                    label="Referências Bancárias e Comerciais"
+                    textareaField="financialBankReferences"
+                    attachField="financialBankReferencesDoc"
+                    placeholder="Contatos de referências"
                   />
                 </div>
               </div>

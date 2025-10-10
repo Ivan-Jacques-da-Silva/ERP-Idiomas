@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type {
   InsertUnit,
   InsertStaff,
@@ -1006,7 +1007,7 @@ export class DatabaseStorage implements IStorage {
     // In a real app, you'd save this to a database
     const existingUserIndex = demoUsers.findIndex(u => u.id === user.id);
     const newUser: User = {
-      id: user.id || crypto.randomUUID(),
+      id: user.id || randomUUID(),
       email: user.email || null,
       firstName: user.firstName || null,
       lastName: user.lastName || null,
@@ -1028,7 +1029,7 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(userData: InsertUser): Promise < User > {
     if (!db) {
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newUser: User = {
         id,
         ...userData,
@@ -1046,7 +1047,7 @@ export class DatabaseStorage implements IStorage {
       }).returning();
       return result[0];
     } catch (error) {
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newUser: User = {
         id,
         ...userData,
@@ -1085,7 +1086,7 @@ export class DatabaseStorage implements IStorage {
 
   async createGuardian(guardianData: InsertGuardian): Promise < Guardian > {
     if (!db) {
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newGuardian: Guardian = {
         id,
         ...guardianData,
@@ -1099,7 +1100,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.insert(guardians).values(guardianData).returning();
       return result[0];
     } catch (error) {
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newGuardian: Guardian = {
         id,
         ...guardianData,
@@ -1163,7 +1164,7 @@ export class DatabaseStorage implements IStorage {
 
   async createFinancialResponsible(financialData: InsertFinancialResponsible): Promise < FinancialResponsible > {
     if (!db) {
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newFinancial: FinancialResponsible = {
         id,
         ...financialData,
@@ -1177,7 +1178,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.insert(financialResponsibles).values(financialData).returning();
       return result[0];
     } catch (error) {
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newFinancial: FinancialResponsible = {
         id,
         ...financialData,
@@ -1245,7 +1246,7 @@ export class DatabaseStorage implements IStorage {
     if (!db) {
       console.warn('Database not available, using demo data');
       // Demo mode - create in memory
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newUnit: Unit = {
         id,
         name: unit.name,
@@ -1269,7 +1270,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.warn('Database error, falling back to demo data:', error.message);
       // Demo mode - create in memory
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newUnit: Unit = {
         id,
         name: unit.name,
@@ -1388,7 +1389,7 @@ export class DatabaseStorage implements IStorage {
       if (!course.isActive) {
         throw new Error(`Cannot create book for inactive course: ${course.name}`);
       }
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newBook: Book = {
         id,
         courseId: bookData.courseId,
@@ -1432,7 +1433,7 @@ export class DatabaseStorage implements IStorage {
       if (!course.isActive) {
         throw new Error(`Cannot create book for inactive course: ${course.name}`);
       }
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newBook: Book = {
         id,
         courseId: bookData.courseId,
@@ -1642,7 +1643,7 @@ export class DatabaseStorage implements IStorage {
     if (!db) {
       console.warn('Database not available, using demo data');
       // Demo mode
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newStaff: Staff = {
         id,
         userId: staffData.userId,
@@ -1667,7 +1668,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.warn('Database error, falling back to demo data:', error.message);
       // Demo mode
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newStaff: Staff = {
         id,
         userId: staffData.userId,
@@ -1830,7 +1831,7 @@ export class DatabaseStorage implements IStorage {
     if (!db) {
       console.warn('Database not available, using demo data');
       // Demo mode
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newStudent: Student = {
         id,
         userId: studentData.userId,
@@ -1855,7 +1856,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.warn('Database error, falling back to demo data:', error.message);
       // Demo mode
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newStudent: Student = {
         id,
         userId: studentData.userId,
@@ -1972,7 +1973,7 @@ export class DatabaseStorage implements IStorage {
     if (!db) {
       console.warn('Database not available, using demo data');
       // Demo mode
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newCourse: Course = {
         id,
         name: courseData.name,
@@ -1997,7 +1998,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.warn('Database error, falling back to demo data:', error.message);
       // Demo mode
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newCourse: Course = {
         id,
         name: courseData.name,
@@ -2313,7 +2314,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Teacher ${teacher.firstName} ${teacher.lastName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
       }
 
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newClass: Class = {
         id,
         bookId: classData.bookId,
@@ -2408,7 +2409,7 @@ export class DatabaseStorage implements IStorage {
       if (timeConflict.hasConflict && timeConflict.conflictingClass) {
         throw new Error(`Teacher ${teacher.firstName} ${teacher.lastName} already has a class "${timeConflict.conflictingClass.name}" at this time (${timeConflict.conflictingClass.startTime}-${timeConflict.conflictingClass.endTime})`);
       }
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newClass: Class = {
         id,
         bookId: classData.bookId,
@@ -2536,7 +2537,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Professor ${teacherName} já tem uma aula "${conflictCheck.conflictingLesson.title}" neste horário (${conflictCheck.conflictingLesson.startTime}-${conflictCheck.conflictingLesson.endTime})`);
     }
 
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newLesson: Lesson = {
       id,
       classId: lessonData.classId,
@@ -2657,7 +2658,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Permission category with name "${categoryData.name}" already exists`);
     }
 
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newCategory: PermissionCategory = {
       id,
       name: categoryData.name,
@@ -2759,7 +2760,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Permission category with id "${permissionData.categoryId}" not found`);
     }
 
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newPermission: Permission = {
       id,
       name: permissionData.name,
@@ -2863,7 +2864,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Role with name "${roleData.name}" already exists`);
     }
 
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newRole: Role = {
       id,
       name: roleData.name,
@@ -2944,7 +2945,7 @@ export class DatabaseStorage implements IStorage {
     if (roleName === 'admin') {
       const allPermissions = await this.getPermissions();
       return allPermissions.map(permission => ({
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         roleId: '1', // admin role ID
         permissionId: permission.id,
         createdAt: new Date(),
@@ -2995,7 +2996,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Permission is already assigned to this role');
     }
 
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newRolePermission: RolePermission = {
       id,
       roleId,
@@ -3029,7 +3030,7 @@ export class DatabaseStorage implements IStorage {
 
     // Add new permissions
     for (const permissionId of permissionIds) {
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newRolePermission: RolePermission = {
         id,
         roleId,
@@ -3083,7 +3084,7 @@ export class DatabaseStorage implements IStorage {
           userPermissions.push({
             permission,
             isGranted: true,
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             userId: user.id,
             permissionId: permission.id,
             createdAt: new Date(),
@@ -3123,7 +3124,7 @@ export class DatabaseStorage implements IStorage {
       return existingUserPermission;
     }
 
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newUserPermission: UserPermission = {
       id,
       userId,
@@ -3161,7 +3162,7 @@ export class DatabaseStorage implements IStorage {
 
     // Add new permissions
     for (const permissionId of permissionIds) {
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       const newUserPermission: UserPermission = {
         id,
         userId,
@@ -3228,7 +3229,7 @@ export class DatabaseStorage implements IStorage {
 
       // Criar permissões individuais para o usuário
       for (const permissionId of rolePermissionIds) {
-        const id = crypto.randomUUID();
+        const id = randomUUID();
         const userPermission: UserPermission = {
           id,
           userId: user.id,
@@ -3252,7 +3253,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newSettings: UserSettings = {
       id,
       ...settings,
@@ -3309,7 +3310,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newTicket: SupportTicket = {
       id,
       ...ticket,
@@ -3349,7 +3350,7 @@ export class DatabaseStorage implements IStorage {
 
   // Support Ticket Responses
   async createSupportTicketResponse(response: InsertSupportTicketResponse): Promise<SupportTicketResponse> {
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newResponse: SupportTicketResponse = {
       id,
       ...response,
@@ -3369,7 +3370,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFranchiseUnit(franchiseUnit: InsertFranchiseUnit): Promise<FranchiseUnit> {
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const newFranchiseUnit: FranchiseUnit = {
       id,
       ...franchiseUnit,
