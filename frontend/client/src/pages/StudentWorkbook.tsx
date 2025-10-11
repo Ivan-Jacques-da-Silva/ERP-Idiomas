@@ -20,7 +20,7 @@ export default function StudentWorkbook() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/landing";
       }, 500);
       return;
     }

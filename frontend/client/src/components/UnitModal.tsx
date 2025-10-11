@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { API_BASE } from "@/lib/api";
 import { Paperclip, Trash2 } from "lucide-react";
 import { formatCPF, validateCPF } from "@/lib/cpfUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -304,10 +305,11 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
         const token = localStorage.getItem('authToken');
         const fd = new FormData();
         fd.append('file', file);
-        const res = await fetch('/api/upload/unit-document', {
+        const res = await fetch(`${API_BASE}/api/upload/unit-document`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: fd,
+          credentials: 'include',
         });
         if (!res.ok) {
           const text = await res.text();

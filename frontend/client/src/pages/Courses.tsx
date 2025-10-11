@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { API_BASE } from "@/lib/api";
 import type { Course, Book, CourseWithDetails, BookWithDetails, InsertCourse, InsertBook } from "@shared/schema";
 import { insertCourseSchema, insertBookSchema } from "@shared/schema";
 import { z } from "zod";
@@ -74,33 +75,15 @@ export default function Courses() {
   });
 
   // Fetch courses
-  const { data: courses = [], isLoading: coursesLoading } = useQuery({
+  const { data: courses = [], isLoading: coursesLoading } = useQuery<Course[]>({
     queryKey: ["/api/courses"],
-    queryFn: async () => {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch("/api/courses", {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch courses');
-      return response.json() as Promise<Course[]>;
-    }
+    retry: false,
   });
 
   // Fetch books
-  const { data: books = [], isLoading: booksLoading } = useQuery({
+  const { data: books = [], isLoading: booksLoading } = useQuery<Book[]>({
     queryKey: ["/api/books"],
-    queryFn: async () => {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch("/api/books", {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch books');
-      return response.json() as Promise<Book[]>;
-    }
+    retry: false,
   });
 
   // Create course mutation
@@ -176,10 +159,20 @@ export default function Courses() {
     mutationFn: async ({ bookId, file }: { bookId: string, file: File }) => {
       const formData = new FormData();
       formData.append('pdf', file);
-      return fetch(`/api/books/${bookId}/upload`, {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`${API_BASE}/api/books/${bookId}/upload`, {
         method: 'POST',
-        body: formData
-      }).then(res => res.json());
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: formData,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Upload failed');
+      }
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/books"] });

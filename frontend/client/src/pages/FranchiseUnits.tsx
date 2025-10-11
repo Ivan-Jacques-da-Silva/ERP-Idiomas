@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { API_BASE } from "@/lib/api";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,12 +87,13 @@ export default function FranchiseUnits() {
         formData.append(fieldName, file);
       });
       
-      const response = await fetch("/api/franchise-units", {
+      const response = await fetch(`${API_BASE}/api/franchise-units`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+          ...(localStorage.getItem("authToken") ? { "Authorization": `Bearer ${localStorage.getItem("authToken")}` } : {}),
         },
         body: formData,
+        credentials: 'include',
       });
       
       if (!response.ok) {

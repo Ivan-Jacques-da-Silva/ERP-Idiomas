@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { API_BASE } from "@/lib/api";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -27,9 +28,13 @@ export async function apiRequest(
     options.body = JSON.stringify(data);
   }
 
+  const fullUrl = /^https?:\/\//i.test(url)
+    ? url
+    : `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+
   console.log(`🌐 ${method} ${url}`, data ? { data } : '');
 
-  const response = await fetch(`${API_BASE}${url}`, options);
+  const response = await fetch(fullUrl, options);
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -66,7 +71,15 @@ export const getQueryFn: <T>(options: {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch(queryKey.join("/") as string, {
+    const pathFromKey = (queryKey as any[])
+      .filter((seg) => seg !== undefined && seg !== null && seg !== "")
+      .map(String)
+      .join("/");
+    const isAbsolute = /^https?:\/\//i.test(pathFromKey);
+    const url = isAbsolute
+      ? pathFromKey
+      : `${API_BASE}${pathFromKey.startsWith('/') ? '' : '/'}${pathFromKey}`;
+    const res = await fetch(url, {
       credentials: "include",
       headers,
     });
