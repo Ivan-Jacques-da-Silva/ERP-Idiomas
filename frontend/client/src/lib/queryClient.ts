@@ -10,22 +10,48 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const headers: Record<string, string> = {};
-  if (data) headers["Content-Type"] = "application/json";
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  data?: any
+): Promise<any> {
+  const token = localStorage.getItem("authToken");
 
-  const res = await fetch(url, {
+  const options: RequestInit = {
     method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     credentials: "include",
-  });
+  };
 
-  await throwIfResNotOk(res);
-  return res;
+  if (data && (method === "POST" || method === "PUT" || method === "PATCH")) {
+    options.body = JSON.stringify(data);
+  }
+
+  console.log(`🌐 ${method} ${url}`, data ? { data } : '');
+
+  const response = await fetch(`${API_BASE}${url}`, options);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      console.log("❌ Erro 401 - Token inválido ou expirado");
+      if (token) {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+      }
+      if (window.location.pathname !== "/landing") {
+        console.log("🔄 Redirecionando para /landing");
+        window.location.href = "/landing";
+      }
+    }
+
+    const errorText = await response.text();
+    console.error(`❌ Erro na requisição: ${response.status}`, errorText);
+    throw new Error(`${response.status}: ${errorText}`);
+  }
+
+  const text = await response.text();
+  console.log(`✅ Resposta ${method} ${url}:`, text ? JSON.parse(text) : null);
+  return text ? JSON.parse(text) : null;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

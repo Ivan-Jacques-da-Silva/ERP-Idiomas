@@ -245,13 +245,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/units", isAuthenticated, async (req, res) => {
     try {
-      console.log("Dados recebidos:", JSON.stringify(req.body, null, 2));
+      console.log("📥 Dados recebidos para criar unidade:", JSON.stringify(req.body, null, 2));
+      
+      // Parse and validate the data
       const unitData = insertUnitSchema.parse(req.body);
-      console.log("Dados validados:", unitData);
+      console.log("✅ Dados validados:", JSON.stringify(unitData, null, 2));
+      
+      // Create the unit with all franchise fields
       const unit = await storage.createUnit(unitData);
+      console.log("✅ Unidade criada com sucesso:", unit.id);
+      
       res.status(201).json(unit);
     } catch (error: any) {
-      console.error("Error creating unit:", error);
+      console.error("❌ Error creating unit:", error);
       console.error("Error details:", error.message);
       if (error.errors) {
         console.error("Validation errors:", JSON.stringify(error.errors, null, 2));

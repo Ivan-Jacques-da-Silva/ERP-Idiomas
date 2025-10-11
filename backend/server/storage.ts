@@ -1262,10 +1262,12 @@ export class DatabaseStorage implements IStorage {
       return newUnit;
     }
     try {
+      console.log("💾 Salvando unidade no banco:", JSON.stringify(unit, null, 2));
       const result = await db.insert(units).values({
         ...unit,
         isActive: unit.isActive ?? true,
       }).returning();
+      console.log("✅ Unidade salva:", JSON.stringify(result[0], null, 2));
       return result[0];
     } catch (error) {
       console.warn('Database error, falling back to demo data:', error.message);
@@ -2641,6 +2643,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Permission Categories
+  async getPermissionCategories(): Promise<PermissionCategory[]>;
+  async getPermissionCategory(id: string): Promise<PermissionCategory | undefined>;
+  async createPermissionCategory(category: InsertPermissionCategory): Promise<PermissionCategory>;
+  async updatePermissionCategory(id: string, category: Partial<InsertPermissionCategory>): Promise<PermissionCategory>;
+  async deletePermissionCategory(id: string): Promise<void>;
+
   async getPermissionCategories(): Promise<PermissionCategory[]> {
     return [...demoPermissionCategories]
       .filter(c => c.isActive)
@@ -3447,7 +3455,7 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
 
     if (!enrollment.length) return null;
-    
+
     const studentId = enrollment[0].students.id;
 
     const booksData = await db
@@ -3478,7 +3486,7 @@ export class DatabaseStorage implements IStorage {
 
     const progressMap = new Map(progressData.map(p => [p.videoId, p]));
     const videosMap = new Map<string, any[]>();
-    
+
     videosData.forEach(video => {
       if (!videosMap.has(video.unitId!)) {
         videosMap.set(video.unitId!, []);
@@ -3566,7 +3574,7 @@ export class DatabaseStorage implements IStorage {
 
     const progressMap = new Map(progressData.map(p => [p.videoId, p]));
     const activitiesMap = new Map<string, any[]>();
-    
+
     activitiesData.forEach(activity => {
       if (!activitiesMap.has(activity.videoId!)) {
         activitiesMap.set(activity.videoId!, []);
@@ -3699,7 +3707,7 @@ export class DatabaseStorage implements IStorage {
         completedAt: progressData.isCompleted ? new Date() : null,
         updatedAt: new Date(),
       };
-      
+
       if (progressData.studentAnswer !== undefined) {
         updateData.studentAnswer = progressData.studentAnswer;
       } else {
@@ -3722,7 +3730,7 @@ export class DatabaseStorage implements IStorage {
         attempts: 1,
         completedAt: progressData.isCompleted ? new Date() : null,
       };
-      
+
       if (progressData.studentAnswer !== undefined) {
         insertData.studentAnswer = progressData.studentAnswer;
       } else {
