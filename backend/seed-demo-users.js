@@ -11,28 +11,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 /* ========================= CONEXÃO PG ========================= */
-const urlOriginal = process.env.DATABASE_URL || '';
-// força IPv4 (evita ::1 na VPS)
-const urlForcada  = urlOriginal.replace('localhost', '127.0.0.1');
+// Usa as mesmas variáveis do setup.js
+const TARGET_DB       = process.env.DB_NAME_TARGET  || "school_system";
+const TARGET_USER     = process.env.DB_USER_TARGET  || "school_admin";
+const TARGET_PASSWORD = process.env.DB_PASS_TARGET  || "SchoolSys2024!@#";
+const DB_HOST         = process.env.DB_HOST || "127.0.0.1";
+const DB_PORT         = parseInt(process.env.DB_PORT || "5432", 10);
 
-const usarUrl = !!urlForcada;
-const pool = usarUrl
-  ? new Pool({ connectionString: urlForcada })
-  : new Pool({
-      host: process.env.DB_HOST || '127.0.0.1',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      user: process.env.DB_USER_TARGET || 'school_admin',
-      password: process.env.DB_PASS_TARGET || 'SchoolSys2024!@#',
-      database: process.env.DB_NAME_TARGET || 'school_system',
-    });
+const pool = new Pool({
+  host: DB_HOST,
+  port: DB_PORT,
+  user: TARGET_USER,
+  password: TARGET_PASSWORD,
+  database: TARGET_DB,
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 5,
+});
 
 // log alvo (sem senha)
 console.log(
   '🔌 PG alvo:',
-  (usarUrl
-    ? urlForcada
-    : `${process.env.DB_USER_TARGET || 'school_admin'}@${process.env.DB_HOST || '127.0.0.1'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME_TARGET || 'school_system'}`
-  ).replace(/:(.*?)@/, '://****@')
+  `${TARGET_USER}@${DB_HOST}:${DB_PORT}/${TARGET_DB}`.replace(/:(.*?)@/, '://****@')
 );
 
 /* ====================== DADOS DE EXEMPLO ====================== */
@@ -45,7 +45,6 @@ const usuariosDemo = [
 
 const unidadesDemo = [
   { name: 'Unidade Centro',    address: 'Rua das Flores, 123 - Centro',       phone: '(11) 3456-7890', email: 'centro@vision.dev.br' },
-  { name: 'Unidade Vila Nova', address: 'Av. Principal, 456 - Vila Nova',     phone: '(11) 3456-7891', email: 'vilanova@vision.dev.br' },
 ];
 
 /* ======================= FUNÇÕES AUXILIARES ======================= */
