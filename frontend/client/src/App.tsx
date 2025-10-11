@@ -40,7 +40,6 @@ function Router() {
     <Switch>
       {!isAuthenticated ? (
         <>
-          <Route path="/landing" component={Landing} />
           <Route path="/" component={Landing} />
         </>
       ) : user?.role === 'student' ? (

@@ -1,12 +1,11 @@
-
 import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import jwt from "jsonwebtoken";
 import { storage } from "./storage.js";
+import { auth } from "./auth.js";
 import { setupVite, serveStatic } from "./vite.js";
 import { 
   insertUnitSchema, 
@@ -28,64 +27,19 @@ import {
 } from "../shared/schema.js";
 import { z } from "zod";
 
-
-
 const updateRolePermissionsSchema = z.object({
   permissionIds: z.array(z.string())
 });
-
-// Simple demo users for login (passwords match frontend)
-const demoUsers = [
-  { id: '1', email: 'admin@demo.com', password: 'demo123', firstName: 'Admin', lastName: 'Sistema', role: 'admin' },
-  { id: '2', email: 'teacher@demo.com', password: 'demo123', firstName: 'Professor', lastName: 'Demo', role: 'teacher' },
-  { id: '3', email: 'secretary@demo.com', password: 'demo123', firstName: 'Secretária', lastName: 'Demo', role: 'secretary' },
-  { id: '4', email: 'student@demo.com', password: 'demo123', firstName: 'Aluno', lastName: 'Demo', role: 'student' },
-];
-
-// JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || 'demo-secret-change-in-production';
-
-// JWT middleware to check if user is logged in
-const isAuthenticated = (req: any, res: any, next: any) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
-
-  if (!token) {
-    return res.status(401).json({ message: "Token não fornecido" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    req.user = decoded;
-    return next();
-  } catch (error) {
-    return res.status(401).json({ message: "Token inválido" });
-  }
-};
-
-
-
-// Middleware para permitir apenas admin (sistema JWT)
-const requireAdminOnly = (req: any, res: any, next: any) => {
-  if (req.user?.role === 'admin') {
-    return next();
-  }
-  return res.status(403).json({ message: "Forbidden - Admin role required" });
-};
-
-// Middleware to check if user has admin or secretary role
-const requireAdminOrSecretary = (req: any, res: any, next: any) => {
-  if (req.user?.role === 'admin' || req.user?.role === 'secretary') {
-    return next();
-  }
-  return res.status(403).json({ message: "Forbidden - Admin or Secretary role required" });
-};
 
 // Configure multer for file uploads
 const bookUploads = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, './uploads/books');
+      const uploadDir = './uploads/books';
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
       const bookId = req.params.id;
@@ -105,7 +59,6 @@ const bookUploads = multer({
   }
 });
 
-// Configure multer for franchise unit file uploads
 const franchiseUploads = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -137,50 +90,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
   app.use('/uploads', express.static('uploads'));
 
-  // Demo login endpoint with JWT
+  // ============================================================================
+  // AUTH ROUTES
+  // ============================================================================
+
+  // Login endpoint
   app.post('/api/auth/login', async (req, res) => {
-    const { email, password } = req.body;
-    
-    console.log('🔑 Tentativa de login:', { email, password: '***' });
-    
-    const user = demoUsers.find(u => u.email === email && u.password === password);
-    
-    if (!user) {
-      console.log('❌ Credenciais inválidas para:', email);
-      return res.status(401).json({ message: "Credenciais inválidas" });
+    try {
+      const { email, password } = req.body;
+      
+      console.log('🔑 Tentativa de login:', { email, password: '***' });
+      
+      const result = await auth.authenticateUser(email, password);
+      
+      if (!result) {
+        console.log('❌ Credenciais inválidas para:', email);
+        return res.status(401).json({ message: "Credenciais inválidas" });
+      }
+
+      const { user, token } = result;
+      
+      // Buscar role para incluir no retorno
+      const role = await storage.getRoles();
+      const userRole = role.find(r => r.id === user.roleId);
+
+      console.log('✅ Login bem-sucedido para:', email);
+      
+      res.json({ 
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: userRole?.name || 'student',
+        },
+        token,
+        message: "Login realizado com sucesso"
+      });
+    } catch (error) {
+      console.error('Erro no login:', error);
+      res.status(500).json({ message: "Erro ao realizar login" });
     }
+  });
 
-    // Create JWT token
-    const userPayload = {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role
-    };
+  // Register endpoint - apenas para estudantes (auto-registro)
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      
+      // Verificar se usuário já existe
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email já cadastrado" });
+      }
 
-    const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '24h' });
-    
-    console.log('✅ Login bem-sucedido para:', email);
-    
-    res.json({ 
-      user: userPayload,
-      token,
-      message: "Login realizado com sucesso"
-    });
+      // Auto-registro é SEMPRE como student (segurança)
+      const studentRole = await storage.getRoleByName('student');
+      if (!studentRole) {
+        return res.status(500).json({ message: "Role de estudante não configurado" });
+      }
+
+      // Hash da senha
+      const hashedPassword = await auth.hashPassword(password);
+
+      // Criar usuário
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        roleId: studentRole.id,
+        isActive: true,
+      });
+
+      // Gerar token
+      const token = auth.generateToken(user);
+
+      res.status(201).json({
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: 'student',
+        },
+        token,
+        message: "Usuário criado com sucesso"
+      });
+    } catch (error) {
+      console.error('Erro no registro:', error);
+      res.status(500).json({ message: "Erro ao criar usuário" });
+    }
   });
 
   // Get current user
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    res.json(req.user);
+  app.get('/api/auth/user', auth.isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUserById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const role = await storage.getRoles();
+      const userRole = role.find(r => r.id === user.roleId);
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: userRole?.name || 'student',
+      });
+    } catch (error) {
+      console.error('Erro ao buscar usuário:', error);
+      res.status(500).json({ message: "Erro ao buscar usuário" });
+    }
   });
 
-  // Get effective permissions for current user based on their role
-  app.get('/api/auth/effective-permissions', isAuthenticated, async (req: any, res) => {
+  // Get effective permissions for current user
+  app.get('/api/auth/effective-permissions', auth.isAuthenticated, async (req: any, res) => {
     try {
-      const rolePermissions = await storage.getRolePermissionsByName(req.user.role);
-      // Return permissions in the format expected by the frontend
+      const user = await storage.getUserById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const role = await storage.getRoles();
+      const userRole = role.find(r => r.id === user.roleId);
+      
+      if (!userRole) {
+        return res.json({ permissions: [] });
+      }
+
+      const rolePermissions = await storage.getRolePermissionsByName(userRole.name);
       const permissions = rolePermissions.map(rp => rp.permission);
+      
       res.json({ permissions: permissions || [] });
     } catch (error) {
       console.error('Error getting effective permissions:', error);
@@ -188,8 +232,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload endpoint for unit documents
-  app.post('/api/upload/unit-document', isAuthenticated, franchiseUploads.single('file'), (req, res) => {
+  // ============================================================================
+  // UPLOAD ROUTES
+  // ============================================================================
+
+  app.post('/api/upload/unit-document', auth.isAuthenticated, franchiseUploads.single('file'), (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: 'Nenhum arquivo enviado' });
@@ -208,8 +255,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard stats
-  app.get("/api/dashboard/stats", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // DASHBOARD ROUTES
+  // ============================================================================
+
+  app.get("/api/dashboard/stats", auth.isAuthenticated, async (req, res) => {
     try {
       const stats = await storage.getDashboardStats();
       res.json(stats);
@@ -219,8 +269,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Units routes
-  app.get("/api/units", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // UNIT ROUTES
+  // ============================================================================
+
+  app.get("/api/units", auth.isAuthenticated, async (req, res) => {
     try {
       const units = await storage.getUnits();
       res.json(units);
@@ -230,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/units/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/units/:id", auth.isAuthenticated, async (req, res) => {
     try {
       const unit = await storage.getUnit(req.params.id);
       if (!unit) {
@@ -243,25 +296,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/units", isAuthenticated, async (req, res) => {
+  app.post("/api/units", auth.requireAdmin, async (req, res) => {
     try {
-      console.log("📥 Dados recebidos para criar unidade:", JSON.stringify(req.body, null, 2));
-      
-      // Parse and validate the data
       const unitData = insertUnitSchema.parse(req.body);
-      console.log("✅ Dados validados:", JSON.stringify(unitData, null, 2));
-      
-      // Create the unit with all franchise fields
       const unit = await storage.createUnit(unitData);
-      console.log("✅ Unidade criada com sucesso:", unit.id);
-      
       res.status(201).json(unit);
     } catch (error: any) {
-      console.error("❌ Error creating unit:", error);
-      console.error("Error details:", error.message);
-      if (error.errors) {
-        console.error("Validation errors:", JSON.stringify(error.errors, null, 2));
-      }
+      console.error("Error creating unit:", error);
       res.status(400).json({ 
         message: "Invalid unit data", 
         error: error.message,
@@ -270,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/units/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/units/:id", auth.requireAdmin, async (req, res) => {
     try {
       const unitData = insertUnitSchema.partial().parse(req.body);
       const unit = await storage.updateUnit(req.params.id, unitData);
@@ -281,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/units/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/units/:id", auth.requireAdmin, async (req, res) => {
     try {
       await storage.deleteUnit(req.params.id);
       res.status(204).send();
@@ -291,8 +332,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Staff routes
-  app.get("/api/staff", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // STAFF ROUTES
+  // ============================================================================
+
+  app.get("/api/staff", auth.isAuthenticated, async (req, res) => {
     try {
       const staff = await storage.getStaff();
       res.json(staff);
@@ -302,32 +346,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/staff/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/staff/:id", auth.isAuthenticated, async (req, res) => {
     try {
-      const staff = await storage.getStaffMember(req.params.id);
-      if (!staff) {
+      const staffMember = await storage.getStaffMember(req.params.id);
+      if (!staffMember) {
         return res.status(404).json({ message: "Staff member not found" });
       }
-      res.json(staff);
+      res.json(staffMember);
     } catch (error) {
       console.error("Error fetching staff member:", error);
       res.status(500).json({ message: "Failed to fetch staff member" });
     }
   });
 
-  app.post("/api/staff", isAuthenticated, async (req, res) => {
+  app.post("/api/staff", auth.requireAdmin, async (req, res) => {
     try {
-      const { firstName, lastName, email, ...staffFields } = req.body;
+      const { firstName, lastName, email, password, role = 'teacher', ...staffFields } = req.body;
       
-      // Create user first
+      // Buscar role
+      const userRole = await storage.getRoleByName(role);
+      if (!userRole) {
+        return res.status(400).json({ message: "Role inválido" });
+      }
+
+      // Hash da senha
+      const hashedPassword = await auth.hashPassword(password || 'senha123');
+      
+      // Criar usuário primeiro
       const user = await storage.createUser({
         email,
+        password: hashedPassword,
         firstName,
         lastName,
-        role: 'admin', // or based on position
+        roleId: userRole.id,
+        isActive: true,
       });
       
-      // Create staff with userId
+      // Criar staff com userId
       const staffData = insertStaffSchema.parse({
         ...staffFields,
         userId: user.id,
@@ -335,17 +390,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const staff = await storage.createStaff(staffData);
       res.status(201).json(staff);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating staff member:", error);
       res.status(400).json({ message: error.message || "Invalid staff data" });
     }
   });
 
-  app.put("/api/staff/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/staff/:id", auth.requireAdmin, async (req, res) => {
     try {
       const { firstName, lastName, email, userId, ...staffFields } = req.body;
       
-      // Update user if data provided
+      // Atualizar usuário se dados fornecidos
       if (userId && (firstName || lastName || email)) {
         await storage.updateUser(userId, {
           ...(firstName && { firstName }),
@@ -354,17 +409,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Update staff
+      // Atualizar staff
       const staffData = insertStaffSchema.partial().parse(staffFields);
       const staff = await storage.updateStaff(req.params.id, staffData);
       res.json(staff);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating staff member:", error);
       res.status(400).json({ message: error.message || "Invalid staff data" });
     }
   });
 
-  app.delete("/api/staff/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/staff/:id", auth.requireAdmin, async (req, res) => {
     try {
       await storage.deleteStaff(req.params.id);
       res.status(204).send();
@@ -374,8 +429,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Students routes
-  app.get("/api/students", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // STUDENT ROUTES
+  // ============================================================================
+
+  app.get("/api/students", auth.isAuthenticated, async (req, res) => {
     try {
       const students = await storage.getStudents();
       res.json(students);
@@ -385,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/students/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/students/:id", auth.isAuthenticated, async (req, res) => {
     try {
       const student = await storage.getStudent(req.params.id);
       if (!student) {
@@ -398,28 +456,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/students", isAuthenticated, async (req, res) => {
+  app.post("/api/students", auth.requireAdminOrSecretary, async (req, res) => {
     try {
-      const { firstName, lastName, email, guardian, ...studentFields } = req.body;
+      const { firstName, lastName, email, password, guardian, ...studentFields } = req.body;
       
-      // Create user first
+      // Buscar role student
+      const studentRole = await storage.getRoleByName('student');
+      if (!studentRole) {
+        return res.status(400).json({ message: "Role de estudante não encontrado" });
+      }
+
+      // Hash da senha
+      const hashedPassword = await auth.hashPassword(password || 'senha123');
+      
+      // Criar usuário primeiro
       const user = await storage.createUser({
         email,
+        password: hashedPassword,
         firstName,
         lastName,
-        role: 'student',
+        roleId: studentRole.id,
+        isActive: true,
       });
       
       let guardianId = null;
       
-      // Create guardian if provided
+      // Criar guardian se fornecido
       if (guardian) {
         const { financialResponsible, ...guardianFields } = guardian;
         const guardianData = insertGuardianSchema.parse(guardianFields);
         const createdGuardian = await storage.createGuardian(guardianData);
         guardianId = createdGuardian.id;
         
-        // Create financial responsible if provided
+        // Criar responsável financeiro se fornecido
         if (financialResponsible) {
           const financialData = insertFinancialResponsibleSchema.parse({
             ...financialResponsible,
@@ -429,7 +498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Create student with userId and guardianId
+      // Criar student com userId e guardianId
       const studentData = insertStudentSchema.parse({
         ...studentFields,
         userId: user.id,
@@ -438,17 +507,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const student = await storage.createStudent(studentData);
       res.status(201).json(student);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating student:", error);
       res.status(400).json({ message: error.message || "Invalid student data" });
     }
   });
 
-  app.put("/api/students/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/students/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const { firstName, lastName, email, userId, guardian, ...studentFields } = req.body;
       
-      // Update user if data provided
+      // Atualizar usuário se dados fornecidos
       if (userId && (firstName || lastName || email)) {
         await storage.updateUser(userId, {
           ...(firstName && { firstName }),
@@ -457,18 +526,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Handle guardian updates if provided
+      // Tratar atualizações de guardian se fornecido
       if (guardian) {
         const { financialResponsible, ...guardianFields } = guardian;
         
-        // If student already has a guardian, update it, otherwise create new
+        // Se estudante já tem guardian, atualizar, senão criar novo
         const currentStudent = await storage.getStudent(req.params.id);
         if (currentStudent?.guardianId) {
           await storage.updateGuardian(currentStudent.guardianId, guardianFields);
           
-          // Handle financial responsible
+          // Tratar responsável financeiro
           if (financialResponsible) {
-            // Check if guardian already has financial responsible
             const guardianWithFinancial = await storage.getGuardianWithFinancial(currentStudent.guardianId);
             if (guardianWithFinancial?.financialResponsible) {
               await storage.updateFinancialResponsible(guardianWithFinancial.financialResponsible.id, financialResponsible);
@@ -481,12 +549,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         } else {
-          // Create new guardian
+          // Criar novo guardian
           const guardianData = insertGuardianSchema.parse(guardianFields);
           const createdGuardian = await storage.createGuardian(guardianData);
           studentFields.guardianId = createdGuardian.id;
           
-          // Create financial responsible if provided
+          // Criar responsável financeiro se fornecido
           if (financialResponsible) {
             const financialData = insertFinancialResponsibleSchema.parse({
               ...financialResponsible,
@@ -497,17 +565,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Update student
+      // Atualizar student
       const studentData = insertStudentSchema.partial().parse(studentFields);
       const student = await storage.updateStudent(req.params.id, studentData);
       res.json(student);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating student:", error);
       res.status(400).json({ message: error.message || "Invalid student data" });
     }
   });
 
-  app.delete("/api/students/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/students/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       await storage.deleteStudent(req.params.id);
       res.status(204).send();
@@ -517,8 +585,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Courses routes
-  app.get("/api/courses", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // COURSE ROUTES
+  // ============================================================================
+
+  app.get("/api/courses", auth.isAuthenticated, async (req, res) => {
     try {
       const courses = await storage.getCourses();
       res.json(courses);
@@ -528,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/courses/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/courses/:id", auth.isAuthenticated, async (req, res) => {
     try {
       const course = await storage.getCourse(req.params.id);
       if (!course) {
@@ -541,7 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/courses", isAuthenticated, async (req, res) => {
+  app.post("/api/courses", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const courseData = insertCourseSchema.parse(req.body);
       const course = await storage.createCourse(courseData);
@@ -552,7 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/courses/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/courses/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const courseData = insertCourseSchema.partial().parse(req.body);
       const course = await storage.updateCourse(req.params.id, courseData);
@@ -563,7 +634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/courses/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/courses/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       await storage.deleteCourse(req.params.id);
       res.status(204).send();
@@ -573,8 +644,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Books routes
-  app.get("/api/books", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // BOOK ROUTES
+  // ============================================================================
+
+  app.get("/api/books", auth.isAuthenticated, async (req, res) => {
     try {
       const books = await storage.getBooks();
       res.json(books);
@@ -584,7 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/books/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/books/:id", auth.isAuthenticated, async (req, res) => {
     try {
       const book = await storage.getBook(req.params.id);
       if (!book) {
@@ -597,7 +671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/books", isAuthenticated, async (req, res) => {
+  app.post("/api/books", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const bookData = insertBookSchema.parse(req.body);
       const book = await storage.createBook(bookData);
@@ -608,7 +682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/books/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/books/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const bookData = insertBookSchema.partial().parse(req.body);
       const book = await storage.updateBook(req.params.id, bookData);
@@ -619,7 +693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/books/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/books/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       await storage.deleteBook(req.params.id);
       res.status(204).send();
@@ -630,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PDF upload route for books
-  app.post("/api/books/:id/upload", isAuthenticated, bookUploads.single('pdf'), async (req, res) => {
+  app.post("/api/books/:id/upload", auth.requireAdminOrSecretary, bookUploads.single('pdf'), async (req, res) => {
     try {
       const bookId = req.params.id;
       const file = req.file;
@@ -639,13 +713,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No PDF file provided" });
       }
 
-      // Check if book exists
+      // Verificar se book existe
       const book = await storage.getBook(bookId);
       if (!book) {
         return res.status(404).json({ message: "Book not found" });
       }
 
-      // Update book with new PDF URL
+      // Atualizar book com nova URL do PDF
       const pdfUrl = `/uploads/books/${file.filename}`;
       const updatedBook = await storage.updateBook(bookId, { pdfUrl });
 
@@ -668,8 +742,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Classes routes
-  app.get("/api/classes", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // CLASS ROUTES
+  // ============================================================================
+
+  app.get("/api/classes", auth.isAuthenticated, async (req, res) => {
     try {
       const classes = await storage.getClasses();
       res.json(classes);
@@ -679,7 +756,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/classes/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/classes/:id", auth.isAuthenticated, async (req, res) => {
     try {
       const classItem = await storage.getClass(req.params.id);
       if (!classItem) {
@@ -692,39 +769,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/classes/teacher/:teacherId", isAuthenticated, async (req, res) => {
-    try {
-      const classes = await storage.getClassesByTeacher(req.params.teacherId);
-      res.json(classes);
-    } catch (error) {
-      console.error("Error fetching teacher classes:", error);
-      res.status(500).json({ message: "Failed to fetch teacher classes" });
-    }
-  });
-
-  app.post("/api/classes", isAuthenticated, requireAdminOrSecretary, async (req, res) => {
+  app.post("/api/classes", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const classData = insertClassSchema.parse(req.body);
-      const newClass = await storage.createClass(classData);
-      res.status(201).json(newClass);
+      const classItem = await storage.createClass(classData);
+      res.status(201).json(classItem);
     } catch (error) {
       console.error("Error creating class:", error);
       res.status(400).json({ message: "Invalid class data" });
     }
   });
 
-  app.put("/api/classes/:id", isAuthenticated, requireAdminOrSecretary, async (req, res) => {
+  app.put("/api/classes/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const classData = insertClassSchema.partial().parse(req.body);
-      const updatedClass = await storage.updateClass(req.params.id, classData);
-      res.json(updatedClass);
+      const classItem = await storage.updateClass(req.params.id, classData);
+      res.json(classItem);
     } catch (error) {
       console.error("Error updating class:", error);
       res.status(400).json({ message: "Invalid class data" });
     }
   });
 
-  app.delete("/api/classes/:id", isAuthenticated, requireAdminOrSecretary, async (req, res) => {
+  app.delete("/api/classes/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       await storage.deleteClass(req.params.id);
       res.status(204).send();
@@ -734,8 +801,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lessons/Schedule routes
-  app.get("/api/lessons", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // LESSON ROUTES
+  // ============================================================================
+
+  app.get("/api/lessons", auth.isAuthenticated, async (req, res) => {
     try {
       const lessons = await storage.getLessons();
       res.json(lessons);
@@ -745,17 +815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/lessons/today", isAuthenticated, async (req, res) => {
-    try {
-      const lessons = await storage.getTodaysLessons();
-      res.json(lessons);
-    } catch (error) {
-      console.error("Error fetching today's lessons:", error);
-      res.status(500).json({ message: "Failed to fetch today's lessons" });
-    }
-  });
-
-  app.get("/api/lessons/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/lessons/:id", auth.isAuthenticated, async (req, res) => {
     try {
       const lesson = await storage.getLesson(req.params.id);
       if (!lesson) {
@@ -768,27 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/lessons/class/:classId", isAuthenticated, async (req, res) => {
-    try {
-      const lessons = await storage.getLessonsByClass(req.params.classId);
-      res.json(lessons);
-    } catch (error) {
-      console.error("Error fetching class lessons:", error);
-      res.status(500).json({ message: "Failed to fetch class lessons" });
-    }
-  });
-
-  app.get("/api/lessons/teacher/:teacherId", isAuthenticated, async (req, res) => {
-    try {
-      const lessons = await storage.getLessonsByTeacher(req.params.teacherId);
-      res.json(lessons);
-    } catch (error) {
-      console.error("Error fetching teacher lessons:", error);
-      res.status(500).json({ message: "Failed to fetch teacher lessons" });
-    }
-  });
-
-  app.post("/api/lessons", isAuthenticated, async (req, res) => {
+  app.post("/api/lessons", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const lessonData = insertLessonSchema.parse(req.body);
       const lesson = await storage.createLesson(lessonData);
@@ -799,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/lessons/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/lessons/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const lessonData = insertLessonSchema.partial().parse(req.body);
       const lesson = await storage.updateLesson(req.params.id, lessonData);
@@ -810,7 +850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/lessons/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/lessons/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       await storage.deleteLesson(req.params.id);
       res.status(204).send();
@@ -820,188 +860,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check lesson conflicts endpoint
-  app.post("/api/lessons/check-conflicts", isAuthenticated, async (req, res) => {
-    try {
-      const { teacherId, date, startTime, endTime, excludeLessonId } = req.body;
-      
-      if (!teacherId || !date || !startTime || !endTime) {
-        return res.status(400).json({ message: "Missing required fields: teacherId, date, startTime, endTime" });
-      }
+  // ============================================================================
+  // PERMISSION & ROLE ROUTES
+  // ============================================================================
 
-      const conflictCheck = await storage.checkLessonConflicts(
-        teacherId,
-        new Date(date),
-        startTime,
-        endTime,
-        excludeLessonId
-      );
-
-      res.json(conflictCheck);
-    } catch (error) {
-      console.error("Error checking lesson conflicts:", error);
-      res.status(500).json({ message: "Failed to check lesson conflicts" });
-    }
-  });
-
-  // Schedule/Agenda routes para administração
-  app.get("/api/schedule/admin", isAuthenticated, requireAdminOrSecretary, async (req, res) => {
-    try {
-      // Busca todas as turmas com horários para agenda administrativa
-      const classes = await storage.getClasses();
-      
-      // Formata os dados para agenda (pode ter múltiplas turmas no mesmo horário)
-      const scheduleData = classes.map(cls => ({
-        id: cls.id,
-        title: cls.name,
-        teacher: `${cls.teacher.firstName} ${cls.teacher.lastName}`,
-        teacherId: cls.teacher.id,
-        book: cls.book.name,
-        bookColor: cls.book.color,
-        dayOfWeek: cls.dayOfWeek,
-        startTime: cls.startTime,
-        endTime: cls.endTime,
-        room: cls.room,
-        unit: cls.unit.name,
-        currentDay: cls.currentDay,
-        totalDays: cls.book.totalDays
-      }));
-      
-      res.json(scheduleData);
-    } catch (error) {
-      console.error("Error fetching admin schedule:", error);
-      res.status(500).json({ message: "Failed to fetch admin schedule" });
-    }
-  });
-
-  app.get("/api/classes/teacher/:teacherId", isAuthenticated, async (req, res) => {
-    try {
-      // Busca as turmas do professor específico
-      const classes = await storage.getClassesByTeacher(req.params.teacherId);
-      
-      const classesData = classes.map(cls => ({
-        id: cls.id,
-        name: cls.name,
-        book: {
-          id: cls.book.id,
-          name: cls.book.name,
-          color: cls.book.color,
-          totalDays: cls.book.totalDays
-        },
-        schedule: cls.schedule,
-        dayOfWeek: cls.dayOfWeek,
-        startTime: cls.startTime,
-        endTime: cls.endTime,
-        room: cls.room,
-        maxStudents: cls.maxStudents,
-        currentStudents: cls.currentStudents,
-        currentDay: cls.currentDay,
-        unit: cls.unit
-      }));
-      
-      res.json(classesData);
-    } catch (error) {
-      console.error("Error fetching teacher classes:", error);
-      res.status(500).json({ message: "Failed to fetch teacher classes" });
-    }
-  });
-
-  app.get("/api/schedule/teacher/:teacherId", isAuthenticated, async (req, res) => {
-    try {
-      // Busca as turmas do professor específico (sem conflito de horário)
-      const classes = await storage.getClassesByTeacher(req.params.teacherId);
-      
-      const scheduleData = classes.map(cls => ({
-        id: cls.id,
-        title: cls.name,
-        book: cls.book.name,
-        bookColor: cls.book.color,
-        dayOfWeek: cls.dayOfWeek,
-        startTime: cls.startTime,
-        endTime: cls.endTime,
-        room: cls.room,
-        unit: cls.unit.name,
-        currentDay: cls.currentDay,
-        totalDays: cls.book.totalDays,
-        studentsCount: cls.currentStudents,
-        maxStudents: cls.maxStudents
-      }));
-      
-      res.json(scheduleData);
-    } catch (error) {
-      console.error("Error fetching teacher schedule:", error);
-      res.status(500).json({ message: "Failed to fetch teacher schedule" });
-    }
-  });
-
-
-  // Permissions routes - read-only catalog for UI
-  // Permission Categories routes
-  app.get("/api/permission-categories", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const categories = await storage.getPermissionCategories();
-      res.json(categories);
-    } catch (error) {
-      console.error("Error fetching permission categories:", error);
-      res.status(500).json({ message: "Failed to fetch permission categories" });
-    }
-  });
-
-  app.get("/api/permission-categories/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const category = await storage.getPermissionCategory(req.params.id);
-      if (!category) {
-        return res.status(404).json({ message: "Permission category not found" });
-      }
-      res.json(category);
-    } catch (error) {
-      console.error("Error fetching permission category:", error);
-      res.status(500).json({ message: "Failed to fetch permission category" });
-    }
-  });
-
-  app.post("/api/permission-categories", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const categoryData = insertPermissionCategorySchema.parse(req.body);
-      const category = await storage.createPermissionCategory(categoryData);
-      res.status(201).json(category);
-    } catch (error) {
-      console.error("Error creating permission category:", error);
-      if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to create permission category" });
-    }
-  });
-
-  app.put("/api/permission-categories/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const categoryData = insertPermissionCategorySchema.partial().parse(req.body);
-      const category = await storage.updatePermissionCategory(req.params.id, categoryData);
-      res.json(category);
-    } catch (error) {
-      console.error("Error updating permission category:", error);
-      if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to update permission category" });
-    }
-  });
-
-  app.delete("/api/permission-categories/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      await storage.deletePermissionCategory(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting permission category:", error);
-      if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to delete permission category" });
-    }
-  });
-
-  app.get("/api/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
+  app.get("/api/permissions", auth.isAuthenticated, async (req, res) => {
     try {
       const permissions = await storage.getPermissions();
       res.json(permissions);
@@ -1011,63 +874,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/permissions/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
+  app.get("/api/permissions/by-category", auth.isAuthenticated, async (req, res) => {
     try {
-      const permission = await storage.getPermission(req.params.id);
-      if (!permission) {
-        return res.status(404).json({ message: "Permission not found" });
-      }
-      res.json(permission);
+      const permissions = await storage.getPermissionsByCategory();
+      res.json(permissions);
     } catch (error) {
-      console.error("Error fetching permission:", error);
-      res.status(500).json({ message: "Failed to fetch permission" });
+      console.error("Error fetching permissions by category:", error);
+      res.status(500).json({ message: "Failed to fetch permissions" });
     }
   });
 
-  app.post("/api/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const permissionData = insertPermissionSchema.parse(req.body);
-      const permission = await storage.createPermission(permissionData);
-      res.status(201).json(permission);
-    } catch (error) {
-      console.error("Error creating permission:", error);
-      if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to create permission" });
-    }
-  });
-
-  app.put("/api/permissions/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const permissionData = insertPermissionSchema.partial().parse(req.body);
-      const permission = await storage.updatePermission(req.params.id, permissionData);
-      res.json(permission);
-    } catch (error) {
-      console.error("Error updating permission:", error);
-      if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to update permission" });
-    }
-  });
-
-  app.delete("/api/permissions/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      await storage.deletePermission(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting permission:", error);
-      if (error instanceof Error) {
-        return res.status(400).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to delete permission" });
-    }
-  });
-
-
-  // Roles routes - manage system roles
-  app.get("/api/roles", isAuthenticated, requireAdminOnly, async (req, res) => {
+  app.get("/api/roles", auth.isAuthenticated, async (req, res) => {
     try {
       const roles = await storage.getRoles();
       res.json(roles);
@@ -1077,187 +894,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/roles/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const role = await storage.getRole(req.params.id);
-      if (!role) {
-        return res.status(404).json({ message: "Role not found" });
-      }
-      res.json(role);
-    } catch (error) {
-      console.error("Error fetching role:", error);
-      res.status(500).json({ message: "Failed to fetch role" });
-    }
-  });
-
-  app.get("/api/roles/:id/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const roleWithPermissions = await storage.getRoleWithPermissions(req.params.id);
-      if (!roleWithPermissions) {
-        return res.status(404).json({ message: "Role not found" });
-      }
-      res.json(roleWithPermissions);
-    } catch (error) {
-      console.error("Error fetching role permissions:", error);
-      res.status(500).json({ message: "Failed to fetch role permissions" });
-    }
-  });
-
-  app.put("/api/roles/:id/permissions", isAuthenticated, requireAdminOnly, async (req, res) => {
+  app.put("/api/roles/:id/permissions", auth.requireAdmin, async (req, res) => {
     try {
       const { permissionIds } = updateRolePermissionsSchema.parse(req.body);
-      
-      // Validate that all permission IDs exist
-      if (permissionIds.length > 0) {
-        const allPermissions = await storage.getPermissions();
-        const validPermissionIds = allPermissions.map(p => p.id);
-        const invalidIds = permissionIds.filter(id => !validPermissionIds.includes(id));
-        
-        if (invalidIds.length > 0) {
-          return res.status(400).json({ 
-            message: "Invalid permission IDs provided", 
-            invalidIds 
-          });
-        }
-      }
-      
       await storage.updateRolePermissions(req.params.id, permissionIds);
-      
-      // Return updated role permissions
-      const updatedRolePermissions = await storage.getRoleWithPermissions(req.params.id);
-      res.json(updatedRolePermissions);
-    } catch (error: any) {
-      console.error("Error updating role permissions:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      if (error.message?.includes("not found")) {
-        return res.status(404).json({ message: "Role not found" });
-      }
-      res.status(500).json({ message: "Failed to update role permissions" });
-    }
-  });
-
-  app.post("/api/roles", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      // Create safe schema that excludes isSystemRole to prevent privilege escalation
-      const safeRoleData = insertRoleSchema.omit({ isSystemRole: true }).parse(req.body);
-      
-      // Force isSystemRole to false for all custom roles created via API
-      const roleData = {
-        ...safeRoleData,
-        isSystemRole: false
-      };
-      
-      const role = await storage.createRole(roleData);
-      res.status(201).json(role);
-    } catch (error: any) {
-      console.error("Error creating role:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      if (error.message?.includes("already exists")) {
-        return res.status(409).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to create role" });
-    }
-  });
-
-  app.put("/api/roles/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      // Create safe schema that excludes isSystemRole to prevent system role modification
-      const safeRoleData = insertRoleSchema.omit({ isSystemRole: true }).partial().parse(req.body);
-      
-      const role = await storage.updateRole(req.params.id, safeRoleData);
-      res.json(role);
-    } catch (error: any) {
-      console.error("Error updating role:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      if (error.message?.includes("not found")) {
-        return res.status(404).json({ message: "Role not found" });
-      }
-      if (error.message?.includes("Cannot modify") || error.message?.includes("system roles")) {
-        return res.status(403).json({ message: "Cannot modify system roles" });
-      }
-      res.status(500).json({ message: "Failed to update role" });
-    }
-  });
-
-  app.delete("/api/roles/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      await storage.deleteRole(req.params.id);
-      res.status(204).send();
-    } catch (error: any) {
-      console.error("Error deleting role:", error);
-      if (error.message?.includes("not found")) {
-        return res.status(404).json({ message: "Role not found" });
-      }
-      if (error.message?.includes("Cannot delete system roles")) {
-        return res.status(403).json({ message: "Cannot delete system roles" });
-      }
-      res.status(500).json({ message: "Failed to delete role" });
-    }
-  });
-
-  // User Settings routes
-  app.get("/api/users/:id/settings", isAuthenticated, async (req: any, res) => {
-    try {
-      // Users can access their own settings, admin can access anyone's
-      const currentUserId = req.user.id;
-      const requestedUserId = req.params.id;
-      const userRole = req.user.role;
-      
-      if (currentUserId !== requestedUserId && userRole !== 'admin') {
-        return res.status(403).json({ message: "Forbidden - Can only access your own settings" });
-      }
-      
-      const settings = await storage.getUserSettings(requestedUserId);
-      res.json(settings || {});
+      res.json({ message: "Permissions updated successfully" });
     } catch (error) {
-      console.error("Error fetching user settings:", error);
-      res.status(500).json({ message: "Failed to fetch user settings" });
+      console.error("Error updating role permissions:", error);
+      res.status(400).json({ message: "Invalid permission data" });
     }
   });
 
-  app.put("/api/users/:id/settings", isAuthenticated, async (req: any, res) => {
-    try {
-      // Users can update their own settings, admin can update anyone's
-      const currentUserId = req.user.id;
-      const requestedUserId = req.params.id;
-      const userRole = req.user.role;
-      
-      if (currentUserId !== requestedUserId && userRole !== 'admin') {
-        return res.status(403).json({ message: "Forbidden - Can only update your own settings" });
-      }
-      
-      const settingsData = insertUserSettingsSchema.partial().parse(req.body);
-      const updatedSettings = await storage.updateUserSettings(requestedUserId, settingsData);
-      res.json(updatedSettings);
-    } catch (error: any) {
-      console.error("Error updating user settings:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update user settings" });
-    }
-  });
+  // ============================================================================
+  // SUPPORT TICKET ROUTES
+  // ============================================================================
 
-  // Support Tickets routes
-  app.get("/api/support/tickets", isAuthenticated, async (req: any, res) => {
+  app.get("/api/support/tickets", auth.isAuthenticated, async (req, res) => {
     try {
-      const currentUserId = req.user.id;
-      const userRole = req.user.role;
-      
-      // Admin can see all tickets, others can see only their own
-      let tickets;
-      if (userRole === 'admin') {
-        tickets = await storage.getSupportTickets();
-      } else {
-        tickets = await storage.getSupportTicketsByUser(currentUserId);
-      }
-      
+      const tickets = await storage.getSupportTickets();
       res.json(tickets);
     } catch (error) {
       console.error("Error fetching support tickets:", error);
@@ -1265,21 +919,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/support/tickets/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/support/tickets/:id", auth.isAuthenticated, async (req, res) => {
     try {
-      const currentUserId = req.user.id;
-      const userRole = req.user.role;
-      
       const ticket = await storage.getSupportTicket(req.params.id);
       if (!ticket) {
         return res.status(404).json({ message: "Ticket not found" });
       }
-      
-      // Users can only access their own tickets, admin can access all
-      if (ticket.userId !== currentUserId && userRole !== 'admin') {
-        return res.status(403).json({ message: "Forbidden - Can only access your own tickets" });
-      }
-      
       res.json(ticket);
     } catch (error) {
       console.error("Error fetching support ticket:", error);
@@ -1287,311 +932,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/support/tickets", isAuthenticated, async (req: any, res) => {
+  app.post("/api/support/tickets", auth.isAuthenticated, async (req: any, res) => {
     try {
-      const currentUserId = req.user.id;
       const ticketData = insertSupportTicketSchema.parse(req.body);
-      
-      const newTicket = await storage.createSupportTicket({
+      const ticket = await storage.createSupportTicket({
         ...ticketData,
-        userId: currentUserId,
-      } as any);
-      
-      // TODO: Send email notification to support team
-      // This would be implemented server-side using environment variables:
-      // if (process.env.SUPPORT_EMAIL) {
-      //   await sendEmail({
-      //     to: process.env.SUPPORT_EMAIL,
-      //     subject: `Novo ticket: ${newTicket.title}`,
-      //     body: ticketData.description,
-      //     priority: ticketData.priority,
-      //   });
-      // }
-      
-      res.status(201).json(newTicket);
-    } catch (error: any) {
+        userId: req.user.id,
+      });
+      res.status(201).json(ticket);
+    } catch (error) {
       console.error("Error creating support ticket:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create support ticket" });
+      res.status(400).json({ message: "Invalid ticket data" });
     }
   });
 
-  app.put("/api/support/tickets/:id", isAuthenticated, async (req: any, res) => {
+  app.put("/api/support/tickets/:id", auth.isAuthenticated, async (req, res) => {
     try {
-      const currentUserId = req.user.id;
-      const userRole = req.user.role;
-      
-      // Only admin can update ticket status and assignment
-      if (userRole !== 'admin') {
-        return res.status(403).json({ message: "Forbidden - Only admin can update tickets" });
-      }
-      
       const ticketData = insertSupportTicketSchema.partial().parse(req.body);
-      const updatedTicket = await storage.updateSupportTicket(req.params.id, ticketData);
-      res.json(updatedTicket);
-    } catch (error: any) {
+      const ticket = await storage.updateSupportTicket(req.params.id, ticketData);
+      res.json(ticket);
+    } catch (error) {
       console.error("Error updating support ticket:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      if (error.message?.includes("not found")) {
-        return res.status(404).json({ message: "Ticket not found" });
-      }
-      res.status(500).json({ message: "Failed to update support ticket" });
+      res.status(400).json({ message: "Invalid ticket data" });
     }
   });
 
-  app.post("/api/support/tickets/:ticketId/responses", isAuthenticated, async (req: any, res) => {
+  app.post("/api/support/tickets/:id/responses", auth.isAuthenticated, async (req: any, res) => {
     try {
-      const currentUserId = req.user.id;
-      const userRole = req.user.role;
-      const ticketId = req.params.ticketId;
-      
-      // Check if ticket exists and user has access
-      const ticket = await storage.getSupportTicket(ticketId);
-      if (!ticket) {
-        return res.status(404).json({ message: "Ticket not found" });
-      }
-      
-      if (ticket.userId !== currentUserId && userRole !== 'admin') {
-        return res.status(403).json({ message: "Forbidden - Can only respond to your own tickets" });
-      }
-      
       const responseData = insertSupportTicketResponseSchema.parse(req.body);
-      const newResponse = await storage.createSupportTicketResponse({
+      const response = await storage.createSupportTicketResponse({
         ...responseData,
-        ticketId,
-        userId: currentUserId,
-        isFromSupport: userRole === 'admin',
-      } as any);
-      
-      res.status(201).json(newResponse);
-    } catch (error: any) {
+        ticketId: req.params.id,
+        userId: req.user.id,
+      });
+      res.status(201).json(response);
+    } catch (error) {
       console.error("Error creating support ticket response:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create support ticket response" });
+      res.status(400).json({ message: "Invalid response data" });
     }
   });
 
-  // Franchise Units routes
-  app.get("/api/franchise-units", isAuthenticated, async (req, res) => {
+  // ============================================================================
+  // USER SETTINGS ROUTES
+  // ============================================================================
+
+  app.get("/api/user/settings", auth.isAuthenticated, async (req: any, res) => {
     try {
-      const franchiseUnits = await storage.getFranchiseUnits();
-      res.json(franchiseUnits);
+      const settings = await storage.getUserSettings(req.user.id);
+      if (!settings) {
+        // Criar settings padrão se não existir
+        const newSettings = await storage.createUserSettings({ userId: req.user.id });
+        return res.json(newSettings);
+      }
+      res.json(settings);
     } catch (error) {
-      console.error("Error fetching franchise units:", error);
-      res.status(500).json({ message: "Failed to fetch franchise units" });
+      console.error("Error fetching user settings:", error);
+      res.status(500).json({ message: "Failed to fetch user settings" });
     }
   });
 
-  app.get("/api/franchise-units/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/user/settings", auth.isAuthenticated, async (req: any, res) => {
     try {
-      const franchiseUnit = await storage.getFranchiseUnit(req.params.id);
-      if (!franchiseUnit) {
-        return res.status(404).json({ message: "Franchise unit not found" });
-      }
-      res.json(franchiseUnit);
+      const settingsData = insertUserSettingsSchema.partial().parse(req.body);
+      const settings = await storage.updateUserSettings(req.user.id, settingsData);
+      res.json(settings);
     } catch (error) {
-      console.error("Error fetching franchise unit:", error);
-      res.status(500).json({ message: "Failed to fetch franchise unit" });
+      console.error("Error updating user settings:", error);
+      res.status(400).json({ message: "Invalid settings data" });
     }
   });
 
-  app.post("/api/franchise-units", isAuthenticated, requireAdminOnly, franchiseUploads.any(), async (req: any, res) => {
-    try {
-      const files = req.files as Express.Multer.File[] || [];
-      const franchiseUnitData = { ...req.body };
-      
-      // Map uploaded files to their field names
-      files.forEach((file) => {
-        const relativePath = `/uploads/franchise-units/${file.filename}`;
-        franchiseUnitData[file.fieldname] = relativePath;
-      });
-      
-      const validatedData = insertFranchiseUnitSchema.parse(franchiseUnitData);
-      const newFranchiseUnit = await storage.createFranchiseUnit(validatedData);
-      res.status(201).json(newFranchiseUnit);
-    } catch (error: any) {
-      console.error("Error creating franchise unit:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create franchise unit" });
-    }
-  });
+  // ============================================================================
+  // VITE SETUP
+  // ============================================================================
 
-  app.put("/api/franchise-units/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      const franchiseUnitData = insertFranchiseUnitSchema.partial().parse(req.body);
-      const updatedFranchiseUnit = await storage.updateFranchiseUnit(req.params.id, franchiseUnitData);
-      res.json(updatedFranchiseUnit);
-    } catch (error: any) {
-      console.error("Error updating franchise unit:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      if (error.message?.includes("not found")) {
-        return res.status(404).json({ message: "Franchise unit not found" });
-      }
-      res.status(500).json({ message: "Failed to update franchise unit" });
-    }
-  });
+  const server = createServer(app);
 
-  app.delete("/api/franchise-units/:id", isAuthenticated, requireAdminOnly, async (req, res) => {
-    try {
-      await storage.deleteFranchiseUnit(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting franchise unit:", error);
-      res.status(500).json({ message: "Failed to delete franchise unit" });
-    }
-  });
-
-  // ===================== STUDENT COURSE AREA ROUTES =====================
-  
-  // Middleware to ensure user is a student
-  const requireStudentRole = (req: any, res: any, next: any) => {
-    if (req.user.role !== 'student') {
-      return res.status(403).json({ message: "Access denied. Student role required." });
-    }
-    next();
-  };
-  
-  // Get student's enrolled courses
-  app.get("/api/student/courses", isAuthenticated, requireStudentRole, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const courses = await storage.getStudentCourses(userId);
-      res.json(courses);
-    } catch (error: any) {
-      console.error("Error fetching student courses:", error);
-      res.status(500).json({ message: "Failed to fetch student courses" });
-    }
-  });
-
-  // Get detailed course with books, units, videos and progress
-  app.get("/api/student/courses/:courseId", isAuthenticated, requireStudentRole, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const courseId = req.params.courseId;
-      const courseDetails = await storage.getStudentCourseDetails(userId, courseId);
-      
-      if (!courseDetails) {
-        return res.status(404).json({ message: "Course not found or not enrolled" });
-      }
-      
-      res.json(courseDetails);
-    } catch (error: any) {
-      console.error("Error fetching course details:", error);
-      res.status(500).json({ message: "Failed to fetch course details" });
-    }
-  });
-
-  // Get unit videos with progress
-  app.get("/api/student/units/:unitId/videos", isAuthenticated, requireStudentRole, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const unitId = req.params.unitId;
-      const videos = await storage.getUnitVideosWithProgress(userId, unitId);
-      res.json(videos);
-    } catch (error: any) {
-      console.error("Error fetching unit videos:", error);
-      res.status(500).json({ message: "Failed to fetch unit videos" });
-    }
-  });
-
-  // Update video progress
-  app.post("/api/student/progress/video/:videoId", isAuthenticated, requireStudentRole, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const videoId = req.params.videoId;
-      
-      const progressSchema = z.object({
-        isCompleted: z.boolean(),
-        watchedDuration: z.number().min(0),
-      });
-      
-      const validatedData = progressSchema.parse(req.body);
-      
-      const progress = await storage.updateVideoProgress(userId, videoId, validatedData);
-      
-      res.json(progress);
-    } catch (error: any) {
-      console.error("Error updating video progress:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update video progress" });
-    }
-  });
-
-  // Update activity progress
-  app.post("/api/student/progress/activity/:activityId", isAuthenticated, requireStudentRole, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const activityId = req.params.activityId;
-      
-      const progressSchema = z.object({
-        isCompleted: z.boolean(),
-        studentAnswer: z.any().optional(),
-        score: z.number().min(0).max(100),
-      });
-      
-      const validatedData = progressSchema.parse(req.body);
-      
-      const progressPayload: {
-        isCompleted: boolean;
-        studentAnswer?: string;
-        score: number;
-      } = {
-        isCompleted: validatedData.isCompleted,
-        score: validatedData.score,
-      };
-      
-      if (validatedData.studentAnswer !== undefined) {
-        progressPayload.studentAnswer = JSON.stringify(validatedData.studentAnswer);
-      }
-      
-      const progress = await storage.updateActivityProgress(userId, activityId, progressPayload);
-      
-      res.json(progress);
-    } catch (error: any) {
-      console.error("Error updating activity progress:", error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
-      }
-      if (error.message?.includes("not enrolled") || error.message?.includes("not found")) {
-        return res.status(403).json({ message: error.message });
-      }
-      res.status(500).json({ message: "Failed to update activity progress" });
-    }
-  });
-
-  // Get student progress for a specific unit
-  app.get("/api/student/units/:unitId/progress", isAuthenticated, requireStudentRole, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const unitId = req.params.unitId;
-      const progress = await storage.getUnitProgress(userId, unitId);
-      res.json(progress);
-    } catch (error: any) {
-      console.error("Error fetching unit progress:", error);
-      res.status(500).json({ message: "Failed to fetch unit progress" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  
-  // Setup Vite in development or serve static files in production
+  // Setup Vite or static serving
   if (process.env.NODE_ENV === "development") {
-    await setupVite(app, httpServer);
+    await setupVite(app, server);
   } else {
     serveStatic(app);
   }
-  
-  return httpServer;
+
+  return server;
 }

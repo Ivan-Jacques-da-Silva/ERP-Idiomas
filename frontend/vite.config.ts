@@ -27,7 +27,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.BACKEND_URL || 'https://erpapi.vision.dev.br',
+        target: 'https://erpapi.vision.dev.br:5052',
         changeOrigin: true,
         secure: true,
       }

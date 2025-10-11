@@ -1,7 +1,17 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { registerRoutes } from "./routes.js";
+
+// Load .env file, overriding empty environment variables
+const envConfig = dotenv.config();
+if (envConfig.parsed) {
+  Object.keys(envConfig.parsed).forEach((key) => {
+    if (!process.env[key] || process.env[key]?.trim() === '') {
+      process.env[key] = envConfig.parsed![key];
+    }
+  });
+}
 
 const app = express();
 app.set('trust proxy', 1);
@@ -11,10 +21,12 @@ app.set('trust proxy', 1);
 const allowedOrigins = [
   'https://erp.vision.dev.br',
   'http://erp.vision.dev.br',
-  'http://erp.vision.dev.br:5051',
   'https://erp.vision.dev.br:5051',
+  'http://erp.vision.dev.br:5051',
   'https://erpapi.vision.dev.br',
   'http://erpapi.vision.dev.br',
+  'https://erpapi.vision.dev.br:5052',
+  'http://erpapi.vision.dev.br:5052',
   'http://localhost:5051',
   'http://localhost:5052',
   'http://127.0.0.1:5051',
@@ -141,7 +153,7 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5000");
+  const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5052");
   server.listen(port, "0.0.0.0", () => {
     log(`Backend API serving on port ${port}`);
   });
