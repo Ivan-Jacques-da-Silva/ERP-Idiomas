@@ -347,7 +347,7 @@ export default function FranchiseUnits() {
                             <FormItem>
                               <FormLabel>Nome Completo</FormLabel>
                               <FormControl>
-                                <Input {...field} value={field.value || ""} data-testid="input-full-name" />
+                                <Input {...field} value={field.value || ""} data-testid="input-full-name" onKeyDown={(e) => e.stopPropagation()} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -362,7 +362,7 @@ export default function FranchiseUnits() {
                               <FormItem>
                                 <FormLabel>CPF</FormLabel>
                                 <FormControl>
-                                  <Input {...field} value={field.value || ""} placeholder="000.000.000-00" data-testid="input-cpf-number" />
+                                  <Input {...field} value={field.value || ""} placeholder="000.000.000-00" data-testid="input-cpf-number" onKeyDown={(e) => e.stopPropagation()} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -376,7 +376,7 @@ export default function FranchiseUnits() {
                                 <FormLabel>Anexar PDF do CPF</FormLabel>
                                 <FormControl>
                                   <div className="flex gap-2">
-                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-cpf-document" />
+                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-cpf-document" onKeyDown={(e) => e.stopPropagation()} />
                                     <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("cpfDocument")} data-testid="button-upload-cpf">
                                       <Paperclip className="h-4 w-4" />
                                     </Button>
@@ -396,7 +396,7 @@ export default function FranchiseUnits() {
                               <FormItem>
                                 <FormLabel>RG</FormLabel>
                                 <FormControl>
-                                  <Input {...field} value={field.value || ""} data-testid="input-rg-number" />
+                                  <Input {...field} value={field.value || ""} data-testid="input-rg-number" onKeyDown={(e) => e.stopPropagation()} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -410,7 +410,7 @@ export default function FranchiseUnits() {
                                 <FormLabel>Anexar PDF do RG</FormLabel>
                                 <FormControl>
                                   <div className="flex gap-2">
-                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-rg-document" />
+                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-rg-document" onKeyDown={(e) => e.stopPropagation()} />
                                     <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("rgDocument")} data-testid="button-upload-rg">
                                       <Paperclip className="h-4 w-4" />
                                     </Button>
@@ -430,7 +430,7 @@ export default function FranchiseUnits() {
                               <FormItem>
                                 <FormLabel>Comprovante de Residência (Endereço)</FormLabel>
                                 <FormControl>
-                                  <Input {...field} value={field.value || ""} data-testid="input-address-proof" />
+                                  <Input {...field} value={field.value || ""} data-testid="input-address-proof" onKeyDown={(e) => e.stopPropagation()} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -444,7 +444,7 @@ export default function FranchiseUnits() {
                                 <FormLabel>Anexar PDF</FormLabel>
                                 <FormControl>
                                   <div className="flex gap-2">
-                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-address-proof-document" />
+                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-address-proof-document" onKeyDown={(e) => e.stopPropagation()} />
                                     <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("addressProofDocument")} data-testid="button-upload-address-proof">
                                       <Paperclip className="h-4 w-4" />
                                     </Button>
@@ -464,7 +464,7 @@ export default function FranchiseUnits() {
                               <FormItem>
                                 <FormLabel>Estado Civil e Regime de Bens</FormLabel>
                                 <FormControl>
-                                  <Input {...field} value={field.value || ""} data-testid="input-marital-status" />
+                                  <Input {...field} value={field.value || ""} data-testid="input-marital-status" onKeyDown={(e) => e.stopPropagation()} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -478,7 +478,7 @@ export default function FranchiseUnits() {
                                 <FormLabel>Anexar PDF</FormLabel>
                                 <FormControl>
                                   <div className="flex gap-2">
-                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-marital-status-document" />
+                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-marital-status-document" onKeyDown={(e) => e.stopPropagation()} />
                                     <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("maritalStatusDocument")} data-testid="button-upload-marital-status">
                                       <Paperclip className="h-4 w-4" />
                                     </Button>
@@ -498,7 +498,7 @@ export default function FranchiseUnits() {
                               <FormLabel>Currículo ou Histórico Profissional/Empresarial</FormLabel>
                               <FormControl>
                                 <div className="flex gap-2">
-                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-resume-document" />
+                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-resume-document" onKeyDown={(e) => e.stopPropagation()} />
                                   <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("resumeDocument")} data-testid="button-upload-resume">
                                     <Paperclip className="h-4 w-4" />
                                   </Button>
@@ -517,7 +517,7 @@ export default function FranchiseUnits() {
                               <FormLabel>Declaração de Bens e Situação Patrimonial</FormLabel>
                               <FormControl>
                                 <div className="flex gap-2">
-                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-asset-declaration-document" />
+                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-asset-declaration-document" onKeyDown={(e) => e.stopPropagation()} />
                                   <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("assetDeclarationDocument")} data-testid="button-upload-asset-declaration">
                                     <Paperclip className="h-4 w-4" />
                                   </Button>
@@ -536,7 +536,7 @@ export default function FranchiseUnits() {
                               <FormLabel>Comprovante de Renda/Capacidade Financeira</FormLabel>
                               <FormControl>
                                 <div className="flex gap-2">
-                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-income-proof-document" />
+                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-income-proof-document" onKeyDown={(e) => e.stopPropagation()} />
                                   <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("incomeProofDocument")} data-testid="button-upload-income-proof">
                                     <Paperclip className="h-4 w-4" />
                                   </Button>
@@ -557,7 +557,7 @@ export default function FranchiseUnits() {
                               <FormLabel>Contrato Social/Estatuto</FormLabel>
                               <FormControl>
                                 <div className="flex gap-2">
-                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-social-contract-document" />
+                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-social-contract-document" onKeyDown={(e) => e.stopPropagation()} />
                                   <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("socialContractDocument")} data-testid="button-upload-social-contract">
                                     <Paperclip className="h-4 w-4" />
                                   </Button>
@@ -576,7 +576,7 @@ export default function FranchiseUnits() {
                               <FormItem>
                                 <FormLabel>CNPJ</FormLabel>
                                 <FormControl>
-                                  <Input {...field} value={field.value || ""} placeholder="00.000.000/0000-00" data-testid="input-cnpj-number" />
+                                  <Input {...field} value={field.value || ""} placeholder="00.000.000/0000-00" data-testid="input-cnpj-number" onKeyDown={(e) => e.stopPropagation()} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -590,7 +590,7 @@ export default function FranchiseUnits() {
                                 <FormLabel>Anexar PDF do CNPJ</FormLabel>
                                 <FormControl>
                                   <div className="flex gap-2">
-                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-cnpj-document" />
+                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-cnpj-document" onKeyDown={(e) => e.stopPropagation()} />
                                     <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("cnpjDocument")} data-testid="button-upload-cnpj">
                                       <Paperclip className="h-4 w-4" />
                                     </Button>
@@ -610,7 +610,7 @@ export default function FranchiseUnits() {
                               <FormItem>
                                 <FormLabel>Inscrição Estadual/Municipal</FormLabel>
                                 <FormControl>
-                                  <Input {...field} value={field.value || ""} data-testid="input-state-registration-number" />
+                                  <Input {...field} value={field.value || ""} data-testid="input-state-registration-number" onKeyDown={(e) => e.stopPropagation()} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -624,7 +624,7 @@ export default function FranchiseUnits() {
                                 <FormLabel>Anexar PDF</FormLabel>
                                 <FormControl>
                                   <div className="flex gap-2">
-                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-state-registration-document" />
+                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-state-registration-document" onKeyDown={(e) => e.stopPropagation()} />
                                     <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("stateRegistrationDocument")} data-testid="button-upload-state-registration">
                                       <Paperclip className="h-4 w-4" />
                                     </Button>
@@ -644,7 +644,7 @@ export default function FranchiseUnits() {
                               <FormItem>
                                 <FormLabel>Documentos dos Sócios (CPF, RG, etc)</FormLabel>
                                 <FormControl>
-                                  <Input {...field} value={field.value || ""} data-testid="input-partners-documents-number" />
+                                  <Input {...field} value={field.value || ""} data-testid="input-partners-documents-number" onKeyDown={(e) => e.stopPropagation()} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -658,7 +658,7 @@ export default function FranchiseUnits() {
                                 <FormLabel>Anexar PDF</FormLabel>
                                 <FormControl>
                                   <div className="flex gap-2">
-                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-partners-documents" />
+                                    <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-partners-documents" onKeyDown={(e) => e.stopPropagation()} />
                                     <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("partnersDocuments")} data-testid="button-upload-partners-documents">
                                       <Paperclip className="h-4 w-4" />
                                     </Button>
@@ -678,7 +678,7 @@ export default function FranchiseUnits() {
                               <FormLabel>Certidões Negativas (Tributárias, Trabalhistas e Cíveis)</FormLabel>
                               <FormControl>
                                 <div className="flex gap-2">
-                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-negative-certificates-document" />
+                                  <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-negative-certificates-document" onKeyDown={(e) => e.stopPropagation()} />
                                   <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("negativeCertificatesDocument")} data-testid="button-upload-negative-certificates">
                                     <Paperclip className="h-4 w-4" />
                                   </Button>
@@ -701,7 +701,7 @@ export default function FranchiseUnits() {
                           <FormLabel>Capital Disponível para Investimento Inicial</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-initial-capital-document" />
+                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-initial-capital-document" onKeyDown={(e) => e.stopPropagation()} />
                               <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("initialCapitalDocument")} data-testid="button-upload-initial-capital">
                                 <Paperclip className="h-4 w-4" />
                               </Button>
@@ -720,7 +720,7 @@ export default function FranchiseUnits() {
                           <FormLabel>Prova de Capacidade de Giro (recursos para os primeiros meses)</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-cash-flow-proof-document" />
+                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-cash-flow-proof-document" onKeyDown={(e) => e.stopPropagation()} />
                               <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("cashFlowProofDocument")} data-testid="button-upload-cash-flow-proof">
                                 <Paperclip className="h-4 w-4" />
                               </Button>
@@ -739,7 +739,7 @@ export default function FranchiseUnits() {
                           <FormLabel>Declaração de Imposto de Renda (Pessoa Física ou Jurídica)</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-tax-return-document" />
+                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-tax-return-document" onKeyDown={(e) => e.stopPropagation()} />
                               <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("taxReturnDocument")} data-testid="button-upload-tax-return">
                                 <Paperclip className="h-4 w-4" />
                               </Button>
@@ -758,7 +758,7 @@ export default function FranchiseUnits() {
                           <FormItem>
                             <FormLabel>Referências Bancárias e Comerciais (Contatos)</FormLabel>
                             <FormControl>
-                              <Input {...field} value={field.value || ""} data-testid="input-bank-references-contacts" />
+                              <Input {...field} value={field.value || ""} data-testid="input-bank-references-contacts" onKeyDown={(e) => e.stopPropagation()} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -772,7 +772,7 @@ export default function FranchiseUnits() {
                             <FormLabel>Anexar PDF</FormLabel>
                             <FormControl>
                               <div className="flex gap-2">
-                                <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-bank-references-document" />
+                                <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-bank-references-document" onKeyDown={(e) => e.stopPropagation()} />
                                 <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("bankReferencesDocument")} data-testid="button-upload-bank-references">
                                   <Paperclip className="h-4 w-4" />
                                 </Button>
@@ -793,7 +793,7 @@ export default function FranchiseUnits() {
                         <FormItem>
                           <FormLabel>Localização Pretendida (Link)</FormLabel>
                           <FormControl>
-                            <Input {...field} value={field.value || ""} placeholder="https://maps.google.com/..." data-testid="input-desired-location" />
+                            <Input {...field} value={field.value || ""} placeholder="https://maps.google.com/..." data-testid="input-desired-location" onKeyDown={(e) => e.stopPropagation()} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -808,7 +808,7 @@ export default function FranchiseUnits() {
                           <FormLabel>Documentos do Imóvel (se próprio ou locado)</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-property-documents" />
+                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-property-documents" onKeyDown={(e) => e.stopPropagation()} />
                               <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("propertyDocuments")} data-testid="button-upload-property-documents">
                                 <Paperclip className="h-4 w-4" />
                               </Button>
@@ -827,7 +827,7 @@ export default function FranchiseUnits() {
                           <FormLabel>Contrato de Locação (se já existente)</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-lease-contract-document" />
+                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-lease-contract-document" onKeyDown={(e) => e.stopPropagation()} />
                               <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("leaseContractDocument")} data-testid="button-upload-lease-contract">
                                 <Paperclip className="h-4 w-4" />
                               </Button>
@@ -846,7 +846,7 @@ export default function FranchiseUnits() {
                           <FormLabel>Planta Baixa ou Croqui da Unidade</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-floor-plan-document" />
+                              <Input {...field} value={field.value || ""} readOnly placeholder="Nenhum arquivo selecionado" data-testid="input-floor-plan-document" onKeyDown={(e) => e.stopPropagation()} />
                               <Button type="button" size="sm" variant="outline" onClick={() => handleFileUpload("floorPlanDocument")} data-testid="button-upload-floor-plan">
                                 <Paperclip className="h-4 w-4" />
                               </Button>

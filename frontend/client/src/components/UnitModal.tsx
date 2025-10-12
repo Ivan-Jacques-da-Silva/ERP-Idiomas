@@ -13,6 +13,16 @@ import { API_BASE } from "@/lib/api";
 import { Paperclip, Trash2 } from "lucide-react";
 import { formatCPF, validateCPF } from "@/lib/cpfUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface UnitModalProps {
   open: boolean;
@@ -71,6 +81,8 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
 
   const [cpfError, setCpfError] = useState("");
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<any>(null);
 
   useEffect(() => {
     if (unit) {
@@ -287,9 +299,18 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
     console.log('Dados sendo enviados:', submitData);
 
     if (isEditing) {
-      updateMutation.mutate(submitData);
+      setPendingData(submitData);
+      setIsConfirmDialogOpen(true);
     } else {
       createMutation.mutate(submitData);
+    }
+  };
+
+  const confirmUpdate = () => {
+    if (pendingData) {
+      updateMutation.mutate(pendingData);
+      setIsConfirmDialogOpen(false);
+      setPendingData(null);
     }
   };
 
@@ -392,6 +413,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
             }
           }}
           onBlur={onInputBlur}
+          onKeyDown={(e) => e.stopPropagation()}
           maxLength={maxLength}
           className="flex-1"
         />
@@ -448,6 +470,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
           placeholder={placeholder}
           value={formData[textareaField] as string}
           onChange={(e) => setFormData({ ...formData, [textareaField]: e.target.value })}
+          onKeyDown={(e) => e.stopPropagation()}
           className="flex-1"
         />
         <Button 
@@ -482,6 +505,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
   );
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -564,6 +588,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -574,6 +599,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                   data-testid="input-phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -585,6 +611,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -595,6 +622,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                   data-testid="input-address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -641,6 +669,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           data-testid="input-franchiseeName"
                           value={formData.franchiseeName}
                           onChange={(e) => setFormData({ ...formData, franchiseeName: e.target.value })}
+                          onKeyDown={(e) => e.stopPropagation()}
                         />
                       </div>
 
@@ -654,7 +683,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                           maxLength={14}
                           onInputChange={(value) => {
                             const formatted = formatCPF(value);
-                            setFormData({ ...formData, franchiseeCpf: formatted });
+                            setFormData(prev => ({ ...prev, franchiseeCpf: formatted }));
                             setCpfError("");
                           }}
                           onInputBlur={handleCPFBlur}
@@ -724,7 +753,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                         maxLength={18}
                         onInputChange={(value) => {
                           const formatted = formatCNPJ(value);
-                          setFormData({ ...formData, franchiseeCnpj: formatted });
+                          setFormData(prev => ({ ...prev, franchiseeCnpj: formatted }));
                         }}
                       />
 
@@ -801,6 +830,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                       placeholder="URL do Google Maps ou similar"
                       value={formData.realEstateLocation}
                       onChange={(e) => setFormData({ ...formData, realEstateLocation: e.target.value })}
+                      onKeyDown={(e) => e.stopPropagation()}
                     />
                   </div>
 
@@ -849,5 +879,26 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+      <AlertDialogContent data-testid="dialog-confirm-update">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar alterações</AlertDialogTitle>
+          <AlertDialogDescription>
+            Deseja salvar as alterações realizadas na unidade <strong>"{formData.name}"</strong>?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel data-testid="button-cancel-update">Cancelar</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={confirmUpdate}
+            data-testid="button-confirm-update"
+          >
+            {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 }

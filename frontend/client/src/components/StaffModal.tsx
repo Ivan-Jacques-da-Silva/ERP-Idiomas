@@ -291,6 +291,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -302,6 +303,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -320,6 +322,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   }}
                   onBlur={handleCPFBlur}
                   maxLength={14}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
                 {cpfError && <p className="text-sm text-red-500">{cpfError}</p>}
               </div>
@@ -333,6 +336,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.birthDate}
                   onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -361,6 +365,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -381,6 +386,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
                   maxLength={15}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -394,6 +400,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   value={formData.whatsapp}
                   onChange={(e) => setFormData({ ...formData, whatsapp: formatPhone(e.target.value) })}
                   maxLength={15}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -416,6 +423,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                     onChange={(e) => setFormData({ ...formData, cep: formatCEP(e.target.value) })}
                     onBlur={handleCEPBlur}
                     maxLength={9}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                   {cepLoading && <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>}
                 </div>
@@ -429,6 +437,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -440,6 +449,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.number}
                   onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -450,6 +460,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   data-testid="input-complement"
                   value={formData.complement}
                   onChange={(e) => setFormData({ ...formData, complement: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -461,6 +472,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.neighborhood}
                   onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -472,6 +484,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -535,6 +548,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   required
                   value={formData.login}
                   onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -548,6 +562,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   placeholder={isEditing ? "Deixe em branco para manter a senha atual" : ""}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
             </div>

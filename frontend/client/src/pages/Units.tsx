@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
@@ -7,12 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageLoader, FadeIn, StaggeredFadeIn } from "@/components/PageLoader";
 import { UnitModal } from "@/components/UnitModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Units() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [unitToDelete, setUnitToDelete] = useState<any>(null);
 
   const { data: units, isLoading } = useQuery<any[]>({
     queryKey: ["/api/units"],
@@ -42,6 +56,41 @@ export default function Units() {
   const handleEditUnit = (unit: any) => {
     setSelectedUnit(unit);
     setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (unit: any) => {
+    setUnitToDelete(unit);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/units/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      toast({
+        title: "Sucesso!",
+        description: "Unidade excluída com sucesso",
+      });
+      setIsDeleteDialogOpen(false);
+      setUnitToDelete(null);
+    },
+    onError: (error: any) => {
+      console.error("Erro ao excluir:", error);
+      const errorDetails = error?.response?.data?.message || error.message;
+      toast({
+        title: "Erro",
+        description: `Erro ao excluir unidade: ${errorDetails}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const confirmDelete = () => {
+    if (unitToDelete) {
+      deleteMutation.mutate(unitToDelete.id);
+    }
   };
 
   if (authLoading || !isAuthenticated) {
@@ -158,6 +207,7 @@ export default function Units() {
                           <Button 
                             variant="outline" 
                             size="sm"
+                            onClick={() => handleDeleteClick(unit)}
                             data-testid={`button-delete-${unit.id}`}
                           >
                             <i className="fas fa-trash mr-2"></i>
@@ -174,6 +224,28 @@ export default function Units() {
         </div>
       </PageLoader>
       
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-delete-unit">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a unidade <strong>"{unitToDelete?.name}"</strong>?
+              Esta ação não pode ser desfeita e todos os dados relacionados serão permanentemente removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteMutation.isPending ? "Excluindo..." : "Excluir Unidade"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <UnitModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}

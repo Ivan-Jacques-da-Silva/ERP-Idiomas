@@ -523,6 +523,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -534,6 +535,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -552,6 +554,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   }}
                   onBlur={() => handleCPFBlur("student")}
                   maxLength={14}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
                 {cpfError && <p className="text-sm text-red-500">{cpfError}</p>}
               </div>
@@ -565,6 +568,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.birthDate}
                   onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
                 {isMinor && !isEditing && (
                   <p className="text-sm text-amber-600">Aluno menor de idade - cadastro de responsável obrigatório</p>
@@ -596,6 +600,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -609,6 +614,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
                   maxLength={15}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -622,6 +628,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   value={formData.whatsapp}
                   onChange={(e) => setFormData({ ...formData, whatsapp: formatPhone(e.target.value) })}
                   maxLength={15}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -644,6 +651,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     onChange={(e) => setFormData({ ...formData, cep: formatCEP(e.target.value) })}
                     onBlur={() => handleCEPBlur("student")}
                     maxLength={9}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                   {cepLoading && <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>}
                 </div>
@@ -657,6 +665,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -668,6 +677,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.number}
                   onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -678,6 +688,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   data-testid="input-complement"
                   value={formData.complement}
                   onChange={(e) => setFormData({ ...formData, complement: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -689,6 +700,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.neighborhood}
                   onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -700,6 +712,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -737,6 +750,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   required
                   value={formData.login}
                   onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
 
@@ -750,6 +764,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   placeholder={isEditing ? "Deixe em branco para manter a senha atual" : ""}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onKeyDown={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -796,6 +811,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasGuardian}
                     value={guardianData.firstName}
                     onChange={(e) => setGuardianData({ ...guardianData, firstName: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -807,6 +823,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasGuardian}
                     value={guardianData.lastName}
                     onChange={(e) => setGuardianData({ ...guardianData, lastName: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -825,6 +842,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     }}
                     onBlur={() => handleCPFBlur("guardian")}
                     maxLength={14}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                   {guardianCpfError && <p className="text-sm text-red-500">{guardianCpfError}</p>}
                 </div>
@@ -838,6 +856,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasGuardian}
                     value={guardianData.birthDate}
                     onChange={(e) => setGuardianData({ ...guardianData, birthDate: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -883,6 +902,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     type="email"
                     value={guardianData.email}
                     onChange={(e) => setGuardianData({ ...guardianData, email: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -896,6 +916,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     value={guardianData.phone}
                     onChange={(e) => setGuardianData({ ...guardianData, phone: formatPhone(e.target.value) })}
                     maxLength={15}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -909,6 +930,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     value={guardianData.whatsapp}
                     onChange={(e) => setGuardianData({ ...guardianData, whatsapp: formatPhone(e.target.value) })}
                     maxLength={15}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -924,6 +946,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                       onChange={(e) => setGuardianData({ ...guardianData, cep: formatCEP(e.target.value) })}
                       onBlur={() => handleCEPBlur("guardian")}
                       maxLength={9}
+                      onKeyDown={(e) => e.stopPropagation()}
                     />
                     {guardianCepLoading && <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>}
                   </div>
@@ -937,6 +960,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasGuardian}
                     value={guardianData.address}
                     onChange={(e) => setGuardianData({ ...guardianData, address: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -948,6 +972,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasGuardian}
                     value={guardianData.number}
                     onChange={(e) => setGuardianData({ ...guardianData, number: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -958,6 +983,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     data-testid="input-guardian-complement"
                     value={guardianData.complement}
                     onChange={(e) => setGuardianData({ ...guardianData, complement: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -969,6 +995,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasGuardian}
                     value={guardianData.neighborhood}
                     onChange={(e) => setGuardianData({ ...guardianData, neighborhood: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -980,6 +1007,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasGuardian}
                     value={guardianData.city}
                     onChange={(e) => setGuardianData({ ...guardianData, city: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
               </div>
@@ -1024,6 +1052,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasFinancialResponsible}
                     value={financialData.firstName}
                     onChange={(e) => setFinancialData({ ...financialData, firstName: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1035,6 +1064,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasFinancialResponsible}
                     value={financialData.lastName}
                     onChange={(e) => setFinancialData({ ...financialData, lastName: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1053,6 +1083,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     }}
                     onBlur={() => handleCPFBlur("financial")}
                     maxLength={14}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                   {financialCpfError && <p className="text-sm text-red-500">{financialCpfError}</p>}
                 </div>
@@ -1066,6 +1097,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasFinancialResponsible}
                     value={financialData.birthDate}
                     onChange={(e) => setFinancialData({ ...financialData, birthDate: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1111,6 +1143,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     type="email"
                     value={financialData.email}
                     onChange={(e) => setFinancialData({ ...financialData, email: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1124,6 +1157,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     value={financialData.phone}
                     onChange={(e) => setFinancialData({ ...financialData, phone: formatPhone(e.target.value) })}
                     maxLength={15}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1137,6 +1171,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     value={financialData.whatsapp}
                     onChange={(e) => setFinancialData({ ...financialData, whatsapp: formatPhone(e.target.value) })}
                     maxLength={15}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1152,6 +1187,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                       onChange={(e) => setFinancialData({ ...financialData, cep: formatCEP(e.target.value) })}
                       onBlur={() => handleCEPBlur("financial")}
                       maxLength={9}
+                      onKeyDown={(e) => e.stopPropagation()}
                     />
                     {financialCepLoading && <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>}
                   </div>
@@ -1165,6 +1201,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasFinancialResponsible}
                     value={financialData.address}
                     onChange={(e) => setFinancialData({ ...financialData, address: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1176,6 +1213,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasFinancialResponsible}
                     value={financialData.number}
                     onChange={(e) => setFinancialData({ ...financialData, number: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1186,6 +1224,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     data-testid="input-financial-complement"
                     value={financialData.complement}
                     onChange={(e) => setFinancialData({ ...financialData, complement: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1197,6 +1236,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasFinancialResponsible}
                     value={financialData.neighborhood}
                     onChange={(e) => setFinancialData({ ...financialData, neighborhood: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
 
@@ -1208,6 +1248,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     required={hasFinancialResponsible}
                     value={financialData.city}
                     onChange={(e) => setFinancialData({ ...financialData, city: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
               </div>
