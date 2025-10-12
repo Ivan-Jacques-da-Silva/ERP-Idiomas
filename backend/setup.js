@@ -134,9 +134,12 @@ CREATE TABLE IF NOT EXISTS roles (
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR UNIQUE,
+  -- campo de senha para autenticação (hash bcrypt)
+  password VARCHAR,
   first_name VARCHAR,
   last_name VARCHAR,
   profile_image_url VARCHAR,
+  -- mantém coluna role legada e role_id (o código usa role_id)
   role user_role DEFAULT 'student',
   role_id VARCHAR REFERENCES roles(id) ON DELETE SET NULL,
   is_active BOOLEAN DEFAULT true,
@@ -319,6 +322,16 @@ CREATE TABLE IF NOT EXISTS support_ticket_responses (
 );
 `;
 
+// Ajustes de schema idempotentes para bases já criadas anteriormente
+const SQL_ALTER = `
+DO $$ BEGIN
+  -- adiciona coluna password se não existir
+  BEGIN
+    ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password VARCHAR;
+  EXCEPTION WHEN undefined_table THEN NULL; WHEN duplicate_column THEN NULL; END;
+END $$;
+`;
+
 const SQL_SEEDS_MIN = `
 
 -- Categorias
@@ -450,6 +463,7 @@ async function setup(isReset = false) {
   try {
     await exec(appPool, SQL_ENUMS,   "Criando ENUMs");
     await exec(appPool, SQL_TABLES,  "Criando tabelas/estruturas");
+    await exec(appPool, SQL_ALTER,   "Ajustando colunas ausentes");
     await exec(appPool, SQL_SEEDS_MIN, "Inserindo dados iniciais");
   } finally {
     await appPool.end();

@@ -3,6 +3,7 @@
 
 import 'dotenv/config';
 import pkg from 'pg';
+import bcrypt from 'bcryptjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -56,18 +57,21 @@ async function obterRoleIdPorNome(cli, nome) {
 
 async function upsertUsuario(cli, u) {
   const roleId = await obterRoleIdPorNome(cli, u.role);
+  const hashed = await bcrypt.hash(u.password, 10);
   const sql = `
-    INSERT INTO users (id, email, first_name, last_name, role, role_id, is_active, created_at, updated_at)
-    VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, true, NOW(), NOW())
+    INSERT INTO users (id, email, password, first_name, last_name, role, role_id, is_active, created_at, updated_at)
+    VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, true, NOW(), NOW())
     ON CONFLICT (email) DO UPDATE
       SET first_name = EXCLUDED.first_name,
           last_name  = EXCLUDED.last_name,
           role       = EXCLUDED.role,
           role_id    = EXCLUDED.role_id,
+          -- só define a senha se ainda estiver nula
+          password   = COALESCE(users.password, EXCLUDED.password),
           updated_at = NOW()
     RETURNING id, email;
   `;
-  const r = await cli.query(sql, [u.email, u.first_name, u.last_name, u.role, roleId]);
+  const r = await cli.query(sql, [u.email, hashed, u.first_name, u.last_name, u.role, roleId]);
   return r.rows[0];
 }
 
