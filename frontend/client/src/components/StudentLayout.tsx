@@ -21,8 +21,8 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");
 
-    // Redirect to landing page
-    window.location.href = "/landing";
+    // Redirect to login page
+    window.location.href = "/";
   };
 
   if (isLoading) {
@@ -158,18 +158,18 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {studentMenuItems.map((item) => (
-            <Link key={item.path} href={item.path}>
-              <a 
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  isActive(item.path)
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-700/50'
-                }`}
-                data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <i className={`${item.icon}`}></i>
-                <span>{item.label}</span>
-              </a>
+            <Link
+              key={item.path}
+              href={item.path}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                isActive(item.path)
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-700/50'
+              }`}
+              data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <i className={`${item.icon}`}></i>
+              <span>{item.label}</span>
             </Link>
           ))}
         </nav>

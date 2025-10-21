@@ -206,12 +206,12 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
     if (unit) {
       setFormData({
         name: unit.name || "", address: unit.address || "", phone: unit.phone || "", email: unit.email || "", franchiseeType: unit.franchiseeType || "",
-        franchiseeName: unit.franchiseeName || "", franchiseeCpf: unit.franchiseeCpf || "", franchiseeCpfDoc: unit.franchiseeCpfDoc || "",
+        franchiseeName: unit.franchiseeName || "", franchiseeCpf: unit.franchiseeCpf ? formatarCPF(unit.franchiseeCpf) : "", franchiseeCpfDoc: unit.franchiseeCpfDoc || "",
         franchiseeRg: unit.franchiseeRg || "", franchiseeRgDoc: unit.franchiseeRgDoc || "",
         franchiseeResidenceAddress: unit.franchiseeResidenceAddress || "", franchiseeResidenceDoc: unit.franchiseeResidenceDoc || "",
         franchiseeMaritalStatus: unit.franchiseeMaritalStatus || "", franchiseeMaritalStatusDoc: unit.franchiseeMaritalStatusDoc || "",
         franchiseeCurriculumDoc: unit.franchiseeCurriculumDoc || "", franchiseeAssetsDoc: unit.franchiseeAssetsDoc || "", franchiseeIncomeDoc: unit.franchiseeIncomeDoc || "",
-        franchiseeSocialContractDoc: unit.franchiseeSocialContractDoc || "", franchiseeCnpj: unit.franchiseeCnpj || "", franchiseeCnpjDoc: unit.franchiseeCnpjDoc || "",
+        franchiseeSocialContractDoc: unit.franchiseeSocialContractDoc || "", franchiseeCnpj: unit.franchiseeCnpj ? formatarCNPJ(unit.franchiseeCnpj) : "", franchiseeCnpjDoc: unit.franchiseeCnpjDoc || "",
         franchiseeStateRegistration: unit.franchiseeStateRegistration || "", franchiseeStateRegistrationDoc: unit.franchiseeStateRegistrationDoc || "",
         franchiseePartnersDocsDoc: unit.franchiseePartnersDocsDoc || "", franchiseeCertificatesDoc: unit.franchiseeCertificatesDoc || "",
         financialCapitalDoc: unit.financialCapitalDoc || "", financialCashFlowDoc: unit.financialCashFlowDoc || "", financialTaxReturnsDoc: unit.financialTaxReturnsDoc || "",
@@ -400,6 +400,57 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
                 {isEditing ? "Atualize as informações da unidade e dados de franquia" : "Preencha os dados para cadastrar uma nova unidade franqueada"}
               </DialogDescription>
             </div>
+            {!isEditing && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData({
+                    name: "Unidade Centro - São Paulo",
+                    address: "Rua Augusta, 1000",
+                    phone: "(11) 3456-7890",
+                    email: "centro@franquiaidiomas.com.br",
+                    franchiseeType: "pessoa_fisica",
+                    franchiseeName: "João Silva Santos",
+                    franchiseeCpf: "123.456.789-00",
+                    franchiseeCpfDoc: "",
+                    franchiseeRg: "12.345.678-9",
+                    franchiseeRgDoc: "",
+                    franchiseeResidenceAddress: "Rua das Flores, 500 - Vila Madalena",
+                    franchiseeResidenceDoc: "",
+                    franchiseeMaritalStatus: "casado",
+                    franchiseeMaritalStatusDoc: "",
+                    franchiseeCurriculumDoc: "",
+                    franchiseeAssetsDoc: "",
+                    franchiseeIncomeDoc: "",
+                    franchiseeSocialContractDoc: "",
+                    franchiseeCnpj: "",
+                    franchiseeCnpjDoc: "",
+                    franchiseeStateRegistration: "",
+                    franchiseeStateRegistrationDoc: "",
+                    franchiseePartnersDocsDoc: "",
+                    franchiseeCertificatesDoc: "",
+                    financialCapitalDoc: "",
+                    financialCashFlowDoc: "",
+                    financialTaxReturnsDoc: "",
+                    financialBankReferences: "Banco do Brasil - Ag: 1234-5",
+                    financialBankReferencesDoc: "",
+                    realEstateLocation: "Centro Comercial - Térreo",
+                    realEstatePropertyDoc: "",
+                    realEstateLeaseDoc: "",
+                    realEstateFloorPlanDoc: "",
+                  });
+                  toast({
+                    title: "Dados de teste carregados",
+                    description: "Formulário preenchido com dados exemplares",
+                  });
+                }}
+                className="ml-2"
+              >
+                📝 Dados de Teste
+              </Button>
+            )}
           </div>
         </DialogHeader>
 

@@ -13,8 +13,9 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import { format, startOfWeek, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import TeacherScheduleView from "@/components/TeacherScheduleView";
 
 export default function TeacherArea() {
   const { toast } = useToast();
@@ -31,12 +32,12 @@ export default function TeacherArea() {
     retry: false,
   });
 
-  // Fetch teacher's schedule
-  const { data: teacherSchedule = [], isLoading: scheduleLoading } = useQuery<any[]>({
-    queryKey: ["/api/schedule/teacher", user?.id],
-    enabled: isAuthenticated && user?.role === 'teacher',
-    retry: false,
-  });
+  // Fetch teacher's schedule (commented out as not currently used)
+  // const { data: teacherSchedule = [], isLoading: scheduleLoading } = useQuery<any[]>({
+  //   queryKey: ["/api/schedule/teacher", user?.id],
+  //   enabled: isAuthenticated && user?.role === 'teacher',
+  //   retry: false,
+  // });
 
   // Mock data for students and grades (would come from API)
   const mockStudents = [
@@ -84,7 +85,7 @@ export default function TeacherArea() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/landing";
+        window.location.href = "/";
       }, 500);
       return;
     }
@@ -601,26 +602,7 @@ export default function TeacherArea() {
 
           {/* Minha Agenda */}
           <TabsContent value="agenda" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <i className="fas fa-calendar-week text-primary"></i>
-                  <span>Minha Agenda Semanal</span>
-                </CardTitle>
-                <CardDescription>
-                  Visualize suas turmas organizadas por horário com informações detalhadas
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {scheduleLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                  </div>
-                ) : (
-                  renderWeeklySchedule()
-                )}
-              </CardContent>
-            </Card>
+            <TeacherScheduleView />
           </TabsContent>
         </Tabs>
       </div>

@@ -79,7 +79,7 @@ export default function FranchiseUnits() {
       
       // Add all text fields (including empty ones to satisfy Zod validation)
       Object.entries(data.formData).forEach(([key, value]) => {
-        formData.append(key, value || "");
+        formData.append(key, String(value || ""));
       });
       
       // Add all uploaded files
@@ -113,7 +113,7 @@ export default function FranchiseUnits() {
       setPendingFiles({});
       form.reset();
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Erro",
         description: "Falha ao cadastrar unidade. Tente novamente.",
@@ -134,7 +134,7 @@ export default function FranchiseUnits() {
       });
       setDeleteId(null);
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Erro",
         description: "Falha ao excluir unidade. Tente novamente.",

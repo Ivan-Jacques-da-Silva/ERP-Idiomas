@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageLoader, FadeIn, StaggeredFadeIn } from "@/components/PageLoader";
 import { UnitModal } from "@/components/UnitModal";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,11 +25,16 @@ import { apiRequest } from "@/lib/queryClient";
 export default function Units() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user, permissions } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [unitToDelete, setUnitToDelete] = useState<any>(null);
+  
+  // Estados para filtros
+  const [searchName, setSearchName] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
 
   const { data: units, isLoading } = useQuery<any[]>({
     queryKey: ["/api/units"],
@@ -37,12 +45,12 @@ export default function Units() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
+        title: "N�o autorizado",
         description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/landing";
+        window.location.href = "/";
       }, 500);
       return;
     }
@@ -102,7 +110,21 @@ export default function Units() {
   }
 
   // Check permissions
-  const canManageUnits = user?.role === 'admin';
+  const canManageUnits = permissions?.includes('units:write') || user?.role === 'admin';
+
+  // Extrair cidades únicas das unidades para o filtro
+  const cityOptions = units ? [...new Set(units
+    .map((unit: any) => unit.realEstateLocation)
+    .filter(Boolean)
+    .sort()
+  )] : [];
+
+  // Filtrar unidades baseado nos filtros aplicados
+  const filteredUnits = units?.filter((unit: any) => {
+    const matchesName = !searchName || unit.name.toLowerCase().includes(searchName.toLowerCase());
+    const matchesCity = !selectedCity || selectedCity === "all" || unit.realEstateLocation === selectedCity;
+    return matchesName && matchesCity;
+  });
 
   return (
     <Layout>
@@ -124,6 +146,57 @@ export default function Units() {
             </div>
           </FadeIn>
 
+          {/* Filtros */}
+          <FadeIn delay={300}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="relative flex-1 max-w-sm">
+                  <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm"></i>
+                  <Input
+                    placeholder="Buscar por nome..."
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-search-units"
+                  />
+                </div>
+                <Select value={selectedCity} onValueChange={setSelectedCity}>
+                  <SelectTrigger className="w-48" data-testid="select-city-filter">
+                    <SelectValue placeholder="Filtrar por cidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                <SelectItem value="all">Todas as cidades</SelectItem>
+                {cityOptions.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Botões de visualização */}
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant={viewMode === "card" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("card")}
+                  className="p-2"
+                >
+                  <i className="fas fa-th-large"></i>
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="p-2"
+                >
+                  <i className="fas fa-list"></i>
+                </Button>
+              </div>
+            </div>
+          </FadeIn>
+
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.from({ length: 3 }).map((_, index) => (
@@ -141,17 +214,21 @@ export default function Units() {
                 </Card>
               ))}
             </div>
-          ) : !units || units.length === 0 ? (
+          ) : !filteredUnits || filteredUnits.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <i className="fas fa-building text-muted-foreground text-6xl mb-4"></i>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Nenhuma unidade encontrada</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {(searchName || (selectedCity && selectedCity !== "all")) ? "Nenhuma unidade encontrada" : "Nenhuma unidade cadastrada"}
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  {canManageUnits
+                  {(searchName || (selectedCity && selectedCity !== "all"))
+                    ? "Tente ajustar os filtros de busca." 
+                    : canManageUnits
                     ? "Comece criando sua primeira unidade."
                     : "Não há unidades cadastradas no sistema."}
                 </p>
-                {canManageUnits && (
+                {canManageUnits && !searchName && !(selectedCity && selectedCity !== "all") && (
                   <Button onClick={handleNewUnit} data-testid="button-create-first-unit">
                     <i className="fas fa-plus mr-2"></i>
                     Criar primeira unidade
@@ -160,66 +237,156 @@ export default function Units() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="units-grid">
-              <StaggeredFadeIn stagger={150} className="contents">
-                {units.map((unit: any) => (
-                  <Card key={unit.id} className="card-hover transition-smooth" data-testid={`card-unit-${unit.id}`}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <i className="fas fa-building text-primary"></i>
-                        <span>{unit.name}</span>
-                      </CardTitle>
-                      <CardDescription>
-                        {unit.address && (
-                          <span className="flex items-center text-sm text-muted-foreground">
-                            <i className="fas fa-map-marker-alt mr-2"></i>
-                            {unit.address}
-                          </span>
-                        )}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {unit.phone && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <i className="fas fa-phone mr-2"></i>
-                            <span>{unit.phone}</span>
-                          </div>
-                        )}
-                        {unit.email && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <i className="fas fa-envelope mr-2"></i>
-                            <span>{unit.email}</span>
-                          </div>
-                        )}
-                      </div>
-                      {canManageUnits && (
-                        <div className="mt-4 flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditUnit(unit)}
-                            data-testid={`button-edit-${unit.id}`}
-                          >
-                            <i className="fas fa-edit mr-2"></i>
-                            Editar
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleDeleteClick(unit)}
-                            data-testid={`button-delete-${unit.id}`}
-                          >
-                            <i className="fas fa-trash mr-2"></i>
-                            Excluir
-                          </Button>
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {filteredUnits.length} {filteredUnits.length === 1 ? 'unidade encontrada' : 'unidades encontradas'}
+                </p>
+              </div>
+              
+              {viewMode === "card" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" data-testid="units-grid">
+                  <StaggeredFadeIn stagger={150} className="contents">
+                    {filteredUnits.map((unit: any) => (
+                    <Card key={unit.id} className="card-hover transition-smooth h-fit" data-testid={`card-unit-${unit.id}`}>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center space-x-2 text-base">
+                          <i className="fas fa-building text-primary text-sm"></i>
+                          <span className="truncate">{unit.name}</span>
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                          {unit.address && (
+                            <span className="flex items-start text-xs text-muted-foreground">
+                              <i className="fas fa-map-marker-alt mr-2 mt-0.5 flex-shrink-0"></i>
+                              <span className="line-clamp-2">{unit.address}</span>
+                            </span>
+                          )}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="space-y-2">
+                          {unit.phone && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <i className="fas fa-phone mr-2 w-3 flex-shrink-0"></i>
+                              <span className="truncate">{unit.phone}</span>
+                            </div>
+                          )}
+                          {unit.email && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <i className="fas fa-envelope mr-2 w-3 flex-shrink-0"></i>
+                              <span className="truncate">{unit.email}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )) || []}
-              </StaggeredFadeIn>
-            </div>
+                        {canManageUnits && (
+                          <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditUnit(unit)}
+                              data-testid={`button-edit-${unit.id}`}
+                              className="flex-1 text-xs h-8"
+                            >
+                              <i className="fas fa-edit mr-1"></i>
+                              Editar
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteClick(unit)}
+                              data-testid={`button-delete-${unit.id}`}
+                              className="flex-1 text-xs h-8"
+                            >
+                              <i className="fas fa-trash mr-1"></i>
+                              Excluir
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )) || []}
+                  </StaggeredFadeIn>
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell className="font-semibold">Nome</TableCell>
+                        <TableCell className="font-semibold">Endereço</TableCell>
+                        <TableCell className="font-semibold">Telefone</TableCell>
+                        <TableCell className="font-semibold">Email</TableCell>
+                        {canManageUnits && <TableCell className="font-semibold">Ações</TableCell>}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredUnits.map((unit: any) => (
+                        <TableRow key={unit.id} className="hover:bg-muted/50">
+                          <TableCell className="font-medium">
+                            <div className="flex items-center space-x-2">
+                              <i className="fas fa-building text-primary text-sm"></i>
+                              <span>{unit.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {unit.address ? (
+                              <div className="flex items-center text-sm">
+                                <i className="fas fa-map-marker-alt mr-2 text-muted-foreground"></i>
+                                <span>{unit.address}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {unit.phone ? (
+                              <div className="flex items-center text-sm">
+                                <i className="fas fa-phone mr-2 text-muted-foreground"></i>
+                                <span>{unit.phone}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {unit.email ? (
+                              <div className="flex items-center text-sm">
+                                <i className="fas fa-envelope mr-2 text-muted-foreground"></i>
+                                <span>{unit.email}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          {canManageUnits && (
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditUnit(unit)}
+                                  data-testid={`button-edit-${unit.id}`}
+                                >
+                                  <i className="fas fa-edit"></i>
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(unit)}
+                                  data-testid={`button-delete-${unit.id}`}
+                                >
+                                  <i className="fas fa-trash"></i>
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
         </div>
       </PageLoader>

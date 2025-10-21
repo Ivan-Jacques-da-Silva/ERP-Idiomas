@@ -11,6 +11,8 @@ import type {
   InsertRole,
   InsertRolePermission,
   InsertUserPermission,
+  InsertPage,
+  InsertRolePagePermission,
   InsertUserSettings,
   InsertSupportTicket,
   InsertSupportTicketResponse,
@@ -23,6 +25,7 @@ import type {
   InsertCourseActivity,
   InsertStudentProgress,
   InsertStudentCourseEnrollment,
+  InsertTeacherSchedule,
   Unit,
   Staff,
   Student,
@@ -43,6 +46,8 @@ import type {
   Role,
   RolePermission,
   UserPermission,
+  Page,
+  RolePagePermission,
   UserWithPermissions,
   RoleWithPermissions,
   PermissionsByCategory,
@@ -56,6 +61,7 @@ import type {
   StudentProgress,
   StudentCourseEnrollment,
   GuardianWithFinancial,
+  TeacherSchedule,
 } from "../shared/schema.js";
 import {
   units,
@@ -73,6 +79,8 @@ import {
   roles,
   rolePermissions,
   userPermissions,
+  pages,
+  rolePagePermissions,
   userSettings,
   supportTickets,
   supportTicketResponses,
@@ -82,6 +90,7 @@ import {
   courseActivities,
   studentProgress,
   studentCourseEnrollments,
+  teacherSchedule,
 } from "../shared/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -122,6 +131,77 @@ export async function getUsers(): Promise<User[]> {
   return await db.select().from(users);
 }
 
+export async function upsertUser(data: UpsertUser): Promise<User> {
+  if (data.id) {
+    // Update existing user
+    const [user] = await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(users.id, data.id))
+      .returning();
+    return user;
+  } else {
+    // Create new user
+    const [user] = await db.insert(users).values(data).returning();
+    return user;
+  }
+}
+
+// ============================================================================
+// TEACHER INDIVIDUAL SCHEDULE OPERATIONS (Nova funcionalidade)
+// ============================================================================
+
+export async function createTeacherSchedule(data: InsertTeacherSchedule): Promise<TeacherSchedule> {
+  const [schedule] = await db.insert(teacherSchedule).values(data).returning();
+  return schedule;
+}
+
+export async function getTeacherIndividualSchedule(teacherId: string) {
+  const result = await db
+    .select({
+      schedule: teacherSchedule,
+      teacher: users,
+      unit: units,
+      createdByUser: {
+        id: sql<string>`created_by_user.id`,
+        firstName: sql<string>`created_by_user.first_name`,
+        lastName: sql<string>`created_by_user.last_name`,
+      },
+    })
+    .from(teacherSchedule)
+    .innerJoin(users, eq(teacherSchedule.teacherId, users.id))
+    .innerJoin(units, eq(teacherSchedule.unitId, units.id))
+    .innerJoin(sql`users as created_by_user`, sql`teacher_schedule.created_by = created_by_user.id`)
+    .where(and(
+      eq(teacherSchedule.teacherId, teacherId),
+      eq(teacherSchedule.isActive, true)
+    ))
+    .orderBy(teacherSchedule.dayOfWeek, teacherSchedule.startTime);
+
+  return result.map(r => ({
+    ...r.schedule,
+    teacher: r.teacher,
+    unit: r.unit,
+    createdByUser: r.createdByUser,
+  }));
+}
+
+export async function updateTeacherSchedule(id: string, data: Partial<InsertTeacherSchedule>): Promise<TeacherSchedule> {
+  const [schedule] = await db
+    .update(teacherSchedule)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(teacherSchedule.id, id))
+    .returning();
+  return schedule;
+}
+
+export async function deleteTeacherSchedule(id: string): Promise<void> {
+  await db
+    .update(teacherSchedule)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(teacherSchedule.id, id));
+}
+
 // ============================================================================
 // ROLE OPERATIONS
 // ============================================================================
@@ -138,6 +218,20 @@ export async function getRoleByName(name: string): Promise<Role | undefined> {
 
 export async function getRoles(): Promise<Role[]> {
   return await db.select().from(roles).where(eq(roles.isActive, true));
+}
+
+export async function getRolePermissions(roleId: string): Promise<(RolePermission & { permission: Permission })[]> {
+  return await db
+    .select({
+      id: rolePermissions.id,
+      roleId: rolePermissions.roleId,
+      permissionId: rolePermissions.permissionId,
+      createdAt: rolePermissions.createdAt,
+      permission: permissions,
+    })
+    .from(rolePermissions)
+    .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(rolePermissions.roleId, roleId));
 }
 
 export async function getRolePermissionsByName(roleName: string): Promise<(RolePermission & { permission: Permission })[]> {
@@ -169,6 +263,56 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
           roleId,
           permissionId,
         }))
+      );
+    }
+  });
+}
+
+export async function updateRole(id: string, data: Partial<InsertRole>): Promise<Role | undefined> {
+  const [role] = await db
+    .update(roles)
+    .set({
+      ...data,
+      updatedAt: sql`NOW()`,
+    })
+    .where(eq(roles.id, id))
+    .returning();
+  return role;
+}
+
+export async function deactivateRole(id: string): Promise<void> {
+  await db
+    .update(roles)
+    .set({ isActive: false, updatedAt: sql`NOW()` })
+    .where(eq(roles.id, id));
+}
+
+// ============================================================================
+// USER PERMISSION OVERRIDES
+// ============================================================================
+
+export async function getUserPermissionOverrides(userId: string): Promise<(UserPermission & { permission: Permission })[]> {
+  return await db
+    .select({
+      id: userPermissions.id,
+      userId: userPermissions.userId,
+      permissionId: userPermissions.permissionId,
+      isGranted: userPermissions.isGranted,
+      createdAt: userPermissions.createdAt,
+      updatedAt: userPermissions.updatedAt,
+      permission: permissions,
+    })
+    .from(userPermissions)
+    .innerJoin(permissions, eq(userPermissions.permissionId, permissions.id))
+    .where(eq(userPermissions.userId, userId));
+}
+
+export async function updateUserPermissions(userId: string, overrides: { permissionId: string; isGranted: boolean }[]): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(userPermissions).where(eq(userPermissions.userId, userId));
+    if (overrides.length > 0) {
+      await tx.insert(userPermissions).values(
+        overrides.map((o) => ({ userId, permissionId: o.permissionId, isGranted: o.isGranted }))
       );
     }
   });
@@ -246,6 +390,22 @@ export async function updateUnit(id: string, data: Partial<InsertUnit>): Promise
 }
 
 export async function deleteUnit(id: string): Promise<void> {
+  // Verificar se existem dependências antes de excluir
+  const [staffCount] = await db.select({ count: sql<number>`count(*)` }).from(staff).where(eq(staff.unitId, id));
+  const [studentsCount] = await db.select({ count: sql<number>`count(*)` }).from(students).where(eq(students.unitId, id));
+  const [classesCount] = await db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.unitId, id));
+  
+  const totalDependencies = Number(staffCount.count) + Number(studentsCount.count) + Number(classesCount.count);
+  
+  if (totalDependencies > 0) {
+    const errorDetails = [];
+    if (Number(staffCount.count) > 0) errorDetails.push(`${staffCount.count} funcionário(s)`);
+    if (Number(studentsCount.count) > 0) errorDetails.push(`${studentsCount.count} estudante(s)`);
+    if (Number(classesCount.count) > 0) errorDetails.push(`${classesCount.count} turma(s)`);
+    
+    throw new Error(`Não é possível excluir a unidade. Existem registros vinculados: ${errorDetails.join(', ')}. Remova ou transfira esses registros antes de excluir a unidade.`);
+  }
+  
   await db.delete(units).where(eq(units.id, id));
 }
 
@@ -267,8 +427,7 @@ export async function getStaff(): Promise<StaffWithUser[]> {
     })
     .from(staff)
     .innerJoin(users, eq(staff.userId, users.id))
-    .leftJoin(units, eq(staff.unitId, units.id))
-    .where(eq(staff.isActive, true));
+    .leftJoin(units, eq(staff.unitId, units.id));
 
   return result.map(r => ({ ...r.staff, user: r.user, unit: r.unit || undefined }));
 }
@@ -300,11 +459,26 @@ export async function updateStaff(id: string, data: Partial<InsertStaff>): Promi
 }
 
 export async function deleteStaff(id: string): Promise<void> {
-  const staffMember = await db.select().from(staff).where(eq(staff.id, id)).limit(1);
-  if (staffMember.length > 0) {
-    await db.delete(staff).where(eq(staff.id, id));
-    await db.delete(users).where(eq(users.id, staffMember[0].userId));
-  }
+  // Apenas deletar o registro de staff, mantendo o usuário no sistema
+  // O usuário pode ter outros papéis ou dados importantes no sistema
+  await db.delete(staff).where(eq(staff.id, id));
+}
+
+export async function getStaffByUserId(userId: string): Promise<StaffWithUser | undefined> {
+  const [result] = await db
+    .select({
+      staff: staff,
+      user: users,
+      unit: units,
+    })
+    .from(staff)
+    .innerJoin(users, eq(staff.userId, users.id))
+    .leftJoin(units, eq(staff.unitId, units.id))
+    .where(eq(staff.userId, userId))
+    .limit(1);
+
+  if (!result) return undefined;
+  return { ...result.staff, user: result.user, unit: result.unit || undefined };
 }
 
 // ============================================================================
@@ -378,18 +552,23 @@ export async function getStudents(): Promise<StudentWithUser[]> {
       user: users,
       unit: units,
       guardian: guardians,
+      financialResponsible: financialResponsibles,
     })
     .from(students)
     .innerJoin(users, eq(students.userId, users.id))
     .leftJoin(units, eq(students.unitId, units.id))
     .leftJoin(guardians, eq(students.guardianId, guardians.id))
+    .leftJoin(financialResponsibles, eq(financialResponsibles.guardianId, guardians.id))
     .where(eq(students.isActive, true));
 
   return result.map(r => ({
     ...r.student,
     user: r.user,
     unit: r.unit || undefined,
-    guardian: r.guardian || undefined,
+    guardian: r.guardian ? {
+      ...r.guardian,
+      financialResponsible: r.financialResponsible || undefined,
+    } : undefined,
   }));
 }
 
@@ -400,11 +579,13 @@ export async function getStudent(id: string): Promise<StudentWithUser | undefine
       user: users,
       unit: units,
       guardian: guardians,
+      financialResponsible: financialResponsibles,
     })
     .from(students)
     .innerJoin(users, eq(students.userId, users.id))
     .leftJoin(units, eq(students.unitId, units.id))
     .leftJoin(guardians, eq(students.guardianId, guardians.id))
+    .leftJoin(financialResponsibles, eq(financialResponsibles.guardianId, guardians.id))
     .where(eq(students.id, id))
     .limit(1);
 
@@ -413,7 +594,10 @@ export async function getStudent(id: string): Promise<StudentWithUser | undefine
     ...result.student,
     user: result.user,
     unit: result.unit || undefined,
-    guardian: result.guardian || undefined,
+    guardian: result.guardian ? {
+      ...result.guardian,
+      financialResponsible: result.financialResponsible || undefined,
+    } : undefined,
   };
 }
 
@@ -432,6 +616,83 @@ export async function deleteStudent(id: string): Promise<void> {
     await db.delete(students).where(eq(students.id, id));
     await db.delete(users).where(eq(users.id, student[0].userId));
   }
+}
+
+// Buscar estudante pelo userId (para área do aluno)
+export async function getStudentByUserId(userId: string): Promise<StudentWithUser | undefined> {
+  const [result] = await db
+    .select({
+      student: students,
+      user: users,
+      unit: units,
+    })
+    .from(students)
+    .innerJoin(users, eq(students.userId, users.id))
+    .leftJoin(units, eq(students.unitId, units.id))
+    .where(eq(students.userId, userId))
+    .limit(1);
+
+  if (!result) return undefined;
+  return { ...result.student, user: result.user, unit: result.unit || undefined };
+}
+
+// Buscar estudante pelo CPF
+export async function getStudentByCpf(cpf: string): Promise<StudentWithUser | undefined> {
+  const [result] = await db
+    .select({
+      student: students,
+      user: users,
+      unit: units,
+    })
+    .from(students)
+    .innerJoin(users, eq(students.userId, users.id))
+    .leftJoin(units, eq(students.unitId, units.id))
+    .where(and(eq(students.cpf, cpf), eq(students.isActive, true)))
+    .limit(1);
+
+  if (!result) return undefined;
+  return { ...result.student, user: result.user, unit: result.unit || undefined };
+}
+
+// Buscar matrículas de cursos do estudante (para estantes estilo Netflix)
+export async function getStudentCourseEnrollmentsForUser(userId: string): Promise<(
+  StudentCourseEnrollment & { course: Pick<Course, 'id' | 'name' | 'level'> }
+)[]> {
+  const student = await getStudentByUserId(userId);
+  if (!student) return [];
+
+  const rows = await db
+    .select({
+      enrollment: studentCourseEnrollments,
+      course: courses,
+    })
+    .from(studentCourseEnrollments)
+    .innerJoin(courses, eq(studentCourseEnrollments.courseId, courses.id))
+    .where(eq(studentCourseEnrollments.studentId, student.id));
+
+  return rows.map(r => ({
+    ...r.enrollment,
+    course: { id: r.course.id, name: r.course.name, level: r.course.level },
+  }));
+}
+
+// Buscar detalhes de curso com livros básicos (para prateleiras)
+export async function getCourseWithBooksBasic(courseId: string): Promise<(Course & { books: Pick<Book, 'id' | 'name' | 'description' | 'color'>[] }) | undefined> {
+  const course = await getCourse(courseId);
+  if (!course) return undefined;
+
+  const courseBooks = await db
+    .select({
+      id: books.id,
+      name: books.name,
+      description: books.description,
+      color: books.color,
+    })
+    .from(books)
+    .where(and(eq(books.courseId, courseId), eq(books.isActive, true)))
+    .orderBy(books.name);
+
+  return { ...course, books: courseBooks } as any;
 }
 
 // ============================================================================
@@ -568,6 +829,93 @@ export async function updateClass(id: string, data: Partial<InsertClass>): Promi
 
 export async function deleteClass(id: string): Promise<void> {
   await db.delete(classes).where(eq(classes.id, id));
+}
+
+export async function getTeachers(): Promise<StaffWithUser[]> {
+  const result = await db
+    .select({
+      staff: staff,
+      user: users,
+    })
+    .from(staff)
+    .innerJoin(users, eq(staff.userId, users.id))
+    .innerJoin(roles, eq(users.roleId, roles.id))
+    .where(and(
+      eq(staff.isActive, true),
+      eq(roles.name, 'teacher')
+    ));
+
+  return result.map(r => ({
+    ...r.staff,
+    user: r.user,
+  }));
+}
+
+export async function getTeacherSchedule(teacherId: string) {
+  // Buscar todas as turmas do professor
+  const teacherClasses = await db
+    .select({
+      class: classes,
+      book: books,
+      course: courses,
+      unit: units,
+    })
+    .from(classes)
+    .innerJoin(books, eq(classes.bookId, books.id))
+    .innerJoin(courses, eq(books.courseId, courses.id))
+    .innerJoin(units, eq(classes.unitId, units.id))
+    .where(and(eq(classes.teacherId, teacherId), eq(classes.isActive, true)));
+
+  // Gerar horários ocupados e disponíveis
+  const occupiedSlots = teacherClasses.map(r => ({
+    id: r.class.id,
+    dayOfWeek: r.class.dayOfWeek,
+    startTime: r.class.startTime,
+    endTime: r.class.endTime,
+    room: r.class.room,
+    className: r.class.name,
+    courseName: r.course.name,
+    bookName: r.book.name,
+    unitName: r.unit.name,
+    currentStudents: r.class.currentStudents,
+    maxStudents: r.class.maxStudents,
+    status: 'occupied' as const
+  }));
+
+  // Gerar horários disponíveis (8h às 22h, de segunda a sábado)
+  const availableSlots = [];
+  const timeSlots = [
+    '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
+    '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'
+  ];
+  
+  for (let day = 1; day <= 6; day++) { // Segunda a sábado
+    for (let i = 0; i < timeSlots.length - 1; i++) {
+      const startTime = timeSlots[i];
+      const endTime = timeSlots[i + 1];
+      
+      // Verificar se este horário não está ocupado
+      const isOccupied = occupiedSlots.some(slot => 
+        slot.dayOfWeek === day && 
+        slot.startTime === startTime
+      );
+      
+      if (!isOccupied) {
+        availableSlots.push({
+          dayOfWeek: day,
+          startTime,
+          endTime,
+          status: 'available' as const
+        });
+      }
+    }
+  }
+
+  return {
+    teacherId,
+    occupiedSlots,
+    availableSlots
+  };
 }
 
 // ============================================================================
@@ -713,6 +1061,120 @@ export async function updateUserSettings(userId: string, data: Partial<InsertUse
   return settings;
 }
 
+// ============================================================================
+// PAGES OPERATIONS
+// ============================================================================
+
+export async function createPage(data: InsertPage): Promise<Page> {
+  const [page] = await db.insert(pages).values(data).returning();
+  return page;
+}
+
+export async function getPages(): Promise<Page[]> {
+  return await db.select().from(pages).orderBy(pages.displayName);
+}
+
+export async function getPageByName(name: string): Promise<Page | undefined> {
+  const [page] = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.name, name))
+    .limit(1);
+  return page;
+}
+
+export async function getPageById(id: string): Promise<Page | undefined> {
+  const [page] = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.id, id))
+    .limit(1);
+  return page;
+}
+
+export async function updatePage(id: string, data: Partial<InsertPage>): Promise<Page> {
+  const [page] = await db
+    .update(pages)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(pages.id, id))
+    .returning();
+  return page;
+}
+
+export async function deletePage(id: string): Promise<void> {
+  await db.delete(pages).where(eq(pages.id, id));
+}
+
+// ============================================================================
+// ROLE PAGE PERMISSIONS OPERATIONS
+// ============================================================================
+
+export async function createRolePagePermission(data: InsertRolePagePermission): Promise<RolePagePermission> {
+  const [permission] = await db.insert(rolePagePermissions).values(data).returning();
+  return permission;
+}
+
+export async function getRolePagePermissions(roleId?: string): Promise<RolePagePermission[]> {
+  const query = db.select().from(rolePagePermissions);
+  if (roleId) {
+    return await query.where(eq(rolePagePermissions.roleId, roleId));
+  }
+  return await query;
+}
+
+export async function getRolePagePermission(roleId: string, pageId: string): Promise<RolePagePermission | undefined> {
+  const [permission] = await db
+    .select()
+    .from(rolePagePermissions)
+    .where(and(
+      eq(rolePagePermissions.roleId, roleId),
+      eq(rolePagePermissions.pageId, pageId)
+    ))
+    .limit(1);
+  return permission;
+}
+
+export async function updateRolePagePermission(roleId: string, pageId: string, data: Partial<InsertRolePagePermission>): Promise<RolePagePermission> {
+  const [permission] = await db
+    .update(rolePagePermissions)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(
+      eq(rolePagePermissions.roleId, roleId),
+      eq(rolePagePermissions.pageId, pageId)
+    ))
+    .returning();
+  return permission;
+}
+
+export async function deleteRolePagePermission(roleId: string, pageId: string): Promise<void> {
+  await db.delete(rolePagePermissions).where(and(
+    eq(rolePagePermissions.roleId, roleId),
+    eq(rolePagePermissions.pageId, pageId)
+  ));
+}
+
+export async function getRoleAllowedPages(roleId: string): Promise<Page[]> {
+  return await db
+    .select({
+      id: pages.id,
+      name: pages.name,
+      displayName: pages.displayName,
+      description: pages.description,
+      route: pages.route,
+      isActive: pages.isActive,
+      createdAt: pages.createdAt,
+      updatedAt: pages.updatedAt,
+    })
+    .from(pages)
+    .innerJoin(rolePagePermissions, eq(pages.id, rolePagePermissions.pageId))
+    .where(and(
+      eq(rolePagePermissions.roleId, roleId),
+      eq(rolePagePermissions.canAccess, true),
+      eq(pages.isActive, true)
+    ))
+    .orderBy(pages.displayName);
+}
+
 // Export all storage functions
 export const storage = {
   // Users
@@ -722,13 +1184,17 @@ export const storage = {
   updateUser,
   deleteUser,
   getUsers,
+  upsertUser,
   
   // Roles
   createRole,
   getRoleByName,
   getRoles,
+  getRolePermissions,
   getRolePermissionsByName,
   updateRolePermissions,
+  updateRole,
+  deactivateRole,
   
   // Permissions
   getPermissions,
@@ -737,6 +1203,8 @@ export const storage = {
   getPermissionCategory,
   createPermissionCategory,
   createPermission,
+  getUserPermissionOverrides,
+  updateUserPermissions,
   
   // Units
   createUnit,
@@ -749,6 +1217,7 @@ export const storage = {
   createStaff,
   getStaff,
   getStaffMember,
+  getStaffByUserId,
   updateStaff,
   deleteStaff,
   
@@ -764,10 +1233,13 @@ export const storage = {
   createStudent,
   getStudents,
   getStudent,
+  getStudentByUserId,
+  getStudentCourseEnrollmentsForUser,
   updateStudent,
   deleteStudent,
   
   // Courses
+  getCourseWithBooksBasic,
   createCourse,
   getCourses,
   getCourse,
@@ -809,4 +1281,32 @@ export const storage = {
   getUserSettings,
   createUserSettings,
   updateUserSettings,
+  
+  // Pages
+  createPage,
+  getPages,
+  getPageByName,
+  getPageById,
+  updatePage,
+  deletePage,
+  
+  // Role Page Permissions
+  createRolePagePermission,
+  getRolePagePermissions,
+  getRolePagePermission,
+  updateRolePagePermission,
+  deleteRolePagePermission,
+  getRoleAllowedPages,
+  
+  // Teacher Schedule
+  getTeacherSchedule,
+  
+  // Teacher Individual Schedule (Nova funcionalidade)
+  createTeacherSchedule,
+  getTeacherIndividualSchedule,
+  updateTeacherSchedule,
+  deleteTeacherSchedule,
+  
+  // Staff with Teachers
+  getTeachers,
 };

@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { insertLessonSchema } from "@shared/schema";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, extractErrorMessage } from "@/lib/queryClient";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Form,
@@ -34,12 +32,16 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // Extended schema for lesson form validation
-const lessonFormSchema = insertLessonSchema.extend({
+const lessonFormSchema = z.object({
+  classId: z.string().min(1, "Turma é obrigatória"),
   date: z.date({ required_error: "Data é obrigatória" }),
   startTime: z.string().min(1, "Horário de início é obrigatório"),
   endTime: z.string().min(1, "Horário de fim é obrigatório"),
   bookDay: z.coerce.number().min(1, "Dia do livro deve ser pelo menos 1"),
-}).refine((data) => {
+  content: z.string().optional(),
+  homework: z.string().optional(),
+  observations: z.string().optional(),
+}).refine((data: any) => {
   if (data.startTime && data.endTime) {
     const start = data.startTime.split(':').map(Number);
     const end = data.endTime.split(':').map(Number);
@@ -206,7 +208,7 @@ export default function LessonModal({
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Falha ao criar aula. Tente novamente.",
+        description: extractErrorMessage(error) || "Falha ao criar aula. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -239,7 +241,7 @@ export default function LessonModal({
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Falha ao atualizar aula. Tente novamente.",
+        description: extractErrorMessage(error) || "Falha ao atualizar aula. Tente novamente.",
         variant: "destructive",
       });
     },

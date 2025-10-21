@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { validateCPF, formatCPF, formatCEP, formatPhone, fetchAddressByCEP, formatDateToInput, formatDateToISO } from "@/lib/cpfUtils";
+import { apiRequest, extractErrorMessage } from "@/lib/queryClient";
+import { validateCPF, formatCPF, formatCEP, formatPhone, fetchAddressByCEP, formatDateBR, convertBRDateToISO } from "@/lib/cpfUtils";
 
 interface StudentModalProps {
   open: boolean;
@@ -93,7 +93,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
         firstName: student.user?.firstName || "",
         lastName: student.user?.lastName || "",
         cpf: student.cpf || "",
-        birthDate: formatDateToInput(student.birthDate),
+        birthDate: formatDateBR(student.birthDate),
         email: student.user?.email || "",
         phone: student.phone || "",
         whatsapp: student.whatsapp || "",
@@ -115,7 +115,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
           firstName: student.guardian.firstName || "",
           lastName: student.guardian.lastName || "",
           cpf: student.guardian.cpf || "",
-          birthDate: formatDateToInput(student.guardian.birthDate),
+          birthDate: formatDateBR(student.guardian.birthDate),
           email: student.guardian.email || "",
           phone: student.guardian.phone || "",
           whatsapp: student.guardian.whatsapp || "",
@@ -135,7 +135,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
             firstName: student.guardian.financialResponsible.firstName || "",
             lastName: student.guardian.financialResponsible.lastName || "",
             cpf: student.guardian.financialResponsible.cpf || "",
-            birthDate: formatDateToInput(student.guardian.financialResponsible.birthDate),
+            birthDate: formatDateBR(student.guardian.financialResponsible.birthDate),
             email: student.guardian.financialResponsible.email || "",
             phone: student.guardian.financialResponsible.phone || "",
             whatsapp: student.guardian.financialResponsible.whatsapp || "",
@@ -242,18 +242,33 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
     if (field === "student") {
       if (formData.cpf && !validateCPF(formData.cpf)) {
         setCpfError("CPF inválido");
+        toast({
+          title: "Erro de Validação - CPF do Aluno",
+          description: `CPF do aluno inválido (${formData.cpf}). Verifique o número digitado.`,
+          variant: "destructive",
+        });
       } else {
         setCpfError("");
       }
     } else if (field === "guardian") {
       if (guardianData.cpf && !validateCPF(guardianData.cpf)) {
         setGuardianCpfError("CPF inválido");
+        toast({
+          title: "Erro de Validação - CPF do Responsável",
+          description: `CPF do responsável inválido (${guardianData.cpf}). Verifique o número digitado.`,
+          variant: "destructive",
+        });
       } else {
         setGuardianCpfError("");
       }
     } else if (field === "financial") {
       if (financialData.cpf && !validateCPF(financialData.cpf)) {
         setFinancialCpfError("CPF inválido");
+        toast({
+          title: "Erro de Validação - CPF do Responsável Financeiro",
+          description: `CPF do responsável financeiro inválido (${financialData.cpf}). Verifique o número digitado.`,
+          variant: "destructive",
+        });
       } else {
         setFinancialCpfError("");
       }
@@ -325,7 +340,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao cadastrar aluno",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     },
@@ -346,7 +361,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao atualizar aluno",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     },
@@ -354,29 +369,50 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🚀 handleSubmit chamado");
+    console.log("📋 Dados do formulário:", formData);
 
     if (formData.cpf && !validateCPF(formData.cpf)) {
+      console.log("❌ CPF do aluno inválido:", formData.cpf);
       setCpfError("CPF inválido");
+      toast({
+        title: "Erro de Validação - CPF do Aluno",
+        description: `CPF do aluno inválido (${formData.cpf}). Verifique o número digitado.`,
+        variant: "destructive",
+      });
       return;
     }
 
     if (hasGuardian && guardianData.cpf && !validateCPF(guardianData.cpf)) {
+      console.log("❌ CPF do responsável inválido:", guardianData.cpf);
       setGuardianCpfError("CPF inválido");
+      toast({
+        title: "Erro de Validação - CPF do Responsável",
+        description: `CPF do responsável inválido (${guardianData.cpf}). Verifique o número digitado.`,
+        variant: "destructive",
+      });
       return;
     }
 
     if (hasFinancialResponsible && financialData.cpf && !validateCPF(financialData.cpf)) {
+      console.log("❌ CPF do responsável financeiro inválido:", financialData.cpf);
       setFinancialCpfError("CPF inválido");
+      toast({
+        title: "Erro de Validação - CPF do Responsável Financeiro",
+        description: `CPF do responsável financeiro inválido (${financialData.cpf}). Verifique o número digitado.`,
+        variant: "destructive",
+      });
       return;
     }
 
+    console.log("✅ Validações passaram, preparando dados para envio");
     const submitData: any = {
       userId: student?.userId,
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
       cpf: formData.cpf.replace(/\D/g, ""),
-      birthDate: formatDateToISO(formData.birthDate),
+      birthDate: convertBRDateToISO(formData.birthDate),
       gender: formData.gender || null,
       phone: formData.phone,
       whatsapp: formData.whatsapp,
@@ -391,12 +427,14 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
       password: formData.password || null,
     };
 
+    console.log("📤 Dados preparados:", submitData);
+
     if (hasGuardian) {
       submitData.guardian = {
         firstName: guardianData.firstName,
         lastName: guardianData.lastName,
         cpf: guardianData.cpf.replace(/\D/g, ""),
-        birthDate: formatDateToISO(guardianData.birthDate),
+        birthDate: convertBRDateToISO(guardianData.birthDate),
         email: guardianData.email,
         phone: guardianData.phone,
         whatsapp: guardianData.whatsapp,
@@ -415,7 +453,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
           firstName: financialData.firstName,
           lastName: financialData.lastName,
           cpf: financialData.cpf.replace(/\D/g, ""),
-          birthDate: formatDateToISO(financialData.birthDate),
+          birthDate: convertBRDateToISO(financialData.birthDate),
           email: financialData.email,
           phone: financialData.phone,
           whatsapp: financialData.whatsapp,
@@ -431,9 +469,12 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
       }
     }
 
+    console.log("🎯 Chamando mutação:", isEditing ? "UPDATE" : "CREATE");
     if (isEditing) {
+      console.log("📝 Atualizando aluno ID:", student.id);
       updateMutation.mutate(submitData);
     } else {
+      console.log("➕ Criando novo aluno");
       createMutation.mutate(submitData);
     }
   };
@@ -463,7 +504,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     firstName: "Pedro",
                     lastName: "Silva Costa",
                     cpf: "111.222.333-44",
-                    birthDate: "2010-03-20",
+                    birthDate: "20/03/2010",
                     email: "pedro.silva@teste.com.br",
                     phone: "(11) 2345-6789",
                     whatsapp: "(11) 99876-5432",
@@ -483,7 +524,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                     firstName: "Ana",
                     lastName: "Silva Costa",
                     cpf: "555.666.777-88",
-                    birthDate: "1985-08-10",
+                    birthDate: "10/08/1985",
                     email: "ana.silva@teste.com.br",
                     phone: "(11) 2345-6789",
                     whatsapp: "(11) 99876-5432",
@@ -564,10 +605,12 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                 <Input
                   id="birthDate"
                   data-testid="input-birthDate"
-                  type="date"
+                  type="text"
+                  placeholder="DD/MM/AAAA"
+                  maxLength={10}
                   required
                   value={formData.birthDate}
-                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, birthDate: formatDateBR(e.target.value) })}
                   onKeyDown={(e) => e.stopPropagation()}
                 />
                 {isMinor && !isEditing && (
@@ -587,6 +630,7 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   <SelectContent>
                     <SelectItem value="masculino">Masculino</SelectItem>
                     <SelectItem value="feminino">Feminino</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -852,10 +896,12 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   <Input
                     id="guardian-birthDate"
                     data-testid="input-guardian-birthDate"
-                    type="date"
+                    type="text"
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
                     required={hasGuardian}
                     value={guardianData.birthDate}
-                    onChange={(e) => setGuardianData({ ...guardianData, birthDate: e.target.value })}
+                    onChange={(e) => setGuardianData({ ...guardianData, birthDate: formatDateBR(e.target.value) })}
                     onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>
@@ -1093,10 +1139,12 @@ export function StudentModal({ open, onOpenChange, student }: StudentModalProps)
                   <Input
                     id="financial-birthDate"
                     data-testid="input-financial-birthDate"
-                    type="date"
+                    type="text"
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
                     required={hasFinancialResponsible}
                     value={financialData.birthDate}
-                    onChange={(e) => setFinancialData({ ...financialData, birthDate: e.target.value })}
+                    onChange={(e) => setFinancialData({ ...financialData, birthDate: formatDateBR(e.target.value) })}
                     onKeyDown={(e) => e.stopPropagation()}
                   />
                 </div>

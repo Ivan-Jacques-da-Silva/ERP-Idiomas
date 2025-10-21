@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { displayDateBR } from "@/lib/cpfUtils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, extractErrorMessage } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -133,7 +133,7 @@ export default function Support() {
   );
 
   // Query para buscar tickets
-  const { data: userTickets, isLoading: ticketsLoading, error: ticketsError } = useQuery({
+  const { data: userTickets = [], isLoading: ticketsLoading, error: ticketsError } = useQuery<SupportTicket[]>({
     queryKey: ['/api/support/tickets'],
     enabled: !!user,
   });
@@ -141,10 +141,7 @@ export default function Support() {
   // Mutation para criar ticket
   const createTicketMutation = useMutation({
     mutationFn: async (ticketData: TicketFormValues) => {
-      const response = await apiRequest('/api/support/tickets', {
-        method: 'POST',
-        body: JSON.stringify(ticketData)
-      });
+      const response = await apiRequest('POST', '/api/support/tickets', ticketData);
       return response;
     },
     onSuccess: (data) => {
@@ -159,7 +156,7 @@ export default function Support() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao criar ticket",
-        description: error.message || "Tente novamente mais tarde.",
+        description: extractErrorMessage(error) || "Tente novamente mais tarde.",
         variant: "destructive",
       });
     },
@@ -547,7 +544,7 @@ export default function Support() {
                         </div>
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span data-testid={`ticket-id-${ticket.id}`}>Ticket #{ticket.id}</span>
-                          <span data-testid={`ticket-date-${ticket.id}`}>{ticket.createdAt.toLocaleDateString('pt-BR')}</span>
+                          <span data-testid={`ticket-date-${ticket.id}`}>{displayDateBR(ticket.createdAt)}</span>
                         </div>
                       </CardContent>
                     </Card>

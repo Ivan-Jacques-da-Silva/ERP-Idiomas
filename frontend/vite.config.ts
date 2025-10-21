@@ -27,9 +27,9 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'https://erpapi.vision.dev.br:5052',
+        target: 'http://localhost:5052',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       }
     }
   },

@@ -19,12 +19,12 @@ export default function StudentArea() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
+        title: "N�o autorizado",
         description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/landing";
+        window.location.href = "/";
       }, 500);
       return;
     }
@@ -51,7 +51,8 @@ export default function StudentArea() {
         {/* Header - Welcome Message */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2" data-testid="text-welcome-title">
-            Olá, {user.firstName}! 👋
+            <i className="fas fa-hand-sparkles mr-2"></i>
+            Olá, {user.firstName}!
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-lg">
             Continue sua jornada de aprendizado

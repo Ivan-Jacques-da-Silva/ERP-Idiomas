@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { insertClassSchema } from "@shared/schema";
 import { z } from "zod";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, extractErrorMessage } from "@/lib/queryClient";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +23,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Form,
@@ -38,7 +35,7 @@ import {
 import { Loader2, Trash2 } from "lucide-react";
 
 // Extended schema for class form validation
-const classFormSchema = insertClassSchema.extend({
+const classFormSchema = z.object({
   name: z.string().min(1, "Nome da turma é obrigatório"),
   bookId: z.string().min(1, "Livro é obrigatório"),
   teacherId: z.string().min(1, "Professor é obrigatório"),
@@ -47,7 +44,7 @@ const classFormSchema = insertClassSchema.extend({
   startTime: z.string().min(1, "Horário de início é obrigatório"),
   endTime: z.string().min(1, "Horário de fim é obrigatório"),
   maxStudents: z.coerce.number().min(1, "Máximo de alunos deve ser pelo menos 1"),
-}).refine((data) => {
+}).refine((data: any) => {
   if (data.startTime && data.endTime) {
     const start = data.startTime.split(':').map(Number);
     const end = data.endTime.split(':').map(Number);
@@ -84,7 +81,6 @@ export default function ClassModal({
   onClose, 
   classToEdit
 }: ClassModalProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -180,7 +176,7 @@ export default function ClassModal({
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Falha ao criar turma. Tente novamente.",
+        description: extractErrorMessage(error) || "Falha ao criar turma. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -203,7 +199,7 @@ export default function ClassModal({
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Falha ao atualizar turma. Tente novamente.",
+        description: extractErrorMessage(error) || "Falha ao atualizar turma. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -227,7 +223,7 @@ export default function ClassModal({
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Falha ao excluir turma. Tente novamente.",
+        description: extractErrorMessage(error) || "Falha ao excluir turma. Tente novamente.",
         variant: "destructive",
       });
       setShowDeleteConfirm(false);

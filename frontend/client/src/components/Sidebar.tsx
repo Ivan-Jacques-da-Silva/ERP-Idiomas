@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/api";
 
 interface SidebarProps {
   expanded: boolean;
@@ -54,43 +53,49 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       path: "/",
       icon: "fas fa-chart-line",
       label: "Dashboard",
-      permission: "access_dashboard"
+      permission: "dashboard:read"
     },
     {
       path: "/units",
       icon: "fas fa-building",
       label: "Unidades",
-      permission: "access_units"
+      permission: "units:read"
     },
     {
       path: "/staff",
       icon: "fas fa-users",
       label: "Colaboradores", 
-      permission: "access_staff"
+      permission: "staff:read"
     },
     {
       path: "/students",
       icon: "fas fa-user-graduate",
       label: "Alunos",
-      permission: "access_students"
+      permission: "students:read"
     },
     {
       path: "/courses",
       icon: "fas fa-book",
       label: "Cursos",
-      permission: "access_courses"
+      permission: "courses:read"
     },
     {
       path: "/schedule",
       icon: "fas fa-calendar-alt",
       label: "Agenda",
-      permission: "access_schedule"
+      permission: "classes:read"
+    },
+    {
+      path: "/teacher-individual-schedule",
+      icon: "fas fa-calendar-week",
+      label: "Agenda Individual",
+      permission: "teacher_schedule:manage"
     },
     {
       path: "/student-area",
       icon: "fas fa-book-open",
       label: "Área do Aluno",
-      permission: "access_student_area",
+      permission: "lessons:read",
       hideForAdmin: true
     }
   ];
@@ -100,25 +105,25 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       path: "/financial",
       icon: "fas fa-dollar-sign",
       label: "Financeiro",
-      permission: "access_financial"
+      permission: "finance:read"
     },
     {
       path: "/settings",
       icon: "fas fa-cog",
       label: "Configurações",
-      permission: "access_settings"
+      permission: "settings:read"
     },
     {
       path: "/permissions",
       icon: "fas fa-shield-alt",
       label: "Permissões",
-      permission: "access_permissions"
+      permission: "permissions:manage"
     },
     {
       path: "/support",
       icon: "fas fa-question-circle",
       label: "Suporte",
-      permission: "access_support"
+      permission: "support:read"
     }
   ];
 
@@ -129,8 +134,8 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
 
-    // Redirect to landing page
-    window.location.href = '/landing';
+    // Redirect to login page
+    window.location.href = '/';
   };
 
   return (
@@ -168,24 +173,24 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
             .filter(item => canAccess(item.permission))
             .filter(item => !(user?.role === 'admin' && item.hideForAdmin))
             .map((item) => (
-              <Link key={item.path} href={item.path}>
-                <a
-                  className={`flex items-center ${expanded ? 'space-x-3 px-4 py-3' : 'justify-center px-2 py-3'} rounded-xl transition-smooth group relative ${
-                    isActive(item.path)
-                      ? "gradient-primary text-white shadow-lg icon-glow"
-                      : "text-muted-foreground sidebar-hover"
-                  }`}
-                  data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                  title={!expanded ? item.label : undefined}
-                >
-                  <i className={`${item.icon} w-5 flex-shrink-0`}></i>
-                  {expanded && <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>}
-                  {!expanded && (
-                    <div className="absolute left-16 bg-gray-900 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
-                      {item.label}
-                    </div>
-                  )}
-                </a>
+              <Link
+                key={item.path}
+                href={item.path}
+                className={`flex items-center ${expanded ? 'space-x-3 px-4 py-3' : 'justify-center px-2 py-3'} rounded-xl transition-smooth group relative ${
+                  isActive(item.path)
+                    ? 'gradient-primary text-white shadow-lg icon-glow'
+                    : 'text-muted-foreground sidebar-hover'
+                }`}
+                data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                title={!expanded ? item.label : undefined}
+              >
+                <i className={`${item.icon} w-5 flex-shrink-0`}></i>
+                {expanded && <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>}
+                {!expanded && (
+                  <div className="absolute left-16 bg-gray-900 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
+                    {item.label}
+                  </div>
+                )}
               </Link>
             ))}
 
@@ -201,24 +206,24 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
                 {systemMenuItems
                   .filter(item => item.path === '/support' ? !!user : canAccess(item.permission))
                   .map((item) => (
-                    <Link key={item.path} href={item.path}>
-                      <a
-                        className={`flex items-center ${expanded ? 'space-x-3 px-4 py-3' : 'justify-center px-2 py-3'} rounded-xl transition-smooth group relative ${
-                          isActive(item.path)
-                            ? "gradient-secondary text-white shadow-lg"
-                            : "text-muted-foreground sidebar-hover"
-                        }`}
-                        data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                        title={!expanded ? item.label : undefined}
-                      >
-                        <i className={`${item.icon} w-5 flex-shrink-0`}></i>
-                        {expanded && <span className="text-sm whitespace-nowrap">{item.label}</span>}
-                        {!expanded && (
-                          <div className="absolute left-16 bg-gray-900 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
-                            {item.label}
-                          </div>
-                        )}
-                      </a>
+                    <Link
+                      key={item.path}
+                      href={item.path}
+                      className={`flex items-center ${expanded ? 'space-x-3 px-4 py-3' : 'justify-center px-2 py-3'} rounded-xl transition-smooth group relative ${
+                        isActive(item.path)
+                          ? 'gradient-secondary text-white shadow-lg'
+                          : 'text-muted-foreground sidebar-hover'
+                      }`}
+                      data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                      title={!expanded ? item.label : undefined}
+                    >
+                      <i className={`${item.icon} w-5 flex-shrink-0`}></i>
+                      {expanded && <span className="text-sm whitespace-nowrap">{item.label}</span>}
+                      {!expanded && (
+                        <div className="absolute left-16 bg-gray-900 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
+                          {item.label}
+                        </div>
+                      )}
                     </Link>
                   ))}
               </div>

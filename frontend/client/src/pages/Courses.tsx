@@ -15,10 +15,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, extractErrorMessage } from "@/lib/queryClient";
 import { API_BASE } from "@/lib/api";
-import type { Course, Book, CourseWithDetails, BookWithDetails, InsertCourse, InsertBook } from "@shared/schema";
-import { insertCourseSchema, insertBookSchema } from "@shared/schema";
+import type { Course, Book, CourseWithDetails, BookWithDetails } from "@shared/schema";
+
 import { z } from "zod";
 
 export default function Courses() {
@@ -32,12 +32,22 @@ export default function Courses() {
   const [uploadingPdf, setUploadingPdf] = useState<string | null>(null);
 
   // Extended schemas for form validation
-  const courseFormSchema = insertCourseSchema.extend({
+  const courseFormSchema = z.object({
+    name: z.string().min(1, "Nome é obrigatório"),
+    description: z.string().optional(),
+    language: z.string().min(1, "Idioma é obrigatório"),
+    level: z.string().min(1, "Nível é obrigatório"),
     duration: z.coerce.number().positive("Duração deve ser maior que 0").optional(),
-    price: z.coerce.number().positive("Preço deve ser maior que 0").optional()
+    price: z.coerce.number().positive("Preço deve ser maior que 0").optional(),
+    isActive: z.boolean().default(true)
   });
 
-  const bookFormSchema = insertBookSchema.extend({
+  const bookFormSchema = z.object({
+    name: z.string().min(1, "Nome é obrigatório"),
+    description: z.string().optional(),
+    courseId: z.string().min(1, "Curso é obrigatório"),
+    displayOrder: z.number().min(1, "Ordem deve ser pelo menos 1"),
+    isActive: z.boolean().default(true),
     totalDays: z.coerce.number().min(1, "Total de dias deve ser pelo menos 1"),
     color: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor deve estar em formato hexadecimal válido")
   });
@@ -96,7 +106,7 @@ export default function Courses() {
       courseForm.reset();
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao criar curso", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao criar curso", description: extractErrorMessage(error), variant: "destructive" });
     }
   });
 
@@ -110,7 +120,7 @@ export default function Courses() {
       courseForm.reset();
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao atualizar curso", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao atualizar curso", description: extractErrorMessage(error), variant: "destructive" });
     }
   });
 
@@ -136,7 +146,7 @@ export default function Courses() {
       bookForm.reset();
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao criar livro", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao criar livro", description: extractErrorMessage(error), variant: "destructive" });
     }
   });
 
@@ -150,7 +160,7 @@ export default function Courses() {
       bookForm.reset();
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao atualizar livro", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao atualizar livro", description: extractErrorMessage(error), variant: "destructive" });
     }
   });
 
@@ -180,7 +190,7 @@ export default function Courses() {
       setUploadingPdf(null);
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao enviar PDF", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao enviar PDF", description: extractErrorMessage(error), variant: "destructive" });
       setUploadingPdf(null);
     }
   });

@@ -42,8 +42,7 @@ export const billingTypeEnum = pgEnum('billing_type', [
 export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high', 'urgent']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
 
-// Franchisee type enum
-export const franchiseeTypeEnum = pgEnum('franchisee_type', ['pessoa_fisica', 'pessoa_juridica']);
+
 
 // ============================================================================
 // CORE TABLES
@@ -77,11 +76,13 @@ export const users = pgTable("users", {
 // Roles table - 4 roles fixos do sistema
 export const roles = pgTable("roles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: userRoleEnum("name").notNull().unique(),
+  // Permite papéis dinâmicos: trocar enum por varchar
+  name: varchar("name").notNull().unique(),
   displayName: varchar("display_name").notNull(),
   description: text("description"),
   isSystemRole: boolean("is_system_role").default(true).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  isDeletable: boolean("is_deletable").default(true).notNull(), // Controla se o cargo pode ser excluído
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -120,6 +121,30 @@ export const rolePermissions = pgTable("role_permissions", {
   index("UQ_role_permission").on(table.roleId, table.permissionId),
 ]);
 
+// Tabela de páginas do sistema para controle de acesso
+export const pages = pgTable("pages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(), // ex: 'units', 'staff', 'students'
+  displayName: varchar("display_name").notNull(), // ex: 'Unidades', 'Colaboradores', 'Alunos'
+  description: text("description"),
+  route: varchar("route").notNull(), // ex: '/units', '/staff', '/students'
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Tabela de permissões de páginas por cargo
+export const rolePagePermissions = pgTable("role_page_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roleId: varchar("role_id").references(() => roles.id, { onDelete: 'cascade' }).notNull(),
+  pageId: varchar("page_id").references(() => pages.id, { onDelete: 'cascade' }).notNull(),
+  canAccess: boolean("can_access").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("UQ_role_page_permission").on(table.roleId, table.pageId),
+]);
+
 // User permissions table - override de permissões por usuário
 export const userPermissions = pgTable("user_permissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -144,6 +169,43 @@ export const units = pgTable("units", {
   phone: varchar("phone"),
   email: varchar("email"),
   managerId: varchar("manager_id").references(() => users.id),
+  
+  // Dados do Franqueado
+  franchiseeName: varchar("franchisee_name"),
+  franchiseeCpf: varchar("franchisee_cpf"),
+  franchiseeCpfDoc: varchar("franchisee_cpf_doc"),
+  franchiseeRg: varchar("franchisee_rg"),
+  franchiseeRgDoc: varchar("franchisee_rg_doc"),
+  franchiseeResidenceAddress: text("franchisee_residence_address"),
+  franchiseeResidenceDoc: varchar("franchisee_residence_doc"),
+  franchiseeMaritalStatus: varchar("franchisee_marital_status"),
+  franchiseeMaritalStatusDoc: varchar("franchisee_marital_status_doc"),
+  franchiseeCurriculumDoc: varchar("franchisee_curriculum_doc"),
+  franchiseeAssetsDoc: varchar("franchisee_assets_doc"),
+  franchiseeIncomeDoc: varchar("franchisee_income_doc"),
+  
+  // Dados PJ
+  franchiseeSocialContractDoc: varchar("franchisee_social_contract_doc"),
+  franchiseeCnpj: varchar("franchisee_cnpj"),
+  franchiseeCnpjDoc: varchar("franchisee_cnpj_doc"),
+  franchiseeStateRegistration: varchar("franchisee_state_registration"),
+  franchiseeStateRegistrationDoc: varchar("franchisee_state_registration_doc"),
+  franchiseePartnersDocsDoc: varchar("franchisee_partners_docs_doc"),
+  franchiseeCertificatesDoc: varchar("franchisee_certificates_doc"),
+  
+  // Dados Financeiros
+  financialCapitalDoc: varchar("financial_capital_doc"),
+  financialCashFlowDoc: varchar("financial_cash_flow_doc"),
+  financialTaxReturnsDoc: varchar("financial_tax_returns_doc"),
+  financialBankReferences: text("financial_bank_references"),
+  financialBankReferencesDoc: varchar("financial_bank_references_doc"),
+  
+  // Dados Imobiliários
+  realEstateLocation: text("real_estate_location"),
+  realEstatePropertyDoc: varchar("real_estate_property_doc"),
+  realEstateLeaseDoc: varchar("real_estate_lease_doc"),
+  realEstateFloorPlanDoc: varchar("real_estate_floor_plan_doc"),
+  
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -373,6 +435,23 @@ export const lessons = pgTable("lessons", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Teacher Schedule table - Agenda individual de professores
+export const teacherSchedule = pgTable("teacher_schedule", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  unitId: varchar("unit_id").references(() => units.id).notNull(),
+  courseName: varchar("course_name").notNull(), // Nome do curso inserido manualmente
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Segunda, 2=Terça, etc.
+  startTime: varchar("start_time").notNull(),
+  endTime: varchar("end_time").notNull(),
+  room: varchar("room"),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").references(() => users.id).notNull(), // Admin/Secretário que criou
+});
+
 // Course Units table
 export const courseUnits = pgTable("course_units", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -539,7 +618,7 @@ export const supportTicketResponses = pgTable("support_ticket_responses", {
 // Franchise Units Registration table - simplificado
 export const franchiseUnits = pgTable("franchise_units", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  entityType: franchiseeTypeEnum("entity_type").notNull(),
+  entityType: varchar("entity_type").notNull(),
   
   // Dados básicos
   fullName: text("full_name"),
@@ -715,6 +794,21 @@ export const lessonsRelations = relations(lessons, ({ one }) => ({
   }),
 }));
 
+export const teacherScheduleRelations = relations(teacherSchedule, ({ one }) => ({
+  teacher: one(users, {
+    fields: [teacherSchedule.teacherId],
+    references: [users.id],
+  }),
+  unit: one(units, {
+    fields: [teacherSchedule.unitId],
+    references: [units.id],
+  }),
+  createdByUser: one(users, {
+    fields: [teacherSchedule.createdBy],
+    references: [users.id],
+  }),
+}));
+
 export const courseUnitsRelations = relations(courseUnits, ({ one, many }) => ({
   book: one(books, {
     fields: [courseUnits.bookId],
@@ -819,6 +913,18 @@ export const insertUserPermissionSchema = createInsertSchema(userPermissions).om
   updatedAt: true,
 });
 
+export const insertPageSchema = createInsertSchema(pages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRolePagePermissionSchema = createInsertSchema(rolePagePermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertUnitSchema = createInsertSchema(units).omit({
   id: true,
   createdAt: true,
@@ -835,18 +941,27 @@ export const insertGuardianSchema = createInsertSchema(guardians).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Permite que birthDate seja uma string ISO que será convertida para Date
+  birthDate: z.string().datetime().optional().transform((val) => val ? new Date(val) : undefined),
 });
 
 export const insertFinancialResponsibleSchema = createInsertSchema(financialResponsibles).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Permite que birthDate seja uma string ISO que será convertida para Date
+  birthDate: z.string().datetime().optional().transform((val) => val ? new Date(val) : undefined),
 });
 
 export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Permite que birthDate seja uma string ISO que será convertida para Date
+  birthDate: z.string().datetime().optional().transform((val) => val ? new Date(val) : undefined),
 });
 
 export const insertCourseSchema = createInsertSchema(courses).omit({
@@ -921,6 +1036,12 @@ export const insertStudentCourseEnrollmentSchema = createInsertSchema(studentCou
   updatedAt: true,
 });
 
+export const insertTeacherScheduleSchema = createInsertSchema(teacherSchedule).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
   id: true,
   createdAt: true,
@@ -955,6 +1076,8 @@ export type InsertPermissionCategory = z.infer<typeof insertPermissionCategorySc
 export type InsertPermission = z.infer<typeof insertPermissionSchema>;
 export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
 export type InsertUserPermission = z.infer<typeof insertUserPermissionSchema>;
+export type InsertPage = z.infer<typeof insertPageSchema>;
+export type InsertRolePagePermission = z.infer<typeof insertRolePagePermissionSchema>;
 export type InsertUnit = z.infer<typeof insertUnitSchema>;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
 export type InsertGuardian = z.infer<typeof insertGuardianSchema>;
@@ -972,6 +1095,7 @@ export type InsertCourseWorkbook = z.infer<typeof insertCourseWorkbookSchema>;
 export type InsertCourseExam = z.infer<typeof insertCourseExamSchema>;
 export type InsertStudentProgress = z.infer<typeof insertStudentProgressSchema>;
 export type InsertStudentCourseEnrollment = z.infer<typeof insertStudentCourseEnrollmentSchema>;
+export type InsertTeacherSchedule = z.infer<typeof insertTeacherScheduleSchema>;
 export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
 export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 export type InsertSupportTicketResponse = z.infer<typeof insertSupportTicketResponseSchema>;
@@ -984,6 +1108,8 @@ export type PermissionCategory = typeof permissionCategories.$inferSelect;
 export type Permission = typeof permissions.$inferSelect;
 export type RolePermission = typeof rolePermissions.$inferSelect;
 export type UserPermission = typeof userPermissions.$inferSelect;
+export type Page = typeof pages.$inferSelect;
+export type RolePagePermission = typeof rolePagePermissions.$inferSelect;
 export type Unit = typeof units.$inferSelect;
 export type Staff = typeof staff.$inferSelect;
 export type Guardian = typeof guardians.$inferSelect;
@@ -1005,6 +1131,7 @@ export type UserSettings = typeof userSettings.$inferSelect;
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type SupportTicketResponse = typeof supportTicketResponses.$inferSelect;
 export type FranchiseUnit = typeof franchiseUnits.$inferSelect;
+export type TeacherSchedule = typeof teacherSchedule.$inferSelect;
 
 // Extended types
 export type UpsertUser = InsertUser & { id?: string };
@@ -1017,7 +1144,7 @@ export type StaffWithUser = Staff & {
 export type StudentWithUser = Student & {
   user: User;
   unit?: Unit;
-  guardian?: Guardian;
+  guardian?: GuardianWithFinancial;
 };
 
 export type ClassWithDetails = Class & {

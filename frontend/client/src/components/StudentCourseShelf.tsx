@@ -43,7 +43,17 @@ export default function StudentCourseShelf({ courseId, title, currentBookId, dis
                     <div className="text-xs text-muted-foreground">{book.description || ' '}</div>
                   </div>
                   <Button size="sm" disabled={isDisabled} className="bg-gradient-to-r from-blue-600 to-purple-600">
-                    {isCurrent ? 'Continuar' : 'Bloqueado'}
+                    {isCurrent ? (
+                      <>
+                        <i className="fas fa-play mr-2"></i>
+                        Continuar
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-lock mr-2"></i>
+                        Bloqueado
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

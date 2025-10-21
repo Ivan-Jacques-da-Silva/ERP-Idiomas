@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { displayDateBR } from "@/lib/cpfUtils";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
 import LessonModal from "@/components/LessonModal";
@@ -11,10 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { format, startOfWeek, addDays, isSameDay, parseISO, startOfDay, endOfDay, isWithinInterval } from "date-fns";
+import { format, startOfWeek, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface ClassDetailModalProps {
@@ -117,7 +116,6 @@ function ClassDetailModal({ isOpen, onClose, classData }: ClassDetailModalProps)
 export default function Schedule() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<any>(null);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
@@ -129,41 +127,41 @@ export default function Schedule() {
   const [showClassDetail, setShowClassDetail] = useState(false);
 
   // Fetch lessons based on user role
-  const { data: lessons, isLoading } = useQuery<any[]>({
-    queryKey: user?.role === 'teacher'
-      ? ["/api/lessons/teacher", user.id]
-      : ["/api/lessons"],
-    retry: false,
-    enabled: isAuthenticated,
-  });
+  // const { data: lessons, isLoading } = useQuery<any[]>({
+  //   queryKey: user?.role === 'teacher'
+  //     ? ["/api/lessons/teacher", user.id]
+  //     : ["/api/lessons"],
+  //   retry: false,
+  //   enabled: isAuthenticated,
+  // });
 
   // Fetch teachers for filter (only for admin/secretary)
-  const { data: teachers = [] } = useQuery<any[]>({
-    queryKey: ["/api/staff"],
-    enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
-    retry: false,
-  });
+  // const { data: teachers = [] } = useQuery<any[]>({
+  //   queryKey: ["/api/staff"],
+  //   enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
+  //   retry: false,
+  // });
 
   // Fetch units for filter
-  const { data: units = [] } = useQuery<any[]>({
-    queryKey: ["/api/units"],
-    enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
-    retry: false,
-  });
+  // const { data: units = [] } = useQuery<any[]>({
+  //   queryKey: ["/api/units"],
+  //   enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
+  //   retry: false,
+  // });
 
   // Fetch admin schedule data (for administrative view)
-  const { data: adminSchedule = [] } = useQuery<any[]>({
-    queryKey: ["/api/schedule/admin"],
-    enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
-    retry: false,
-  });
+  // const { data: adminSchedule = [] } = useQuery<any[]>({
+  //   queryKey: ["/api/schedule/admin"],
+  //   enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
+  //   retry: false,
+  // });
 
   // Fetch teacher schedule data
-  const { data: teacherSchedule = [] } = useQuery<any[]>({
-    queryKey: ["/api/schedule/teacher", user?.id],
-    enabled: isAuthenticated && user?.role === 'teacher',
-    retry: false,
-  });
+  // const { data: teacherSchedule = [] } = useQuery<any[]>({
+  //   queryKey: ["/api/schedule/teacher", user?.id],
+  //   enabled: isAuthenticated && user?.role === 'teacher',
+  //   retry: false,
+  // });
 
   const { data: todaysLessons } = useQuery<any[]>({
     queryKey: ["/api/lessons/today"],
@@ -175,12 +173,12 @@ export default function Schedule() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
+        title: "N�o autorizado",
         description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/landing";
+        window.location.href = "/";
       }, 500);
       return;
     }
@@ -217,10 +215,10 @@ export default function Schedule() {
     setIsClassModalOpen(true);
   };
 
-  const handleEditClass = (classItem: any) => {
-    setEditingClass(classItem);
-    setIsClassModalOpen(true);
-  };
+  // const handleEditClass = (classItem: any) => {
+  //   setEditingClass(classItem);
+  //   setIsClassModalOpen(true);
+  // };
 
   const handleCloseClassModal = () => {
     setIsClassModalOpen(false);
@@ -504,7 +502,7 @@ export default function Schedule() {
                     return (
                       <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border-b border-r border-border relative">
                         <div className="space-y-1">
-                          {dayClasses.map((classItem, index) => (
+                          {dayClasses.map((classItem) => (
                             <div
                               key={classItem.id}
                               className="p-3 rounded-lg text-sm cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full flex items-center justify-center"
@@ -757,12 +755,7 @@ export default function Schedule() {
                   <i className="fas fa-calendar-day text-primary"></i>
                   <span>Aulas de Hoje</span>
                   <Badge variant="secondary">
-                    {new Date().toLocaleDateString('pt-BR', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                   </Badge>
                 </CardTitle>
               </CardHeader>

@@ -32,9 +32,19 @@ export function useAuth() {
     enabled: hasToken && isInitialized,
   });
 
+  const { data: effectivePerms } = useQuery<{ permissions: { name: string }[] }>({
+    queryKey: ["auth", "effective-permissions"],
+    queryFn: async () => {
+      return await apiRequest("/api/auth/effective-permissions", { method: "GET" });
+    },
+    retry: false,
+    enabled: !!user && hasToken && isInitialized,
+  });
+
   return {
     user,
     isLoading: !isInitialized || (hasToken && isLoading),
     isAuthenticated: !!user && !!hasToken,
+    permissions: (effectivePerms?.permissions || []).map(p => p.name),
   };
 }

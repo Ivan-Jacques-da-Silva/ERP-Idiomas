@@ -41,13 +41,18 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       // Redirect to login if needed
-      if (window.location.pathname !== '/landing') {
-        window.location.href = '/landing';
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
       }
     }
 
     const error = await response.text();
     throw new Error(`${response.status}: ${error}`);
+  }
+
+  // Para respostas 204 (No Content), não tente fazer parse do JSON
+  if (response.status === 204) {
+    return null;
   }
 
   return response.json();

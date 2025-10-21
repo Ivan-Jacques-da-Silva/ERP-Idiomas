@@ -14,7 +14,7 @@ export default function StudentExams() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
+        title: "Não autorizado",
         description: "You are logged out. Logging in again...",
         variant: "destructive",
       });

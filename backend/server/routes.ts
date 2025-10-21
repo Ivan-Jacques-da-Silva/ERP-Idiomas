@@ -4,9 +4,11 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import bcrypt from 'bcryptjs';
 import { storage } from "./storage.js";
 import { auth } from "./auth.js";
 import { setupVite, serveStatic } from "./vite.js";
+import { requirePagePermission } from "./permissions.js";
 import { 
   insertUnitSchema, 
   insertStaffSchema, 
@@ -24,8 +26,11 @@ import {
   insertGuardianSchema,
   insertFinancialResponsibleSchema,
   insertFranchiseUnitSchema,
+  staff,
 } from "../shared/schema.js";
 import { z } from "zod";
+import { db } from "./db.js";
+import { eq } from "drizzle-orm";
 
 const updateRolePermissionsSchema = z.object({
   permissionIds: z.array(z.string())
@@ -208,24 +213,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get effective permissions for current user
-  app.get('/api/auth/effective-permissions', auth.isAuthenticated, async (req: any, res) => {
+    app.get('/api/auth/effective-permissions', auth.isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUserById(req.user.id);
       if (!user) {
-        return res.status(404).json({ message: "Usuário não encontrado" });
+        return res.status(404).json({ message: "Usu�rio n�o encontrado" });
       }
 
-      const role = await storage.getRoles();
-      const userRole = role.find(r => r.id === user.roleId);
+      const roles = await storage.getRoles();
+      const userRole = roles.find(r => r.id === user.roleId);
       
-      if (!userRole) {
-        return res.json({ permissions: [] });
+      let permissions: any[] = [];
+      if (userRole) {
+        const rolePermissions = await storage.getRolePermissionsByName(userRole.name);
+        permissions = rolePermissions.map(rp => rp.permission);
       }
 
-      const rolePermissions = await storage.getRolePermissionsByName(userRole.name);
-      const permissions = rolePermissions.map(rp => rp.permission);
+      // Apply user overrides (grants/denies)
+      const overrides = await storage.getUserPermissionOverrides(user.id);
+      const permMap = new Map<string, any>();
+      for (const p of permissions) permMap.set(p.id, p);
+      for (const ov of overrides) {
+        if (ov.isGranted) {
+          permMap.set(ov.permission.id, ov.permission);
+        } else {
+          permMap.delete(ov.permission.id);
+        }
+      }
       
-      res.json({ permissions: permissions || [] });
+      res.json({ permissions: Array.from(permMap.values()) });
     } catch (error) {
       console.error('Error getting effective permissions:', error);
       res.status(500).json({ message: 'Internal server error' });
@@ -265,70 +281,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
-      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+      res.status(500).json({ message: "Erro ao buscar estatísticas do painel" });
     }
   });
 
-  // ============================================================================
-  // UNIT ROUTES
-  // ============================================================================
-
-  app.get("/api/units", auth.isAuthenticated, async (req, res) => {
+  app.get("/api/units", auth.isAuthenticated, requirePagePermission('units'), async (req, res) => {
     try {
       const units = await storage.getUnits();
       res.json(units);
     } catch (error) {
       console.error("Error fetching units:", error);
-      res.status(500).json({ message: "Failed to fetch units" });
+      res.status(500).json({ message: "Erro ao buscar unidades" });
     }
   });
 
-  app.get("/api/units/:id", auth.isAuthenticated, async (req, res) => {
+  app.get("/api/units/:id", auth.isAuthenticated, requirePagePermission('units'), async (req, res) => {
     try {
       const unit = await storage.getUnit(req.params.id);
       if (!unit) {
-        return res.status(404).json({ message: "Unit not found" });
+        return res.status(404).json({ message: "Unidade não encontrada" });
       }
       res.json(unit);
     } catch (error) {
       console.error("Error fetching unit:", error);
-      res.status(500).json({ message: "Failed to fetch unit" });
+      res.status(500).json({ message: "Erro ao buscar unidade" });
     }
   });
 
-  app.post("/api/units", auth.requireAdmin, async (req, res) => {
+  app.post("/api/units", auth.requirePermission('units:write'), requirePagePermission('units'), async (req, res) => {
     try {
       const unitData = insertUnitSchema.parse(req.body);
       const unit = await storage.createUnit(unitData);
       res.status(201).json(unit);
     } catch (error: any) {
       console.error("Error creating unit:", error);
-      res.status(400).json({ 
-        message: "Invalid unit data", 
-        error: error.message,
-        details: error.errors || error.issues || []
-      });
+      
+      // Tratamento específico para erros de validação
+      if (error.issues) {
+        const fieldErrors = error.issues.map((issue: any) => {
+          const field = issue.path.join('.');
+          return `${field}: ${issue.message}`;
+        }).join(', ');
+        return res.status(400).json({ 
+          message: `Dados inválidos: ${fieldErrors}` 
+        });
+      }
+      
+      res.status(400).json({ message: error.message || "Erro ao criar unidade" });
     }
   });
 
-  app.put("/api/units/:id", auth.requireAdmin, async (req, res) => {
+  app.put("/api/units/:id", auth.requirePermission('units:write'), async (req, res) => {
     try {
       const unitData = insertUnitSchema.partial().parse(req.body);
       const unit = await storage.updateUnit(req.params.id, unitData);
       res.json(unit);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating unit:", error);
-      res.status(400).json({ message: "Invalid unit data" });
+      
+      // Tratamento específico para erros de validação
+      if (error.issues) {
+        const fieldErrors = error.issues.map((issue: any) => {
+          const field = issue.path.join('.');
+          return `${field}: ${issue.message}`;
+        }).join(', ');
+        return res.status(400).json({ 
+          message: `Dados inválidos: ${fieldErrors}` 
+        });
+      }
+      
+      res.status(400).json({ message: error.message || "Erro ao atualizar unidade" });
     }
   });
 
-  app.delete("/api/units/:id", auth.requireAdmin, async (req, res) => {
+  app.delete("/api/units/:id", auth.requirePermission('units:write'), async (req, res) => {
     try {
       await storage.deleteUnit(req.params.id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting unit:", error);
-      res.status(500).json({ message: "Failed to delete unit" });
+      res.status(500).json({ message: "Erro ao excluir unidade" });
     }
   });
 
@@ -336,32 +368,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // STAFF ROUTES
   // ============================================================================
 
-  app.get("/api/staff", auth.isAuthenticated, async (req, res) => {
+  app.get("/api/staff", auth.isAuthenticated, requirePagePermission('staff'), async (req, res) => {
     try {
       const staff = await storage.getStaff();
       res.json(staff);
     } catch (error) {
       console.error("Error fetching staff:", error);
-      res.status(500).json({ message: "Failed to fetch staff" });
+      res.status(500).json({ message: "Erro ao buscar colaboradores" });
     }
   });
 
-  app.get("/api/staff/:id", auth.isAuthenticated, async (req, res) => {
+  app.get("/api/staff/:id", auth.isAuthenticated, requirePagePermission('staff'), async (req, res) => {
     try {
       const staffMember = await storage.getStaffMember(req.params.id);
       if (!staffMember) {
-        return res.status(404).json({ message: "Staff member not found" });
+        return res.status(404).json({ message: "Colaborador não encontrado" });
       }
       res.json(staffMember);
     } catch (error) {
       console.error("Error fetching staff member:", error);
-      res.status(500).json({ message: "Failed to fetch staff member" });
+      res.status(500).json({ message: "Erro ao buscar colaborador" });
     }
   });
 
-  app.post("/api/staff", auth.requireAdmin, async (req, res) => {
+  app.post("/api/staff", auth.requireAdmin, requirePagePermission('staff'), async (req, res) => {
     try {
-      const { firstName, lastName, email, password, role = 'teacher', ...staffFields } = req.body;
+      const { firstName, lastName, email, password, ...staffFields } = req.body;
+      
+      // Validação: verificar se já existe um colaborador com este CPF (apenas se CPF for fornecido)
+      if (staffFields.cpf && staffFields.cpf.trim() !== '') {
+        const existingStaffByCpf = await db
+          .select()
+          .from(staff)
+          .where(eq(staff.cpf, staffFields.cpf))
+          .limit(1);
+        
+        if (existingStaffByCpf.length > 0) {
+          return res.status(400).json({ 
+            message: "Já existe um colaborador cadastrado com este CPF" 
+          });
+        }
+      }
+      
+      // Normalizar position para minúsculo
+      if (staffFields.position) {
+        staffFields.position = staffFields.position.toLowerCase();
+      }
+      
+      // Mapear cargo para role automaticamente
+      const getRole = (position: string): string => {
+        switch (position?.toLowerCase()) {
+          case 'ceo':
+          case 'diretor':
+            return 'admin';
+          case 'coordenador':
+          case 'administrativo':
+          case 'financeiro':
+          case 'recepcionista':
+          case 'comercial':
+          case 'marketing':
+            return 'secretary';
+          case 'instrutor':
+            return 'teacher';
+          default:
+            return 'teacher'; // padrão
+        }
+      };
+      
+      const role = getRole(staffFields.position);
       
       // Buscar role
       const userRole = await storage.getRoleByName(role);
@@ -369,30 +443,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Role inválido" });
       }
 
-      // Hash da senha
-      const hashedPassword = await auth.hashPassword(password || 'senha123');
+      // Verificar se já existe um usuário com este email
+      const existingUser = await storage.getUserByEmail(email);
       
-      // Criar usuário primeiro
-      const user = await storage.createUser({
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        roleId: userRole.id,
-        isActive: true,
-      });
-      
-      // Criar staff com userId
-      const staffData = insertStaffSchema.parse({
-        ...staffFields,
+      let user;
+      if (existingUser) {
+        // Atualizar o usuário existente (REMOVIDA validação de staff duplicado por email)
+        user = await storage.updateUser(existingUser.id, {
+          firstName,
+          lastName,
+          roleId: userRole.id,
+        });
+      } else {
+        // Criar novo usuário
+        const hashedPassword = await auth.hashPassword(password);
+        user = await storage.createUser({
+          firstName,
+          lastName,
+          email,
+          password: hashedPassword,
+          roleId: userRole.id,
+        });
+      }
+
+      // Processar campos de data - converter strings ISO para objetos Date
+      const processedStaffFields = { ...staffFields };
+      if (processedStaffFields.birthDate && typeof processedStaffFields.birthDate === 'string') {
+        processedStaffFields.birthDate = new Date(processedStaffFields.birthDate);
+      }
+      if (processedStaffFields.hireDate && typeof processedStaffFields.hireDate === 'string') {
+        processedStaffFields.hireDate = new Date(processedStaffFields.hireDate);
+      }
+
+      // Criar o registro de staff
+      const staffMember = await storage.createStaff({
         userId: user.id,
+        ...processedStaffFields,
       });
+
+      res.status(201).json(staffMember);
+    } catch (error) {
+      console.error("Error creating staff:", error);
       
-      const staff = await storage.createStaff(staffData);
-      res.status(201).json(staff);
-    } catch (error: any) {
-      console.error("Error creating staff member:", error);
-      res.status(400).json({ message: error.message || "Invalid staff data" });
+      // Verificar se é erro de validação do Zod
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dados inválidos", 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ message: "Erro ao criar colaborador" });
     }
   });
 
@@ -415,7 +516,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(staff);
     } catch (error: any) {
       console.error("Error updating staff member:", error);
-      res.status(400).json({ message: error.message || "Invalid staff data" });
+      
+      // Tratamento específico para erro de email duplicado
+      if (error.message && error.message.includes('users_email_unique')) {
+        return res.status(400).json({ 
+          message: "Este e-mail já está cadastrado no sistema. Por favor, utilize um e-mail diferente." 
+        });
+      }
+      
+      // Outros erros de validação do Zod
+      if (error.issues) {
+        const fieldErrors = error.issues.map((issue: any) => {
+          const field = issue.path.join('.');
+          return `${field}: ${issue.message}`;
+        }).join(', ');
+        return res.status(400).json({ 
+          message: `Dados inválidos: ${fieldErrors}` 
+        });
+      }
+      
+      res.status(400).json({ message: error.message || "Erro ao atualizar colaborador" });
     }
   });
 
@@ -425,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting staff member:", error);
-      res.status(500).json({ message: "Failed to delete staff member" });
+      res.status(500).json({ message: "Erro ao excluir colaborador" });
     }
   });
 
@@ -433,32 +553,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // STUDENT ROUTES
   // ============================================================================
 
-  app.get("/api/students", auth.isAuthenticated, async (req, res) => {
+  app.get("/api/students", auth.isAuthenticated, requirePagePermission('students'), async (req, res) => {
     try {
       const students = await storage.getStudents();
       res.json(students);
     } catch (error) {
       console.error("Error fetching students:", error);
-      res.status(500).json({ message: "Failed to fetch students" });
+      res.status(500).json({ message: "Erro ao buscar estudantes" });
     }
   });
 
-  app.get("/api/students/:id", auth.isAuthenticated, async (req, res) => {
+  app.get("/api/students/:id", auth.isAuthenticated, requirePagePermission('students'), async (req, res) => {
     try {
       const student = await storage.getStudent(req.params.id);
       if (!student) {
-        return res.status(404).json({ message: "Student not found" });
+        return res.status(404).json({ message: "Estudante não encontrado" });
       }
       res.json(student);
     } catch (error) {
       console.error("Error fetching student:", error);
-      res.status(500).json({ message: "Failed to fetch student" });
+      res.status(500).json({ message: "Erro ao buscar estudante" });
     }
   });
 
-  app.post("/api/students", auth.requireAdminOrSecretary, async (req, res) => {
+  app.post("/api/students", auth.requireAdminOrSecretary, requirePagePermission('students'), async (req, res) => {
     try {
       const { firstName, lastName, email, password, guardian, ...studentFields } = req.body;
+      
+      // Verificar se CPF já existe (se fornecido)
+      if (studentFields.cpf && studentFields.cpf.trim() !== '') {
+        const existingStudent = await storage.getStudentByCpf(studentFields.cpf);
+        if (existingStudent) {
+          return res.status(400).json({ 
+            message: "Já existe um aluno cadastrado com este CPF" 
+          });
+        }
+      }
       
       // Buscar role student
       const studentRole = await storage.getRoleByName('student');
@@ -509,13 +639,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(student);
     } catch (error: any) {
       console.error("Error creating student:", error);
-      res.status(400).json({ message: error.message || "Invalid student data" });
+      
+      // Tratamento específico para erro de email duplicado
+      if (error.message && error.message.includes('users_email_unique')) {
+        return res.status(400).json({ 
+          message: "Este e-mail já está cadastrado no sistema. Por favor, utilize um e-mail diferente." 
+        });
+      }
+      
+      // Outros erros de validação do Zod
+      if (error.issues) {
+        const fieldErrors = error.issues.map((issue: any) => {
+          const field = issue.path.join('.');
+          return `${field}: ${issue.message}`;
+        }).join(', ');
+        return res.status(400).json({ 
+          message: `Dados inválidos: ${fieldErrors}` 
+        });
+      }
+      
+      res.status(400).json({ message: error.message || "Erro ao cadastrar estudante" });
     }
   });
 
   app.put("/api/students/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const { firstName, lastName, email, userId, guardian, ...studentFields } = req.body;
+      
+      // Verificar se CPF já existe (se fornecido e diferente do atual)
+      if (studentFields.cpf && studentFields.cpf.trim() !== '') {
+        const existingStudent = await storage.getStudentByCpf(studentFields.cpf);
+        if (existingStudent && existingStudent.id !== req.params.id) {
+          return res.status(400).json({ 
+            message: "Já existe um aluno cadastrado com este CPF" 
+          });
+        }
+      }
       
       // Atualizar usuário se dados fornecidos
       if (userId && (firstName || lastName || email)) {
@@ -571,7 +730,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(student);
     } catch (error: any) {
       console.error("Error updating student:", error);
-      res.status(400).json({ message: error.message || "Invalid student data" });
+      
+      // Tratamento específico para erro de email duplicado
+      if (error.message && error.message.includes('users_email_unique')) {
+        return res.status(400).json({ 
+          message: "Este e-mail já está cadastrado no sistema. Por favor, utilize um e-mail diferente." 
+        });
+      }
+      
+      // Outros erros de validação do Zod
+      if (error.issues) {
+        const fieldErrors = error.issues.map((issue: any) => {
+          const field = issue.path.join('.');
+          return `${field}: ${issue.message}`;
+        }).join(', ');
+        return res.status(400).json({ 
+          message: `Dados inválidos: ${fieldErrors}` 
+        });
+      }
+      
+      res.status(400).json({ message: error.message || "Erro ao atualizar estudante" });
     }
   });
 
@@ -581,7 +759,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting student:", error);
-      res.status(500).json({ message: "Failed to delete student" });
+      res.status(500).json({ message: "Erro ao excluir estudante" });
+    }
+  });
+
+  // ============================================================================
+  // STUDENT AREA - COURSE ENROLLMENTS (Netflix-style shelves)
+  // ============================================================================
+
+  // Get current student's course enrollments
+  app.get('/api/student/courses', auth.isAuthenticated, async (req: any, res) => {
+    try {
+      const enrollments = await storage.getStudentCourseEnrollmentsForUser(req.user.id);
+      res.json(enrollments);
+    } catch (error) {
+      console.error('Error fetching student enrollments:', error);
+      res.status(500).json({ message: 'Erro ao buscar matrículas do estudante' });
+    }
+  });
+
+  // Get course details with basic books for shelves
+  app.get('/api/student/courses/:id', auth.isAuthenticated, async (req: any, res) => {
+    try {
+      const course = await storage.getCourseWithBooksBasic(req.params.id);
+      if (!course) {
+        return res.status(404).json({ message: 'Curso não encontrado' });
+      }
+      res.json({ course });
+    } catch (error) {
+      console.error('Error fetching course details for student:', error);
+      res.status(500).json({ message: 'Erro ao buscar detalhes do curso' });
     }
   });
 
@@ -603,12 +810,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const course = await storage.getCourse(req.params.id);
       if (!course) {
-        return res.status(404).json({ message: "Course not found" });
+        return res.status(404).json({ message: "Curso não encontrado" });
       }
       res.json(course);
     } catch (error) {
       console.error("Error fetching course:", error);
-      res.status(500).json({ message: "Failed to fetch course" });
+      res.status(500).json({ message: "Erro ao buscar curso" });
     }
   });
 
@@ -617,9 +824,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const courseData = insertCourseSchema.parse(req.body);
       const course = await storage.createCourse(courseData);
       res.status(201).json(course);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating course:", error);
-      res.status(400).json({ message: "Invalid course data" });
+      
+      // Tratamento específico para erros de validação
+      if (error.issues) {
+        const fieldErrors = error.issues.map((issue: any) => {
+          const field = issue.path.join('.');
+          return `${field}: ${issue.message}`;
+        }).join(', ');
+        return res.status(400).json({ 
+          message: `Dados inválidos: ${fieldErrors}` 
+        });
+      }
+      
+      res.status(400).json({ message: error.message || "Erro ao criar curso" });
     }
   });
 
@@ -628,9 +847,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const courseData = insertCourseSchema.partial().parse(req.body);
       const course = await storage.updateCourse(req.params.id, courseData);
       res.json(course);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating course:", error);
-      res.status(400).json({ message: "Invalid course data" });
+      
+      // Tratamento específico para erros de validação
+      if (error.issues) {
+        const fieldErrors = error.issues.map((issue: any) => {
+          const field = issue.path.join('.');
+          return `${field}: ${issue.message}`;
+        }).join(', ');
+        return res.status(400).json({ 
+          message: `Dados inválidos: ${fieldErrors}` 
+        });
+      }
+      
+      res.status(400).json({ message: error.message || "Erro ao atualizar curso" });
     }
   });
 
@@ -802,6 +1033,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================================================
+  // TEACHER SCHEDULE ROUTES
+  // ============================================================================
+
+  app.get("/api/teachers", auth.requireAdminOrSecretary, async (req, res) => {
+    try {
+      const teachers = await storage.getTeachers();
+      res.json(teachers);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+      res.status(500).json({ message: "Erro ao buscar professores" });
+    }
+  });
+
+  app.get("/api/teachers/:id/schedule", auth.requireAdminOrSecretary, async (req, res) => {
+    try {
+      const schedule = await storage.getTeacherSchedule(req.params.id);
+      res.json(schedule);
+    } catch (error) {
+      console.error("Error fetching teacher schedule:", error);
+      res.status(500).json({ message: "Erro ao buscar horários do professor" });
+    }
+  });
+
+  // ============================================================================
+  // TEACHER INDIVIDUAL SCHEDULE ROUTES (Nova funcionalidade)
+  // ============================================================================
+
+  // Schema para validação de agenda de professor
+  const teacherScheduleSchema = z.object({
+    teacherId: z.string().min(1),
+    unitId: z.string().min(1),
+    courseName: z.string().min(1),
+    dayOfWeek: z.number().min(1).max(7),
+    startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+    endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+    room: z.string().optional(),
+    notes: z.string().optional(),
+  });
+
+  // Criar agenda para professor (apenas admin/secretário)
+  app.post("/api/teacher-schedule", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const scheduleData = teacherScheduleSchema.parse(req.body);
+      const schedule = await storage.createTeacherSchedule({
+        ...scheduleData,
+        createdBy: req.user.id,
+      });
+      res.status(201).json(schedule);
+    } catch (error) {
+      console.error("Error creating teacher schedule:", error);
+      res.status(400).json({ message: "Dados inválidos para agenda" });
+    }
+  });
+
+  // Buscar agenda de um professor específico (admin/secretário/próprio professor)
+  app.get("/api/teacher-schedule/:teacherId", auth.isAuthenticated, async (req: any, res) => {
+    try {
+      const { teacherId } = req.params;
+      
+      // Verificar se é admin/secretário ou o próprio professor
+      const userRole = req.user.role;
+      if (userRole !== 'admin' && userRole !== 'secretary' && req.user.id !== teacherId) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const schedule = await storage.getTeacherIndividualSchedule(teacherId);
+      res.json(schedule);
+    } catch (error) {
+      console.error("Error fetching teacher individual schedule:", error);
+      res.status(500).json({ message: "Erro ao buscar agenda do professor" });
+    }
+  });
+
+  // Atualizar agenda de professor (apenas admin/secretário)
+  app.put("/api/teacher-schedule/:id", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const scheduleData = teacherScheduleSchema.partial().parse(req.body);
+      const schedule = await storage.updateTeacherSchedule(req.params.id, scheduleData);
+      res.json(schedule);
+    } catch (error) {
+      console.error("Error updating teacher schedule:", error);
+      res.status(400).json({ message: "Dados inválidos para agenda" });
+    }
+  });
+
+  // Deletar agenda de professor (apenas admin/secretário)
+  app.delete("/api/teacher-schedule/:id", auth.requireAdminOrSecretary, async (req, res) => {
+    try {
+      await storage.deleteTeacherSchedule(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting teacher schedule:", error);
+      res.status(500).json({ message: "Erro ao excluir agenda" });
+    }
+  });
+
+  // Buscar agenda do professor logado (para área do professor)
+  app.get("/api/my-schedule", auth.isAuthenticated, async (req: any, res) => {
+    try {
+      // Verificar se é professor
+      if (req.user.role !== 'teacher') {
+        return res.status(403).json({ message: "Acesso restrito a professores" });
+      }
+
+      const schedule = await storage.getTeacherIndividualSchedule(req.user.id);
+      res.json(schedule);
+    } catch (error) {
+      console.error("Error fetching my schedule:", error);
+      res.status(500).json({ message: "Erro ao buscar minha agenda" });
+    }
+  });
+
+  // ============================================================================
   // LESSON ROUTES
   // ============================================================================
 
@@ -894,6 +1238,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Criar novo papel (role) dinâmico
+  const upsertRoleSchema = z.object({
+    name: z.string().min(2),
+    displayName: z.string().min(2),
+    description: z.string().optional(),
+    isSystemRole: z.boolean().optional(),
+    isActive: z.boolean().optional(),
+  });
+
+  app.post("/api/roles", auth.requireAdmin, async (req, res) => {
+    try {
+      const data = upsertRoleSchema.parse(req.body);
+      const role = await storage.createRole({
+        name: data.name,
+        displayName: data.displayName,
+        description: data.description,
+        isSystemRole: data.isSystemRole ?? false,
+        isActive: data.isActive ?? true,
+      });
+      res.status(201).json(role);
+    } catch (error) {
+      console.error("Error creating role:", error);
+      res.status(400).json({ message: "Invalid role data" });
+    }
+  });
+
+  // Atualizar papel (role)
+  app.put("/api/roles/:id", auth.requireAdmin, async (req, res) => {
+    try {
+      const data = upsertRoleSchema.partial().parse(req.body);
+      const role = await storage.updateRole(req.params.id, data);
+      res.json(role);
+    } catch (error) {
+      console.error("Error updating role:", error);
+      res.status(400).json({ message: "Invalid role data" });
+    }
+  });
+
+  // Desativar papel (role) - soft delete
+  app.delete("/api/roles/:id", auth.requireAdmin, async (req, res) => {
+    try {
+      await storage.deactivateRole(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting role:", error);
+      res.status(500).json({ message: "Failed to delete role" });
+    }
+  });
+
+
+  // User permissions (overrides)
+  app.get("/api/users/:id/permissions", auth.requirePermission('permissions:manage'), async (req, res) => {
+    try {
+      const overrides = await storage.getUserPermissionOverrides(req.params.id);
+      res.json(overrides);
+    } catch (error) {
+      console.error("Error fetching user permissions:", error);
+      res.status(500).json({ message: "Failed to fetch user permissions" });
+    }
+  });
+
+  const updateUserPermissionsSchema = z.object({
+    overrides: z.array(z.object({
+      permissionId: z.string(),
+      isGranted: z.boolean(),
+    }))
+  });
+
+  app.put("/api/users/:id/permissions", auth.requirePermission('permissions:manage'), async (req, res) => {
+    try {
+      const { overrides } = updateUserPermissionsSchema.parse(req.body);
+      await storage.updateUserPermissions(req.params.id, overrides);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating user permissions:", error);
+      res.status(400).json({ message: "Invalid input" });
+    }
+  });
+
+  // Get permissions for a specific role
+  app.get("/api/roles/:id/permissions", auth.isAuthenticated, async (req, res) => {
+    try {
+      const rolePermissions = await storage.getRolePermissions(req.params.id);
+      res.json(rolePermissions);
+    } catch (error) {
+      console.error("Error fetching role permissions:", error);
+      res.status(500).json({ message: "Failed to fetch role permissions" });
+    }
+  });
+
   app.put("/api/roles/:id/permissions", auth.requireAdmin, async (req, res) => {
     try {
       const { permissionIds } = updateRolePermissionsSchema.parse(req.body);
@@ -902,6 +1336,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating role permissions:", error);
       res.status(400).json({ message: "Invalid permission data" });
+    }
+  });
+
+  // ============================================================================
+  // PAGES ROUTES
+  // ============================================================================
+
+  // Get all pages
+  app.get("/api/pages", auth.isAuthenticated, async (req, res) => {
+    try {
+      const pages = await storage.getPages();
+      res.json(pages);
+    } catch (error) {
+      console.error("Error fetching pages:", error);
+      res.status(500).json({ message: "Failed to fetch pages" });
+    }
+  });
+
+  // Create new page
+  const upsertPageSchema = z.object({
+    name: z.string().min(2),
+    displayName: z.string().min(2),
+    route: z.string().min(1),
+    isActive: z.boolean().optional(),
+  });
+
+  app.post("/api/pages", auth.requireAdmin, async (req, res) => {
+    try {
+      const data = upsertPageSchema.parse(req.body);
+      const page = await storage.createPage({
+        name: data.name,
+        displayName: data.displayName,
+        route: data.route,
+        isActive: data.isActive ?? true,
+      });
+      res.status(201).json(page);
+    } catch (error) {
+      console.error("Error creating page:", error);
+      res.status(400).json({ message: "Invalid page data" });
+    }
+  });
+
+  // Update page
+  app.put("/api/pages/:id", auth.requireAdmin, async (req, res) => {
+    try {
+      const data = upsertPageSchema.partial().parse(req.body);
+      const page = await storage.updatePage(req.params.id, data);
+      res.json(page);
+    } catch (error) {
+      console.error("Error updating page:", error);
+      res.status(400).json({ message: "Invalid page data" });
+    }
+  });
+
+  // Delete page
+  app.delete("/api/pages/:id", auth.requireAdmin, async (req, res) => {
+    try {
+      await storage.deletePage(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting page:", error);
+      res.status(500).json({ message: "Failed to delete page" });
+    }
+  });
+
+  // ============================================================================
+  // ROLE PAGE PERMISSIONS ROUTES
+  // ============================================================================
+
+  // Get role page permissions
+  app.get("/api/roles/:id/pages", auth.isAuthenticated, async (req, res) => {
+    try {
+      const rolePagePermissions = await storage.getRolePagePermissions(req.params.id);
+      res.json(rolePagePermissions);
+    } catch (error) {
+      console.error("Error fetching role page permissions:", error);
+      res.status(500).json({ message: "Failed to fetch role page permissions" });
+    }
+  });
+
+  // Get allowed pages for a role
+  app.get("/api/roles/:id/allowed-pages", auth.isAuthenticated, async (req, res) => {
+    try {
+      const allowedPages = await storage.getRoleAllowedPages(req.params.id);
+      res.json(allowedPages);
+    } catch (error) {
+      console.error("Error fetching allowed pages:", error);
+      res.status(500).json({ message: "Failed to fetch allowed pages" });
+    }
+  });
+
+  // Update role page permissions
+  const updateRolePagePermissionsSchema = z.object({
+    pagePermissions: z.array(z.object({
+      pageId: z.string(),
+      canAccess: z.boolean(),
+    }))
+  });
+
+  app.put("/api/roles/:id/pages", auth.requireAdmin, async (req, res) => {
+    try {
+      const { pagePermissions } = updateRolePagePermissionsSchema.parse(req.body);
+      const roleId = req.params.id;
+      
+      // Update each page permission
+      for (const permission of pagePermissions) {
+        const existing = await storage.getRolePagePermission(roleId, permission.pageId);
+        
+        if (existing) {
+          await storage.updateRolePagePermission(roleId, permission.pageId, {
+            canAccess: permission.canAccess
+          });
+        } else {
+          await storage.createRolePagePermission({
+            roleId,
+            pageId: permission.pageId,
+            canAccess: permission.canAccess
+          });
+        }
+      }
+      
+      res.json({ message: "Page permissions updated successfully" });
+    } catch (error) {
+      console.error("Error updating role page permissions:", error);
+      res.status(400).json({ message: "Invalid page permission data" });
     }
   });
 
@@ -1017,3 +1576,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   return server;
 }
+

@@ -57,12 +57,19 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
+  // Auto-registro é SEMPRE como student (segurança)
+  const studentRole = await storage.getRoleByName('student');
+  if (!studentRole) {
+    throw new Error("Role de estudante não configurado");
+  }
+
   await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
+    roleId: studentRole.id,
   });
 }
 

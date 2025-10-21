@@ -12,9 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation, useRoute } from 'wouter';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,7 +23,6 @@ export default function Layout({ children }: LayoutProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [location] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -44,8 +42,8 @@ export default function Layout({ children }: LayoutProps) {
       description: "Você foi desconectado com sucesso.",
     });
     
-    // Redirect to landing page
-    window.location.href = '/landing';
+    // Redirect to login page
+    window.location.href = '/';
   };
 
   // Detectar se é mobile

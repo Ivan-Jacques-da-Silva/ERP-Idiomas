@@ -64,7 +64,7 @@ export default function Financial() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
+        title: "Não autorizado",
         description: "VocÃª foi desconectado. Redirecionando...",
         variant: "destructive",
       });

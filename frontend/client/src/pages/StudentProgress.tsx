@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import StudentLayout from "@/components/StudentLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 
 export default function StudentProgress() {
   const { toast } = useToast();
@@ -14,12 +13,12 @@ export default function StudentProgress() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
+        title: "Não autorizado",
         description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/landing";
+        window.location.href = "/";
       }, 500);
       return;
     }

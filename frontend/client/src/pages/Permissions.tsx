@@ -2,23 +2,41 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, extractErrorMessage } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { insertRoleSchema } from "@shared/schema";
-import { Crown, UserCog, GraduationCap, BookOpen, Shield, Settings, CheckCircle, Tag, Info, Plus, Edit, Trash2 } from "lucide-react";
+import {
+  Shield,
+  Settings,
+  Edit,
+  Trash2,
+  Plus,
+  Users,
+  Crown,
+  UserCheck,
+  UserCog,
+  GraduationCap,
+  BookOpen,
+  CheckCircle,
+  Tag,
+  Info,
+  Globe,
+  Lock
+} from "lucide-react";
 
 // Schema baseado no compartilhado com validações específicas da UI
 const createRoleSchema = insertRoleSchema
@@ -48,6 +66,8 @@ export default function Permissions() {
   const [selectedRole, setSelectedRole] = useState<any>(null);
   const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [pagePermissionsModalOpen, setPagePermissionsModalOpen] = useState(false);
+  const [selectedPagePermissions, setSelectedPagePermissions] = useState<{[key: string]: boolean}>({});
   const [createRoleModalOpen, setCreateRoleModalOpen] = useState(false);
   const [editRoleModalOpen, setEditRoleModalOpen] = useState(false);
   const [roleToEdit, setRoleToEdit] = useState<any>(null);
@@ -82,6 +102,12 @@ export default function Permissions() {
     retry: false,
   });
 
+  // Buscar todas as páginas disponíveis
+  const { data: pages } = useQuery<any[]>({
+    queryKey: ["/api/pages"],
+    retry: false,
+  });
+
   // Buscar permissões do role selecionado
   const { 
     data: roleWithPermissions, 
@@ -89,6 +115,16 @@ export default function Permissions() {
   } = useQuery({
     queryKey: ["/api/roles", selectedRole?.id, "permissions"],
     enabled: !!selectedRole?.id && permissionsModalOpen,
+    retry: false,
+  });
+
+  // Buscar permissões de páginas do role selecionado
+  const { 
+    data: rolePagePermissions, 
+    isLoading: rolePagePermissionsLoading 
+  } = useQuery({
+    queryKey: ["/api/roles", selectedRole?.id, "pages"],
+    enabled: !!selectedRole?.id && pagePermissionsModalOpen,
     retry: false,
   });
 
@@ -114,6 +150,28 @@ export default function Permissions() {
     },
   });
 
+  // Mutation para atualizar permissões de páginas do role
+  const updateRolePagePermissionsMutation = useMutation({
+    mutationFn: async (data: { roleId: string; pagePermissions: {pageId: string; canAccess: boolean}[] }) => {
+      await apiRequest("PUT", `/api/roles/${data.roleId}/pages`, { pagePermissions: data.pagePermissions });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/roles", variables.roleId, "pages"] });
+      toast({
+        title: "Sucesso!",
+        description: "Permissões de páginas do nível atualizadas com sucesso.",
+      });
+      setPagePermissionsModalOpen(false);
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar permissões de páginas do nível. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Mutation para criar novo role
   const createRoleMutation = useMutation({
     mutationFn: async (data: CreateRoleFormData) => {
@@ -132,10 +190,10 @@ export default function Permissions() {
       let errorMessage = "Erro ao criar nível de acesso. Tente novamente.";
       
       // Tratar erro 409 (conflito) especificamente
-      if (error.response?.status === 409 || error.message?.includes("already exists")) {
+      if (error.response?.status === 409 || extractErrorMessage(error)?.includes("already exists")) {
         errorMessage = "Nome já em uso ou reservado pelo sistema.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else {
+        errorMessage = extractErrorMessage(error) || errorMessage;
       }
       
       toast({
@@ -165,12 +223,12 @@ export default function Permissions() {
       let errorMessage = "Erro ao atualizar nível de acesso. Tente novamente.";
       
       // Tratar erro 409 (conflito) especificamente
-      if (error.response?.status === 409 || error.message?.includes("already exists")) {
+      if (error.response?.status === 409 || extractErrorMessage(error)?.includes("already exists")) {
         errorMessage = "Nome já em uso ou reservado pelo sistema.";
-      } else if (error.response?.status === 403 || error.message?.includes("Cannot modify")) {
+      } else if (error.response?.status === 403 || extractErrorMessage(error)?.includes("Cannot modify")) {
         errorMessage = "Não é possível modificar níveis de sistema.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else {
+        errorMessage = extractErrorMessage(error) || errorMessage;
       }
       
       toast({
@@ -196,7 +254,7 @@ export default function Permissions() {
     onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao remover nível de acesso. Tente novamente.",
+        description: extractErrorMessage(error) || "Erro ao remover nível de acesso. Tente novamente.",
         variant: "destructive",
       });
     },
@@ -271,6 +329,27 @@ export default function Permissions() {
     updateRolePermissionsMutation.mutate({
       roleId: selectedRole.id,
       permissionIds: selectedPermissions
+    });
+  };
+
+  // Abrir modal de permissões de páginas
+  const handleManagePagePermissions = (role: any) => {
+    setSelectedRole(role);
+    setPagePermissionsModalOpen(true);
+  };
+
+  // Salvar permissões de páginas
+  const handleSavePagePermissions = () => {
+    if (!selectedRole?.id || !pages) return;
+    
+    const pagePermissions = pages.map(page => ({
+      pageId: page.id,
+      canAccess: selectedPagePermissions[page.id] || false
+    }));
+    
+    updateRolePagePermissionsMutation.mutate({
+      roleId: selectedRole.id,
+      pagePermissions
     });
   };
 
@@ -349,6 +428,41 @@ export default function Permissions() {
     }
   }, [permissionsModalOpen]);
 
+  // Inicializar permissões de páginas selecionadas quando modal abre
+  useEffect(() => {
+    if (pagePermissionsModalOpen && rolePagePermissions && pages) {
+      const pagePermissionsMap: {[key: string]: boolean} = {};
+      
+      // Inicializar todas as páginas como false
+      pages.forEach(page => {
+        pagePermissionsMap[page.id] = false;
+      });
+      
+      // Marcar as páginas que o role tem acesso
+      rolePagePermissions.forEach((rpp: any) => {
+        pagePermissionsMap[rpp.pageId] = rpp.canAccess;
+      });
+      
+      setSelectedPagePermissions(pagePermissionsMap);
+    }
+  }, [pagePermissionsModalOpen, rolePagePermissions, pages]);
+
+  // Limpar estados quando modal de páginas fecha
+  useEffect(() => {
+    if (!pagePermissionsModalOpen) {
+      setSelectedPagePermissions({});
+      setSelectedRole(null);
+    }
+  }, [pagePermissionsModalOpen]);
+
+  // Toggle permissão de página
+  const togglePagePermission = (pageId: string) => {
+    setSelectedPagePermissions(prev => ({
+      ...prev,
+      [pageId]: !prev[pageId]
+    }));
+  };
+
   // Toggle permissão
   const togglePermission = (permissionId: string) => {
     setSelectedPermissions(prev => 
@@ -356,6 +470,74 @@ export default function Permissions() {
         ? prev.filter(id => id !== permissionId)
         : [...prev, permissionId]
     );
+  };
+
+  // Mapeamento de permissões para páginas/funcionalidades
+  const getPagePermissions = (permissions: any[]) => {
+    const pageGroups = [
+      {
+        title: "Dashboard",
+        icon: "📊",
+        permissions: permissions.filter(p => p.name === 'dashboard:read')
+      },
+      {
+        title: "Unidades",
+        icon: "🏢",
+        permissions: permissions.filter(p => p.name.startsWith('units:'))
+      },
+      {
+        title: "Funcionários",
+        icon: "👥",
+        permissions: permissions.filter(p => p.name.startsWith('staff:'))
+      },
+      {
+        title: "Estudantes",
+        icon: "🎓",
+        permissions: permissions.filter(p => p.name.startsWith('students:'))
+      },
+      {
+        title: "Cursos",
+        icon: "📚",
+        permissions: permissions.filter(p => p.name.startsWith('courses:'))
+      },
+      {
+        title: "Livros",
+        icon: "📖",
+        permissions: permissions.filter(p => p.name.startsWith('books:'))
+      },
+      {
+        title: "Aulas",
+        icon: "🏫",
+        permissions: permissions.filter(p => p.name.startsWith('classes:'))
+      },
+      {
+        title: "Área do Estudante",
+        icon: "📝",
+        permissions: permissions.filter(p => p.name.startsWith('lessons:'))
+      },
+      {
+        title: "Financeiro",
+        icon: "💰",
+        permissions: permissions.filter(p => p.name.startsWith('finance:'))
+      },
+      {
+        title: "Configurações",
+        icon: "⚙️",
+        permissions: permissions.filter(p => p.name === 'settings:read')
+      },
+      {
+        title: "Suporte",
+        icon: "🆘",
+        permissions: permissions.filter(p => p.name === 'support:read')
+      },
+      {
+        title: "Gerenciar Permissões",
+        icon: "🔐",
+        permissions: permissions.filter(p => p.name === 'permissions:manage')
+      }
+    ].filter(group => group.permissions.length > 0);
+
+    return pageGroups;
   };
 
   return (
@@ -463,6 +645,17 @@ export default function Permissions() {
                         Configurar Permissões
                       </Button>
                       
+                      <Button 
+                        onClick={() => handleManagePagePermissions(role)}
+                        className="w-full"
+                        size="sm"
+                        variant="outline"
+                        data-testid={`button-manage-page-permissions-${role.id}`}
+                      >
+                        <Globe className="w-4 h-4 mr-2" />
+                        Configurar Páginas
+                      </Button>
+                      
                       {!role.isSystemRole && (
                         <div className="flex gap-2">
                           <Button
@@ -498,7 +691,7 @@ export default function Permissions() {
 
         {/* Modal de Permissões */}
         <Dialog open={permissionsModalOpen} onOpenChange={setPermissionsModalOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
                 Configurar Permissões do Nível
@@ -508,6 +701,19 @@ export default function Permissions() {
                   `${selectedRole.displayName} - ${selectedRole.description}`
                 }
               </p>
+              {selectedRole?.isSystemRole && selectedRole?.name === 'admin' && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-800">
+                      Nível Administrativo
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Este nível possui acesso total ao sistema e não pode ser modificado.
+                  </p>
+                </div>
+              )}
             </DialogHeader>
             
             <div className="space-y-4">
@@ -528,23 +734,44 @@ export default function Permissions() {
                   <p className="text-sm text-muted-foreground">Nenhuma permissão encontrada.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Selecione as permissões para este nível de acesso:</Label>
-                  <div className="max-h-60 overflow-y-auto space-y-2">
-                    {permissions.map((permission: any) => (
-                      <div key={permission.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={permission.id}
-                          checked={selectedPermissions.includes(permission.id)}
-                          onCheckedChange={() => togglePermission(permission.id)}
-                          data-testid={`checkbox-permission-${permission.name}`}
-                        />
-                        <Label 
-                          htmlFor={permission.id} 
-                          className="text-sm cursor-pointer flex-1"
-                        >
-                          {permission.displayName ?? permission.name ?? 'Permissão'}
-                        </Label>
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">
+                    Selecione quais páginas este nível pode acessar:
+                  </Label>
+                  <div className="max-h-96 overflow-y-auto space-y-4">
+                    {getPagePermissions(permissions).map((pageGroup) => (
+                      <div key={pageGroup.title} className="border rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-lg">{pageGroup.icon}</span>
+                          <h4 className="font-medium text-sm">{pageGroup.title}</h4>
+                        </div>
+                        <div className="space-y-2 ml-6">
+                          {pageGroup.permissions.map((permission: any) => {
+                            const isReadOnly = permission.name.endsWith(':read');
+                            const isDisabled = selectedRole?.isSystemRole && selectedRole?.name === 'admin';
+                            
+                            return (
+                              <div key={permission.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={permission.id}
+                                  checked={selectedRole?.isSystemRole && selectedRole?.name === 'admin' ? true : selectedPermissions.includes(permission.id)}
+                                  onCheckedChange={() => !isDisabled && togglePermission(permission.id)}
+                                  disabled={isDisabled}
+                                  data-testid={`checkbox-permission-${permission.name}`}
+                                />
+                                <Label 
+                                  htmlFor={permission.id} 
+                                  className={`text-sm cursor-pointer flex-1 ${isDisabled ? 'text-muted-foreground' : ''}`}
+                                >
+                                  {isReadOnly ? '👁️ Visualizar' : '✏️ Gerenciar'}
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    ({permission.displayName})
+                                  </span>
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -562,7 +789,7 @@ export default function Permissions() {
               </Button>
               <Button 
                 onClick={handleSavePermissions}
-                disabled={updateRolePermissionsMutation.isPending}
+                disabled={updateRolePermissionsMutation.isPending || (selectedRole?.isSystemRole && selectedRole?.name === 'admin')}
                 data-testid="button-save-permissions"
               >
                 {updateRolePermissionsMutation.isPending ? 'Salvando...' : 'Salvar'}
@@ -797,6 +1024,74 @@ export default function Permissions() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Modal de Permissões de Páginas */}
+        <Dialog open={pagePermissionsModalOpen} onOpenChange={setPagePermissionsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" data-testid="dialog-page-permissions">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                Configurar Páginas - {selectedRole?.displayName}
+              </DialogTitle>
+              <DialogDescription>
+                Selecione quais páginas este nível pode acessar no sistema.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {pages && pages.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {pages.map((page: any) => (
+                    <div key={page.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                      <Checkbox
+                        id={`page-${page.id}`}
+                        checked={selectedPagePermissions[page.id] || false}
+                        onCheckedChange={() => togglePagePermission(page.id)}
+                        data-testid={`checkbox-page-${page.id}`}
+                      />
+                      <div className="flex-1">
+                        <label 
+                          htmlFor={`page-${page.id}`}
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          {page.displayName}
+                        </label>
+                        {page.description && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {page.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhuma página encontrada</p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={() => setPagePermissionsModalOpen(false)}
+                data-testid="button-cancel-page-permissions"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSavePagePermissions}
+                disabled={updateRolePagePermissionsMutation.isPending}
+                data-testid="button-save-page-permissions"
+              >
+                {updateRolePagePermissionsMutation.isPending ? 'Salvando...' : 'Salvar Permissões'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

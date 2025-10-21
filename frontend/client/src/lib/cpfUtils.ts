@@ -83,6 +83,7 @@ export function formatDateToInput(date: any): string {
       return "";
     }
     
+    // Retorna no formato YYYY-MM-DD para input type="date"
     return dateObj.toISOString().slice(0, 10);
   } catch (error) {
     console.error('Error formatting date to input:', error);
@@ -94,7 +95,8 @@ export function formatDateToISO(dateString: string): string | null {
   if (!dateString) return null;
   
   try {
-    const dateObj = new Date(dateString);
+    // Se já está no formato YYYY-MM-DD (do input date), converte diretamente
+    const dateObj = new Date(dateString + 'T00:00:00.000Z');
     
     if (isNaN(dateObj.getTime())) {
       return null;
@@ -104,5 +106,79 @@ export function formatDateToISO(dateString: string): string | null {
   } catch (error) {
     console.error('Error formatting date to ISO:', error);
     return null;
+  }
+}
+
+// Nova função para formatar data brasileira (DD/MM/YYYY)
+export function formatDateBR(dateString: string): string {
+  if (!dateString) return "";
+  
+  // Remove caracteres não numéricos
+  const numbers = dateString.replace(/\D/g, "");
+  
+  // Aplica máscara DD/MM/YYYY
+  if (numbers.length <= 2) {
+    return numbers;
+  } else if (numbers.length <= 4) {
+    return numbers.replace(/(\d{2})(\d{0,2})/, "$1/$2");
+  } else {
+    return numbers.replace(/(\d{2})(\d{2})(\d{0,4})/, "$1/$2/$3").slice(0, 10);
+  }
+}
+
+// Função para converter data brasileira (DD/MM/YYYY) para formato ISO
+export function convertBRDateToISO(brDate: string): string | null {
+  if (!brDate) return null;
+  
+  // Remove caracteres não numéricos
+  const numbers = brDate.replace(/\D/g, "");
+  
+  // Verifica se tem 8 dígitos (DDMMYYYY)
+  if (numbers.length !== 8) return null;
+  
+  const day = numbers.slice(0, 2);
+  const month = numbers.slice(2, 4);
+  const year = numbers.slice(4, 8);
+  
+  // Valida dia, mês e ano
+  const dayNum = parseInt(day);
+  const monthNum = parseInt(month);
+  const yearNum = parseInt(year);
+  
+  if (dayNum < 1 || dayNum > 31) return null;
+  if (monthNum < 1 || monthNum > 12) return null;
+  if (yearNum < 1900 || yearNum > 2100) return null;
+  
+  try {
+    // Cria data no formato ISO (YYYY-MM-DD)
+    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const dateObj = new Date(isoDate + 'T00:00:00.000Z');
+    
+    if (isNaN(dateObj.getTime())) {
+      return null;
+    }
+    
+    return dateObj.toISOString();
+  } catch (error) {
+    console.error('Error converting BR date to ISO:', error);
+    return null;
+  }
+}
+
+// Função para exibir datas no formato brasileiro DD/MM/AAAA
+export function displayDateBR(date: string | Date | null | undefined): string {
+  if (!date) return "-";
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    if (isNaN(dateObj.getTime())) {
+      return "-";
+    }
+    
+    return dateObj.toLocaleDateString('pt-BR');
+  } catch (error) {
+    console.error('Error displaying date in BR format:', error);
+    return "-";
   }
 }

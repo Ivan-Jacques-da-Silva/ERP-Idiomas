@@ -11,6 +11,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 // Demo users for display
 const demoUsers = [
+  { email: 'admin@sistema.com', password: 'admin123', role: 'Administrador', disabled: false },
   { email: 'admin@demo.com', password: 'demo123', role: 'Administrador', disabled: false },
   { email: 'teacher@demo.com', password: 'demo123', role: 'Professor', disabled: false },
   { email: 'secretary@demo.com', password: 'demo123', role: 'Secretário', disabled: false },
@@ -18,8 +19,8 @@ const demoUsers = [
 ];
 
 export default function Landing() {
-  const [email, setEmail] = useState("admin@demo.com");
-  const [password, setPassword] = useState("demo123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorModal, setErrorModal] = useState({ open: false, message: "" });
   const [stars, setStars] = useState<Array<{ id: number; x: number; y: number; size: number; animationDelay: number }>>([]);
@@ -166,43 +167,45 @@ export default function Landing() {
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center">
                 <CardTitle className="text-2xl font-bold text-foreground">
-                  Login Demonstrativo
+                  Acesso ao Sistema
                 </CardTitle>
                 <CardDescription className="text-muted-foreground mt-2">
-                  Escolha um usuário demo ou digite suas credenciais
+                  Digite suas credenciais de acesso
                 </CardDescription>
               </div>
             </CardHeader>
 
             <CardContent className="space-y-6">
               {/* Demo Users */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Usuários Demo:</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {demoUsers.map((user, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => !user.disabled && setDemoUser(user)}
-                      disabled={user.disabled}
-                      className={`h-auto p-3 flex flex-col items-start border-gray-200 dark:border-gray-600 text-left transition-all duration-200 ${
-                        user.disabled 
-                          ? 'bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed' 
-                          : 'bg-white/30 dark:bg-white/10 hover:bg-blue-50 dark:hover:bg-white/20'
-                      }`}
-                    >
-                      <span className="font-medium text-xs">{user.role}</span>
-                      <span className="text-xs text-muted-foreground truncate w-full">
-                        {user.email}
-                      </span>
-                      {user.disabled && (
-                        <span className="text-xs text-red-500 mt-1">Em breve</span>
-                      )}
-                    </Button>
-                  ))}
+              {true && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Usuários Demo:</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {demoUsers.map((user, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => !user.disabled && setDemoUser(user)}
+                        disabled={user.disabled}
+                        className={`h-auto p-3 flex flex-col items-start border-gray-200 dark:border-gray-600 text-left transition-all duration-200 ${
+                          user.disabled 
+                            ? 'bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed' 
+                            : 'bg-white/30 dark:bg-white/10 hover:bg-blue-50 dark:hover:bg-white/20'
+                        }`}
+                      >
+                        <span className="font-medium text-xs">{user.role}</span>
+                        <span className="text-xs text-muted-foreground truncate w-full">
+                          {user.email}
+                        </span>
+                        {user.disabled && (
+                          <span className="text-xs text-red-500 mt-1">Em breve</span>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -272,23 +275,25 @@ export default function Landing() {
             </CardContent>
           </Card>
 
-          {/* Demo Info */}
-          <Card className="border-border bg-muted/50 theme-transition">
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <i className="fas fa-info text-primary-foreground text-xs"></i>
+          {/* Demo Info removed */}
+          {false && (
+            <Card className="border-border bg-muted/50 theme-transition">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i className="fas fa-info text-primary-foreground text-xs"></i>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-foreground mb-1">Sistema Demonstrativo</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Este é um ambiente de demonstração. Todos os dados são fictícios e 
+                      serão redefinidos periodicamente.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium text-foreground mb-1">Sistema Demonstrativo</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Este é um ambiente de demonstração. Todos os dados são fictícios e 
-                    serão redefinidos periodicamente.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="mt-8 text-center">
             <p className="text-xs text-muted-foreground">

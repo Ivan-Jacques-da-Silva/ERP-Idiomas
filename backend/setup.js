@@ -18,6 +18,7 @@ dotenv.config();
 import os from "os";
 import pkg from "pg";
 const { Pool } = pkg;
+import bcrypt from "bcryptjs";
 
 // ===================== ENV ALVO =====================
 const TARGET_DB       = process.env.DB_NAME_TARGET  || "school_system";
@@ -154,6 +155,43 @@ CREATE TABLE IF NOT EXISTS units (
   phone VARCHAR,
   email VARCHAR,
   manager_id VARCHAR REFERENCES users(id),
+  
+  -- Dados do Franqueado
+  franchisee_name VARCHAR,
+  franchisee_cpf VARCHAR,
+  franchisee_cpf_doc VARCHAR,
+  franchisee_rg VARCHAR,
+  franchisee_rg_doc VARCHAR,
+  franchisee_residence_address TEXT,
+  franchisee_residence_doc VARCHAR,
+  franchisee_marital_status VARCHAR,
+  franchisee_marital_status_doc VARCHAR,
+  franchisee_curriculum_doc VARCHAR,
+  franchisee_assets_doc VARCHAR,
+  franchisee_income_doc VARCHAR,
+  
+  -- Dados de Pessoa Jurídica
+  franchisee_social_contract_doc VARCHAR,
+  franchisee_cnpj VARCHAR,
+  franchisee_cnpj_doc VARCHAR,
+  franchisee_state_registration VARCHAR,
+  franchisee_state_registration_doc VARCHAR,
+  franchisee_partners_docs_doc VARCHAR,
+  franchisee_certificates_doc VARCHAR,
+  
+  -- Dados Financeiros
+  financial_capital_doc VARCHAR,
+  financial_cash_flow_doc VARCHAR,
+  financial_tax_returns_doc VARCHAR,
+  financial_bank_references TEXT,
+  financial_bank_references_doc VARCHAR,
+  
+  -- Dados Imobiliários
+  real_estate_location TEXT,
+  real_estate_property_doc VARCHAR,
+  real_estate_lease_doc VARCHAR,
+  real_estate_floor_plan_doc VARCHAR,
+  
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
@@ -330,6 +368,27 @@ DO $$ BEGIN
     ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS password VARCHAR;
   EXCEPTION WHEN undefined_table THEN NULL; WHEN duplicate_column THEN NULL; END;
 END $$;
+
+DO $$ BEGIN
+  -- garante coluna is_active em students para compatibilidade com o dashboard
+  BEGIN
+    ALTER TABLE IF EXISTS students ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+  EXCEPTION WHEN undefined_table THEN NULL; WHEN duplicate_column THEN NULL; END;
+END $$;
+
+DO $$ BEGIN
+  -- garante coluna role em users para compatibilidade com seeds legados
+  BEGIN
+    ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS role user_role DEFAULT 'student';
+  EXCEPTION WHEN undefined_table THEN NULL; WHEN duplicate_column THEN NULL; END;
+END $$;
+
+DO $$ BEGIN
+  -- migra roles.name de enum para VARCHAR permitindo papéis dinâmicos
+  BEGIN
+    ALTER TABLE IF EXISTS roles ALTER COLUMN name TYPE VARCHAR USING name::text;
+  EXCEPTION WHEN undefined_table THEN NULL; WHEN undefined_column THEN NULL; END;
+END $$;
 `;
 
 const SQL_SEEDS_MIN = `
@@ -444,7 +503,43 @@ async function testAdmin() {
   }
 }
 
-// ===================== SETUP FLOW ===================
+// ===================== HELPERS (SEED USERS) ======================
+async function getRoleIdByName(cli, name) {
+  const r = await cli.query(`SELECT id FROM roles WHERE name = $1`, [name]);
+  return r.rows[0]?.id || null;
+}
+
+async function upsertUser(cli, { email, firstName, lastName, roleName, password }) {
+  const roleId = await getRoleIdByName(cli, roleName);
+  if (!roleId) throw new Error(`Role não encontrada: ${roleName}`);
+  const hashed = await bcrypt.hash(password, 10);
+  const sql = `
+    INSERT INTO users (id,email,password,first_name,last_name,role,role_id,is_active,created_at,updated_at)
+    VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, true, NOW(), NOW())
+    ON CONFLICT (email) DO UPDATE
+      SET first_name = EXCLUDED.first_name,
+          last_name  = EXCLUDED.last_name,
+          role       = EXCLUDED.role,
+          role_id    = EXCLUDED.role_id,
+          password   = COALESCE(users.password, EXCLUDED.password),
+          updated_at = NOW()
+    RETURNING id,email;
+  `;
+  const r = await cli.query(sql, [email, hashed, firstName, lastName, roleName, roleId]);
+  console.log(`✅ usuário: ${r.rows[0].email}`);
+  return r.rows[0];
+}
+
+async function seedUsers(cli) {
+  console.log("🌱 Inserindo/atualizando usuários padrão...");
+  await upsertUser(cli, { email: "admin@sistema.com", firstName: "Admin", lastName: "Sistema", roleName: "admin", password: "admin123" });
+  await upsertUser(cli, { email: "admin@demo.com", firstName: "Admin", lastName: "Demo", roleName: "admin", password: "demo123" });
+  await upsertUser(cli, { email: "teacher@demo.com", firstName: "Professor", lastName: "Demo", roleName: "teacher", password: "demo123" });
+  await upsertUser(cli, { email: "secretary@demo.com", firstName: "Secretária", lastName: "Demo", roleName: "secretary", password: "demo123" });
+  await upsertUser(cli, { email: "student@demo.com", firstName: "João", lastName: "Silva", roleName: "student", password: "demo123" });
+  console.log("✅ Usuários padrão atualizados");
+}
+
 async function setup(isReset = false) {
   console.log("🚀 Iniciando setup do banco PostgreSQL...");
   console.log(`💻 Sistema: ${os.platform()} ${os.arch()}`);
@@ -465,6 +560,7 @@ async function setup(isReset = false) {
     await exec(appPool, SQL_TABLES,  "Criando tabelas/estruturas");
     await exec(appPool, SQL_ALTER,   "Ajustando colunas ausentes");
     await exec(appPool, SQL_SEEDS_MIN, "Inserindo dados iniciais");
+    await seedUsers(appPool);
   } finally {
     await appPool.end();
   }

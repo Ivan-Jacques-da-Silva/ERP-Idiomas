@@ -122,6 +122,45 @@ export function requireAdmin(req: any, res: any, next: any) {
   });
 }
 
+// Permission-based middleware
+export function requirePermission(permissionName: string) {
+  return (req: any, res: any, next: any) => {
+    isAuthenticated(req, res, async () => {
+      try {
+        const user = await storage.getUserById(req.user.id);
+        if (!user) {
+          return res.status(401).json({ message: "Usuário não encontrado" });
+        }
+
+        // Admin tem acesso a tudo
+        const roles = await storage.getRoles();
+        const userRole = roles.find((r) => r.id === user.roleId);
+        if (userRole?.name === 'admin') {
+          return next();
+        }
+
+        // Verifica permissões do papel
+        const rolePerms = await storage.getRolePermissionsByName(userRole?.name || '');
+        let allowed = rolePerms.some((rp) => rp.permission.name === permissionName);
+
+        // Considera overrides por usuário: grant adiciona, deny remove
+        const overrides = await storage.getUserPermissionOverrides(user.id);
+        for (const ov of overrides) {
+          if (ov.permission.name === permissionName) {
+            allowed = ov.isGranted ? true : false;
+          }
+        }
+
+        if (allowed) return next();
+
+        return res.status(403).json({ message: "Acesso negado - permissão requerida", permission: permissionName });
+      } catch (error) {
+        return res.status(500).json({ message: "Erro ao verificar permissões" });
+      }
+    });
+  };
+}
+
 export function requireAdminOrSecretary(req: any, res: any, next: any) {
   isAuthenticated(req, res, async () => {
     try {
@@ -152,5 +191,6 @@ export const auth = {
   authenticateUser,
   isAuthenticated,
   requireAdmin,
+  requirePermission,
   requireAdminOrSecretary,
 };

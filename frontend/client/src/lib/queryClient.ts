@@ -8,6 +8,36 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Função utilitária para extrair apenas a mensagem amigável do erro
+export function extractErrorMessage(error: any): string {
+  if (!error?.message) return "Erro desconhecido";
+  
+  const errorMessage = error.message;
+  
+  // Se o erro contém um JSON com message, extrair apenas a message
+  try {
+    // Procurar por padrão: status: {"message":"texto"}
+    const jsonMatch = errorMessage.match(/\d+:\s*({.*})/);
+    if (jsonMatch) {
+      const jsonPart = JSON.parse(jsonMatch[1]);
+      if (jsonPart.message) {
+        return jsonPart.message;
+      }
+    }
+  } catch (e) {
+    // Se não conseguir fazer parse do JSON, continuar com outras tentativas
+  }
+  
+  // Se o erro contém "message":" extrair o conteúdo
+  const messageMatch = errorMessage.match(/"message"\s*:\s*"([^"]+)"/);
+  if (messageMatch) {
+    return messageMatch[1];
+  }
+  
+  // Se não encontrar padrão específico, retornar a mensagem original
+  return errorMessage;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -43,9 +73,9 @@ export async function apiRequest(
         localStorage.removeItem("authToken");
         localStorage.removeItem("user");
       }
-      if (window.location.pathname !== "/landing") {
-        console.log("🔄 Redirecionando para /landing");
-        window.location.href = "/landing";
+      if (window.location.pathname !== "/") {
+  console.log("🔄 Redirecionando para /");
+  window.location.href = "/";
       }
     }
 
