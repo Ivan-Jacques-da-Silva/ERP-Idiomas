@@ -55,21 +55,13 @@ export async function setupVite(app, server) {
     });
 }
 export function serveStatic(app) {
-    const caminhosPossiveis = [
-        process.env.FRONT_DIST || "", // <<< permite apontar absoluto
-        path.resolve(__dirname, "..", "..", "frontend", "client", "dist"),
-        path.resolve(__dirname, "..", "..", "frontend", "dist"),
-        "/var/www/erp/front", // <<< teu caminho atual
-    ].filter(Boolean);
-    const distEncontrado = caminhosPossiveis.find((p) => fs.existsSync(p));
-    if (!distEncontrado) {
-        throw new Error(`Build não encontrado. Rode o build do front:
-- cd /var/www/erp/frontend && npm ci && npm run build
-Tentado: 
-${caminhosPossiveis.join("\n")}`);
-    }
-    app.use(express.static(distEncontrado));
-    app.use("*", (_req, res) => {
-        res.sendFile(path.resolve(distEncontrado, "index.html"));
+    // No Docker, o frontend roda em container separado
+    // Apenas servir uma página simples indicando que o backend está funcionando
+    app.get('/', (req, res) => {
+        res.json({ 
+            message: 'ERP Backend está funcionando!', 
+            status: 'ok',
+            timestamp: new Date().toISOString()
+        });
     });
 }

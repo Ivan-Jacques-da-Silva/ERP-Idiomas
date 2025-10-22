@@ -9,14 +9,24 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "..", "backend", "shared"),
+      "@shared": path.resolve(import.meta.dirname, "shared"), // Usar schema local no frontend
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    minify: false, // Desabilitar minificação temporariamente para debug
+    rollupOptions: {
+      external: [],
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          zod: ['zod'],
+        }
+      }
+    }
   },
   server: {
     host: "0.0.0.0",

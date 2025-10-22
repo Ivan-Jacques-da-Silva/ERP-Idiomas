@@ -8,7 +8,10 @@
     "build": "cd frontend && npm install && npm run build && cd ../backend && npm install && npm run build",
     "start": "cd backend && npm run start",
     "check": "cd backend && npm run check && cd ../frontend && npm run check",
-    "db:push": "cd backend && npm run db:push"
+    "db:push": "cd backend && npm run db:push",
+    "deploy": "node scripts/deploy-full.js",
+    "deploy:backend": "node scripts/deploy-backend.js",
+    "deploy:quick": "node scripts/deploy-quick.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

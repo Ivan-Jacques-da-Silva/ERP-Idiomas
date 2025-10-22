@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertRoleSchema } from "@shared/schema";
+// import { insertRoleSchema } from "@shared/schema"; // Comentado temporariamente
 import {
   Shield,
   Settings,
@@ -39,24 +39,22 @@ import {
 } from "lucide-react";
 
 // Schema baseado no compartilhado com validações específicas da UI
-const createRoleSchema = insertRoleSchema
-  .omit({ isSystemRole: true }) // Remove campo de sistema para segurança
-  .extend({
-    name: z.string()
-      .min(1, "Nome é obrigatório")
-      .max(50, "Nome deve ter no máximo 50 caracteres")
-      .regex(/^[a-zA-Z0-9_-]+$/, "Nome deve conter apenas letras, números, underscore e hífen")
-      .refine(
-        (value) => !['admin', 'secretary', 'teacher', 'student'].includes(value.toLowerCase()),
-        "Este nome é reservado pelo sistema"
-      ),
-    displayName: z.string()
-      .min(1, "Nome de exibição é obrigatório")
-      .max(100, "Nome de exibição deve ter no máximo 100 caracteres"),
-    description: z.string()
-      .max(500, "Descrição deve ter no máximo 500 caracteres")
-      .optional()
-  });
+const createRoleSchema = z.object({
+  name: z.string()
+    .min(1, "Nome é obrigatório")
+    .max(50, "Nome deve ter no máximo 50 caracteres")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Nome deve conter apenas letras, números, underscore e hífen")
+    .refine(
+      (value) => !['admin', 'secretary', 'teacher', 'student'].includes(value.toLowerCase()),
+      "Este nome é reservado pelo sistema"
+    ),
+  displayName: z.string()
+    .min(1, "Nome de exibição é obrigatório")
+    .max(100, "Nome de exibição deve ter no máximo 100 caracteres"),
+  description: z.string()
+    .max(500, "Descrição deve ter no máximo 500 caracteres")
+    .optional()
+});
 
 type CreateRoleFormData = z.infer<typeof createRoleSchema>;
 

@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend   # Pasta correta do projeto
+      dockerfile: Dockerfile
+    container_name: erp-frontend
+    restart: unless-stopped
+    ports:
+      - "5051:80"
+    networks:
+      - erp-network
+    depends_on:
+      - backend
+
+  # Backend service
+  backend:
+    build:
+      context: ./backend    # Pasta correta do projeto
+      dockerfile: Dockerfile
+    container_name: erp-backend
+    restart: unless-stopped
+    ports:
+      - "5052:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - ./backend/.env.production
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
+    networks:
+      - erp-network
+    depends_on:
+      - database
+
+  # Database service (PostgreSQL)
+  database:
+    image: postgres:15-alpine
+    container_name: erp-idiomas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-erp_idiomas}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - erp-network
+
+networks:
+  erp-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

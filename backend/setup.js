@@ -115,10 +115,9 @@ CREATE TABLE IF NOT EXISTS permissions (
   display_name VARCHAR NOT NULL,
   description TEXT,
   category_id VARCHAR REFERENCES permission_categories(id) ON DELETE CASCADE NOT NULL,
-  category VARCHAR NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  is_active BOOLEAN DEFAULT true NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS roles (
@@ -128,24 +127,23 @@ CREATE TABLE IF NOT EXISTS roles (
   description TEXT,
   is_system_role BOOLEAN DEFAULT true,
   is_active BOOLEAN DEFAULT true,
+  is_deletable BOOLEAN DEFAULT true NOT NULL,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR UNIQUE,
+  email VARCHAR UNIQUE NOT NULL,
   -- campo de senha para autenticação (hash bcrypt)
   password VARCHAR,
-  first_name VARCHAR,
-  last_name VARCHAR,
+  first_name VARCHAR NOT NULL,
+  last_name VARCHAR NOT NULL,
   profile_image_url VARCHAR,
-  -- mantém coluna role legada e role_id (o código usa role_id)
-  role user_role DEFAULT 'student',
-  role_id VARCHAR REFERENCES roles(id) ON DELETE SET NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  role_id VARCHAR NOT NULL REFERENCES roles(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT true NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS units (

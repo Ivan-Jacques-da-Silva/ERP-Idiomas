@@ -124,7 +124,7 @@ app.use((req, res, next) => {
         res.status(status).json({ message });
         throw err;
     });
-    const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5052");
+    const port = parseInt(process.env.PORT || "3000");
     server.listen(port, "0.0.0.0", () => {
         log(`Backend API serving on port ${port}`);
     });
