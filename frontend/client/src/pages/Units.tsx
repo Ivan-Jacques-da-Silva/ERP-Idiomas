@@ -146,53 +146,55 @@ export default function Units() {
             </div>
           </FadeIn>
 
-          {/* Filtros */}
+          {/* Filtros e Controles */}
           <FadeIn delay={300}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative flex-1 max-w-sm">
-                  <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm"></i>
-                  <Input
-                    placeholder="Buscar por nome..."
-                    value={searchName}
-                    onChange={(e) => setSearchName(e.target.value)}
-                    className="pl-10"
-                    data-testid="input-search-units"
-                  />
-                </div>
+            <div className="flex justify-between items-center">
+              <div></div> {/* Espaço vazio à esquerda */}
+              
+              <div className="flex items-center gap-3">
+                {/* Filtro por Nome */}
+                <Input
+                  placeholder="Buscar por nome..."
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  className="w-64"
+                  data-testid="input-search-units"
+                />
+                
+                {/* Filtro por Cidade */}
                 <Select value={selectedCity} onValueChange={setSelectedCity}>
                   <SelectTrigger className="w-48" data-testid="select-city-filter">
                     <SelectValue placeholder="Filtrar por cidade" />
                   </SelectTrigger>
                   <SelectContent>
-                <SelectItem value="all">Todas as cidades</SelectItem>
-                {cityOptions.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+                    <SelectItem value="all">Todas as cidades</SelectItem>
+                    {cityOptions.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-              </div>
-              
-              {/* Botões de visualização */}
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={viewMode === "card" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("card")}
-                  className="p-2"
-                >
-                  <i className="fas fa-th-large"></i>
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                  className="p-2"
-                >
-                  <i className="fas fa-list"></i>
-                </Button>
+                
+                {/* Modo de Visualização - Apenas Ícones */}
+                 <div className="flex gap-1 border rounded-md p-1">
+                   <Button
+                     variant={viewMode === "card" ? "default" : "ghost"}
+                     size="sm"
+                     onClick={() => setViewMode("card")}
+                     className="px-3"
+                   >
+                     <i className="fas fa-th"></i>
+                   </Button>
+                   <Button
+                     variant={viewMode === "list" ? "default" : "ghost"}
+                     size="sm"
+                     onClick={() => setViewMode("list")}
+                     className="px-3"
+                   >
+                     <i className="fas fa-list"></i>
+                   </Button>
+                 </div>
               </div>
             </div>
           </FadeIn>

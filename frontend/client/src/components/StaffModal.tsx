@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, extractErrorMessage } from "@/lib/queryClient";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
-import { validateCPF, formatCPF, formatCEP, formatPhone, fetchAddressByCEP, formatDateToInput, formatDateBR, convertBRDateToISO } from "@/lib/cpfUtils";
+import { validateCPF, formatCPF, formatCEP, formatPhone, fetchAddressByCEP, formatDateBR, convertBRDateToISO } from "@/lib/cpfUtils";
 
 interface StaffModalProps {
   open: boolean;
@@ -43,7 +43,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
     salary: "",
     hireDate: "",
     unitId: "",
-    unitIds: [], // Multiple units selection
+    unitIds: [] as string[], // Multiple units selection
     login: "",
     password: "",
     // Guardian info (for minors)
@@ -59,22 +59,18 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<any>(null);
 
-  // Check if staff member is minor (under 18)
+  // Menor de idade (corrigido, bordas)
   const isMinor = useMemo(() => {
     if (!formData.birthDate) return false;
     try {
-      const [day, month, year] = formData.birthDate.split('/').map(Number);
-      if (!day || !month || !year) return false;
-      
-      const birthDate = new Date(year, month - 1, day);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        return age - 1 < 18;
-      }
-      return age < 18;
+      const [d, m, y] = formData.birthDate.split("/").map(Number);
+      if (!d || !m || !y) return false;
+      const nasc = new Date(y, m - 1, d);
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - nasc.getFullYear();
+      const mdiff = hoje.getMonth() - nasc.getMonth();
+      if (mdiff < 0 || (mdiff === 0 && hoje.getDate() < nasc.getDate())) idade--;
+      return idade < 18;
     } catch {
       return false;
     }
@@ -82,35 +78,36 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
 
   const { data: units } = useQuery<any[]>({
     queryKey: ["/api/units"],
+    queryFn: () => apiRequest("GET", "/api/units"),
   });
 
   useEffect(() => {
     if (staffMember) {
-      // Converter data do banco para formato brasileiro DD/MM/YYYY
+      // birthDate → DD/MM/YYYY
       let formattedBirthDate = "";
       if (staffMember.birthDate) {
         try {
           const date = new Date(staffMember.birthDate);
-          const day = date.getDate().toString().padStart(2, '0');
-          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const day = date.getDate().toString().padStart(2, "0");
+          const month = (date.getMonth() + 1).toString().padStart(2, "0");
           const year = date.getFullYear();
           formattedBirthDate = `${day}/${month}/${year}`;
         } catch (error) {
-          console.error('Error formatting birth date:', error);
+          console.error("Error formatting birth date:", error);
         }
       }
 
-      // Converter data de contratação do banco para formato brasileiro DD/MM/YYYY
+      // hireDate → DD/MM/YYYY
       let formattedHireDate = "";
       if (staffMember.hireDate) {
         try {
           const date = new Date(staffMember.hireDate);
-          const day = date.getDate().toString().padStart(2, '0');
-          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const day = date.getDate().toString().padStart(2, "0");
+          const month = (date.getMonth() + 1).toString().padStart(2, "0");
           const year = date.getFullYear();
           formattedHireDate = `${day}/${month}/${year}`;
         } catch (error) {
-          console.error('Error formatting hire date:', error);
+          console.error("Error formatting hire date:", error);
         }
       }
 
@@ -131,10 +128,10 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         city: staffMember.city || "",
         position: staffMember.position || "",
         department: staffMember.department || "",
-        salary: staffMember.salary ? staffMember.salary.toString() : "",
+        salary: staffMember.salary != null ? String(staffMember.salary) : "",
         hireDate: formattedHireDate,
         unitId: staffMember.unitId || "",
-        unitIds: staffMember.unitIds || [], // Multiple units
+        unitIds: staffMember.unitIds || [],
         login: staffMember.login || "",
         password: "",
         guardianName: staffMember.guardianName || "",
@@ -164,7 +161,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         salary: "",
         hireDate: "",
         unitId: "",
-        unitIds: [], // Multiple units
+        unitIds: [],
         login: "",
         password: "",
         guardianName: "",
@@ -189,12 +186,12 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
       setCepLoading(true);
       try {
         const data = await fetchAddressByCEP(formData.cep);
-        setFormData({
-          ...formData,
-          address: data.logradouro,
-          neighborhood: data.bairro,
+        setFormData((prev) => ({
+          ...prev,
+          address: data.logradouro || prev.address,
+          neighborhood: data.bairro || prev.neighborhood,
           city: `${data.localidade} - ${data.uf}`,
-        });
+        }));
         toast({
           title: "CEP encontrado!",
           description: "Endereço preenchido automaticamente",
@@ -216,7 +213,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
       return await apiRequest("POST", "/api/staff", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
       toast({
         title: "Sucesso!",
         description: "Colaborador cadastrado com sucesso",
@@ -237,7 +234,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
       return await apiRequest("PUT", `/api/staff/${staffMember.id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
       toast({
         title: "Sucesso!",
         description: "Colaborador atualizado com sucesso",
@@ -263,15 +260,20 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
-    // Preparar dados para envio
+    const salarioNumero =
+      formData.salary && formData.salary.trim() !== ""
+        ? parseFloat(formData.salary.replace(/\./g, "").replace(",", "."))
+        : null;
+
+    // Payload
     const submitData: any = {
       firstName: formData.firstName,
       lastName: formData.lastName,
       cpf: formData.cpf,
-      birthDate: convertBRDateToISO(formData.birthDate), // Converter data brasileira para ISO
+      birthDate: convertBRDateToISO(formData.birthDate),
       gender: formData.gender,
       phone: formData.phone,
       whatsapp: formData.whatsapp,
@@ -283,14 +285,13 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
       city: formData.city,
       position: formData.position,
       department: formData.department,
-      salary: formData.salary ? parseFloat(formData.salary) : null,
-      hireDate: convertBRDateToISO(formData.hireDate), // Converter data brasileira para ISO
+      salary: salarioNumero,
+      hireDate: convertBRDateToISO(formData.hireDate),
       unitId: formData.unitId,
-      unitIds: formData.unitIds, // Multiple units
+      unitIds: formData.unitIds,
       login: formData.login,
     };
 
-    // Adicionar dados do responsável tutor se for menor de idade
     if (isMinor) {
       submitData.guardianName = formData.guardianName;
       submitData.guardianCpf = formData.guardianCpf;
@@ -300,12 +301,13 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
     }
 
     if (staffMember) {
-      // EDIÇÃO: Só incluir email se foi alterado
       if (formData.email && formData.email.trim() !== "" && formData.email !== staffMember.user?.email) {
         submitData.email = formData.email;
       }
+      if (formData.password && formData.password.trim() !== "") {
+        submitData.password = formData.password;
+      }
     } else {
-      // CRIAÇÃO: Email é obrigatório
       if (!formData.email || formData.email.trim() === "") {
         toast({
           title: "Erro",
@@ -314,10 +316,8 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         });
         return;
       }
-      
       submitData.email = formData.email;
-      
-      // Senha é obrigatória na criação
+
       if (!formData.password || formData.password.trim() === "") {
         toast({
           title: "Erro",
@@ -326,24 +326,21 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         });
         return;
       }
-      
       submitData.password = formData.password;
     }
 
-    // Armazenar dados e abrir modal de confirmação
     setPendingFormData(submitData);
     setSaveConfirmOpen(true);
   };
 
   const confirmSave = () => {
     if (!pendingFormData) return;
-
     if (staffMember) {
-      updateMutation.mutate({ id: staffMember.id, data: pendingFormData });
+      // PUT envia só o payload
+      updateMutation.mutate(pendingFormData);
     } else {
       createMutation.mutate(pendingFormData);
     }
-    
     setSaveConfirmOpen(false);
     setPendingFormData(null);
   };
@@ -372,9 +369,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   {isEditing ? "Editar Colaborador" : "Novo Colaborador"}
                 </DialogTitle>
                 <DialogDescription>
-                  {isEditing 
-                    ? "Atualize as informações do colaborador" 
-                    : "Preencha os dados para cadastrar um novo colaborador"}
+                  {isEditing ? "Atualize as informações do colaborador" : "Preencha os dados para cadastrar um novo colaborador"}
                 </DialogDescription>
               </div>
               {!isEditing && (
@@ -399,9 +394,18 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                       neighborhood: "Bela Vista",
                       city: "São Paulo - SP",
                       position: "instrutor",
+                      department: "Ensino",
+                      salary: "3500,00",
+                      hireDate: "01/03/2024",
                       unitId: units?.[0]?.id || "",
+                      unitIds: [],
                       login: "maria.oliveira",
                       password: "teste123",
+                      guardianName: "",
+                      guardianCpf: "",
+                      guardianPhone: "",
+                      guardianEmail: "",
+                      guardianRelationship: "",
                     });
                     toast({
                       title: "Dados de teste carregados",
@@ -420,7 +424,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
             {/* Informações Pessoais */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Informações Pessoais</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Nome *</Label>
@@ -519,7 +523,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
             {/* Contatos */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Contatos</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone *</Label>
@@ -554,7 +558,8 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
             {/* Endereço */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Endereço</h3>
-              
+
+              {/* Linha 1: CEP e Cidade */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="cep">CEP *</Label>
@@ -569,9 +574,39 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                       onBlur={handleCEPBlur}
                       maxLength={9}
                       onKeyDown={(e) => e.stopPropagation()}
+                      disabled={cepLoading}
                     />
                     {cepLoading && <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="city">Cidade *</Label>
+                  <Input
+                    id="city"
+                    data-testid="input-city"
+                    required
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    disabled={cepLoading}
+                  />
+                </div>
+              </div>
+
+              {/* Linha 2: Bairro, Endereço, Número */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="neighborhood">Bairro *</Label>
+                  <Input
+                    id="neighborhood"
+                    data-testid="input-neighborhood"
+                    required
+                    value={formData.neighborhood}
+                    onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    disabled={cepLoading}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -583,6 +618,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     onKeyDown={(e) => e.stopPropagation()}
+                    disabled={cepLoading}
                   />
                 </div>
 
@@ -595,9 +631,13 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                     value={formData.number}
                     onChange={(e) => setFormData({ ...formData, number: e.target.value })}
                     onKeyDown={(e) => e.stopPropagation()}
+                    disabled={cepLoading}
                   />
                 </div>
+              </div>
 
+              {/* Linha 3: Complemento */}
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="complement">Complemento</Label>
                   <Input
@@ -606,30 +646,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                     value={formData.complement}
                     onChange={(e) => setFormData({ ...formData, complement: e.target.value })}
                     onKeyDown={(e) => e.stopPropagation()}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="neighborhood">Bairro *</Label>
-                  <Input
-                    id="neighborhood"
-                    data-testid="input-neighborhood"
-                    required
-                    value={formData.neighborhood}
-                    onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="city">Cidade *</Label>
-                  <Input
-                    id="city"
-                    data-testid="input-city"
-                    required
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    onKeyDown={(e) => e.stopPropagation()}
+                    disabled={cepLoading}
                   />
                 </div>
               </div>
@@ -638,7 +655,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
             {/* Informações Profissionais */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Informações Profissionais</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="position">Cargo *</Label>
@@ -676,9 +693,8 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                   <Input
                     id="salary"
                     data-testid="input-salary"
-                    type="number"
-                    min="0"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.salary}
                     onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                     onKeyDown={(e) => e.stopPropagation()}
@@ -692,14 +708,13 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                     id="hireDate"
                     data-testid="input-hire-date"
                     value={formData.hireDate}
-                    onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
+                    onChange={(e) => {
+                      const formatado = formatDateBR(e.target.value);
+                      setFormData({ ...formData, hireDate: formatado });
+                    }}
                     onKeyDown={(e) => e.stopPropagation()}
                     placeholder="DD/MM/AAAA"
                     maxLength={10}
-                    onInput={(e) => {
-                      const target = e.target as HTMLInputElement;
-                      target.value = formatDate(target.value);
-                    }}
                   />
                 </div>
 
@@ -736,7 +751,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                               const isChecked = e.target.checked;
                               const newUnitIds = isChecked
                                 ? [...formData.unitIds, unit.id]
-                                : formData.unitIds.filter(id => id !== unit.id);
+                                : formData.unitIds.filter((id) => id !== unit.id);
                               setFormData({ ...formData, unitIds: newUnitIds });
                             }}
                             className="rounded border-gray-300 text-primary focus:ring-primary"
@@ -748,9 +763,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                       ))}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Selecione as unidades adicionais onde o colaborador pode atuar
-                  </p>
+                  <p className="text-xs text-muted-foreground">Selecione as unidades adicionais onde o colaborador pode atuar</p>
                 </div>
               </div>
             </div>
@@ -760,11 +773,9 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-amber-600">
                   Responsável Tutor
-                  <span className="text-sm font-normal text-amber-600 ml-2">
-                    (Obrigatório para menores de 18 anos)
-                  </span>
+                  <span className="text-sm font-normal text-amber-600 ml-2">(Obrigatório para menores de 18 anos)</span>
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="guardianName">Nome Completo *</Label>
@@ -850,7 +861,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
             {/* Credenciais de Acesso */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Credenciais de Acesso</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="login">Login *</Label>
@@ -909,7 +920,7 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         onOpenChange={setSaveConfirmOpen}
         title={isEditing ? "Confirmar Atualização" : "Confirmar Cadastro"}
         description={
-          isEditing 
+          isEditing
             ? `Tem certeza de que deseja atualizar as informações do colaborador "${formData.firstName} ${formData.lastName}"?`
             : `Tem certeza de que deseja cadastrar o novo colaborador "${formData.firstName} ${formData.lastName}"?`
         }

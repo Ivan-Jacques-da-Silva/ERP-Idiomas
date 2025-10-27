@@ -109,9 +109,13 @@ export default function Staff() {
 
   const handleViewDetails = (member: StaffMember) => {
     // Implementar modal de detalhes ou navegação para página de detalhes
+    const userName = member.user?.firstName && member.user?.lastName 
+      ? `${member.user.firstName} ${member.user.lastName}`
+      : 'Nome não informado';
+    
     toast({
       title: 'Informação',
-      description: `Visualizando detalhes de ${member.user?.name}`,
+      description: `Visualizando detalhes de ${userName}`,
     });
   };
 
@@ -127,8 +131,11 @@ export default function Staff() {
 
   const filteredStaff = staff.filter((member: StaffMember) => {
     // Filtro por nome
+    const fullName = member.user?.firstName && member.user?.lastName 
+      ? `${member.user.firstName} ${member.user.lastName}`
+      : '';
     const nameMatch = !searchName || 
-      member.user?.name?.toLowerCase().includes(searchName.toLowerCase());
+      fullName.toLowerCase().includes(searchName.toLowerCase());
     
     // Filtro por cargo
     const positionMatch = selectedPosition === 'all' || 
@@ -220,7 +227,7 @@ export default function Staff() {
                       <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
                         {member.user?.firstName && member.user?.lastName 
                           ? `${member.user.firstName} ${member.user.lastName}`
-                          : member.name || 'Nome não informado'
+                          : 'Nome não informado'
                         }
                       </CardTitle>
                       <Badge variant="secondary" className="text-xs font-medium">
@@ -293,7 +300,7 @@ export default function Staff() {
                           onClick={() => handleDeleteStaff(member.id, 
                               member.user?.firstName && member.user?.lastName 
                                 ? `${member.user.firstName} ${member.user.lastName}`
-                                : member.name || 'Nome não informado'
+                                : 'Nome não informado'
                             )}
                           className="justify-center text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300 transition-colors h-8"
                         >
@@ -343,7 +350,7 @@ export default function Staff() {
                             <div className="text-sm font-semibold text-gray-900">
                               {member.user?.firstName && member.user?.lastName 
                                 ? `${member.user.firstName} ${member.user.lastName}`
-                                : member.name || 'Nome não informado'
+                                : 'Nome não informado'
                               }
                             </div>
                             <div className="text-sm text-gray-500 truncate max-w-xs">{member.user?.email}</div>
@@ -402,7 +409,7 @@ export default function Staff() {
                               onClick={() => handleDeleteStaff(member.id, 
                               member.user?.firstName && member.user?.lastName 
                                 ? `${member.user.firstName} ${member.user.lastName}`
-                                : member.name || 'Nome não informado'
+                                : 'Nome não informado'
                             )}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
                               title="Excluir colaborador"

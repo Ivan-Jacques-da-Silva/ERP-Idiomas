@@ -179,56 +179,56 @@ export default function Students() {
           )}
         </div>
 
-        {/* Search and Filters */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1 max-w-sm">
-              <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm"></i>
-              <Input
-                placeholder="Buscar alunos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-students"
-              />
-            </div>
-            <div className="w-64">
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar por curso" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os cursos</SelectItem>
-                  {courseOptions.map((course) => (
-                    <SelectItem key={course.value} value={course.value}>
-                      {course.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        {/* Filtros e Controles */}
+        <div className="flex justify-between items-center">
+          <div></div> {/* Espaço vazio à esquerda */}
           
-          {/* View Mode Toggle */}
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={viewMode === "card" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("card")}
-              data-testid="button-view-card"
-              className="p-2"
-            >
-              <i className="fas fa-th-large"></i>
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              data-testid="button-view-list"
-              className="p-2"
-            >
-              <i className="fas fa-list"></i>
-            </Button>
+          <div className="flex items-center gap-3">
+            {/* Filtro por Nome */}
+            <Input
+              placeholder="Buscar alunos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64"
+              data-testid="input-search-students"
+            />
+            
+            {/* Filtro por Curso */}
+            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filtrar por curso" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os cursos</SelectItem>
+                {courseOptions.map((course) => (
+                  <SelectItem key={course.value} value={course.value}>
+                    {course.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Modo de Visualização - Apenas Ícones */}
+            <div className="flex gap-1 border rounded-md p-1">
+              <Button
+                variant={viewMode === "card" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("card")}
+                data-testid="button-view-card"
+                className="px-3"
+              >
+                <i className="fas fa-th"></i>
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                data-testid="button-view-list"
+                className="px-3"
+              >
+                <i className="fas fa-list"></i>
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -427,22 +427,24 @@ export default function Schedule() {
 
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={() => navigateWeek('prev')}>
-              ← Semana Anterior
-            </Button>
-            <h3 className="text-lg font-semibold">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+                ← Anterior
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+                Próxima →
+              </Button>
+            </div>
+            <h3 className="text-lg font-semibold text-center sm:text-left">
               {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
             </h3>
-            <Button variant="outline" onClick={() => navigateWeek('next')}>
-              Próxima Semana →
-            </Button>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Select value={selectedUnitFilter} onValueChange={setSelectedUnitFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filtrar por unidade" />
               </SelectTrigger>
               <SelectContent>
@@ -453,7 +455,7 @@ export default function Schedule() {
             </Select>
 
             <Select value={selectedTeacherFilter} onValueChange={setSelectedTeacherFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filtrar por professor" />
               </SelectTrigger>
               <SelectContent>
@@ -469,11 +471,11 @@ export default function Schedule() {
         </div>
 
         <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
-          <div className="grid grid-cols-8 gap-0 min-w-[900px]">
+          <div className="grid grid-cols-8 gap-0 min-w-[1200px]">
             {/* Header row */}
-            <div className="p-3 font-medium text-center bg-muted border-b border-r border-border text-sm">Horário</div>
+            <div className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">Horário</div>
             {weekDays.map((day) => (
-              <div key={day.toISOString()} className="p-3 font-medium text-center bg-muted border-b border-r border-border text-sm">
+              <div key={day.toISOString()} className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">
                 <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {format(day, "dd/MM", { locale: ptBR })}
@@ -487,7 +489,7 @@ export default function Schedule() {
               return (
                 <>
                   {/* Time label */}
-                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground">
+                  <div key={`time-${timeSlot}`} className="p-2 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground min-w-[80px]">
                     {timeSlot}
                   </div>
 
@@ -500,12 +502,12 @@ export default function Schedule() {
                     });
 
                     return (
-                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border-b border-r border-border relative">
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] sm:min-h-[80px] p-1 border-b border-r border-border relative min-w-[140px]">
                         <div className="space-y-1">
                           {dayClasses.map((classItem) => (
                             <div
                               key={classItem.id}
-                              className="p-3 rounded-lg text-sm cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full flex items-center justify-center"
+                              className="p-2 rounded-lg text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full flex items-center justify-center"
                               style={{
                                 backgroundColor: adminCourseColors[classItem.title] + '20',
                                 borderColor: adminCourseColors[classItem.title],
@@ -517,7 +519,7 @@ export default function Schedule() {
                               })}
                               data-testid={`admin-class-${classItem.id}`}
                             >
-                              <div className="font-semibold text-center leading-tight">{classItem.title}</div>
+                              <div className="font-semibold text-center leading-tight text-xs">{classItem.title}</div>
                             </div>
                           ))}
                         </div>
@@ -545,11 +547,11 @@ export default function Schedule() {
         {/* Legend */}
         <div className="bg-muted p-4 rounded-lg">
           <h4 className="font-medium mb-3">Legenda dos Cursos</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {Object.entries(adminCourseColors).map(([courseName, color]) => (
               <div key={courseName} className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
-                <span className="text-sm">{courseName}</span>
+                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }}></div>
+                <span className="text-sm truncate">{courseName}</span>
               </div>
             ))}
           </div>
@@ -623,26 +625,28 @@ export default function Schedule() {
 
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={() => navigateWeek('prev')}>
-              ← Semana Anterior
-            </Button>
-            <h3 className="text-lg font-semibold">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+                ← Anterior
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+                Próxima →
+              </Button>
+            </div>
+            <h3 className="text-lg font-semibold text-center sm:text-left">
               {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
             </h3>
-            <Button variant="outline" onClick={() => navigateWeek('next')}>
-              Próxima Semana →
-            </Button>
           </div>
         </div>
 
         <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
-          <div className="grid grid-cols-8 gap-0 min-w-[900px]">
+          <div className="grid grid-cols-8 gap-0 min-w-[1200px]">
             {/* Header */}
-            <div className="p-3 font-medium text-center bg-muted border-b border-r border-border text-sm">Horário</div>
+            <div className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">Horário</div>
             {weekDays.map((day) => (
-              <div key={day.toISOString()} className="p-3 font-medium text-center bg-muted border-b border-r border-border text-sm">
+              <div key={day.toISOString()} className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">
                 <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {format(day, "dd/MM", { locale: ptBR })}
@@ -655,7 +659,7 @@ export default function Schedule() {
               const [hour] = timeSlot.split(':');
               return (
                 <>
-                  <div key={`time-${timeSlot}`} className="p-3 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground">
+                  <div key={`time-${timeSlot}`} className="p-2 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground min-w-[80px]">
                     {timeSlot}
                   </div>
 
@@ -667,15 +671,15 @@ export default function Schedule() {
                     });
 
                     return (
-                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[80px] p-1 border-b border-r border-gray-100">
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] sm:min-h-[80px] p-1 border-b border-r border-border relative min-w-[140px]">
                         {dayClasses.map((classItem) => (
                           <div
                             key={classItem.id}
-                            className="p-3 rounded-lg text-sm cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full flex items-center justify-center"
+                            className="p-2 rounded-lg text-xs cursor-pointer transition-all hover:shadow-md border border-opacity-30 h-full flex items-center justify-center"
                             style={{
                               backgroundColor: teacherCourseColors[classItem.title] + '20',
                               borderColor: teacherCourseColors[classItem.title],
-                              color: '#000'
+                              color: 'var(--foreground)'
                             }}
                             onClick={() => handleClassClick({
                               ...classItem,
@@ -684,7 +688,7 @@ export default function Schedule() {
                             })}
                             data-testid={`teacher-class-${classItem.id}`}
                           >
-                            <div className="font-semibold text-center leading-tight">{classItem.title}</div>
+                            <div className="font-semibold text-center leading-tight text-xs">{classItem.title}</div>
                           </div>
                         ))}
                       </div>
@@ -699,11 +703,11 @@ export default function Schedule() {
         {/* Legenda de cores dos cursos */}
         <div className="bg-muted p-4 rounded-lg">
           <h4 className="font-medium mb-3">Legenda dos Cursos</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {Object.entries(teacherCourseColors).map(([courseName, color]) => (
               <div key={courseName} className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
-                <span className="text-sm">{courseName}</span>
+                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }}></div>
+                <span className="text-sm truncate">{courseName}</span>
               </div>
             ))}
           </div>
