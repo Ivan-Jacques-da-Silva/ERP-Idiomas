@@ -42,6 +42,24 @@ export const billingTypeEnum = pgEnum('billing_type', [
 export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high', 'urgent']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'resolved', 'closed']);
 
+// Activity type enum para os tipos de atividades das units
+export const activityTypeEnum = pgEnum('activity_type', [
+  'welcome_message',      // mensagem de boas-vindas
+  'watch_video',          // assistir vídeo
+  'phrase_selection',     // escolha de frase falada
+  'phrase_identification', // identificação de frases
+  'read_aloud',           // leitura em voz alta
+  'audio_recording',      // gravação de áudio
+  'listening_gaps',       // listening / completar lacunas
+  'word_unscramble',      // desembaralhar palavras
+  'sentence_building',    // montar frases corretas
+  'complete_dialogue',    // completar diálogo
+  'verb_selection',       // am / is / are
+  'sentence_unscramble',  // desembaralhar frases
+  'video_with_subtitles', // assistir vídeo com legenda
+  'drag_and_drop'         // arrastar e soltar
+]);
+
 
 
 // ============================================================================
@@ -365,6 +383,9 @@ export const courses = pgTable("courses", {
   level: varchar("level").notNull(),
   duration: integer("duration"),
   price: integer("price"),
+  teachingGuideUrl: varchar("teaching_guide_url"), // PDF ou vídeo do guia de ensino
+  teachingGuideType: varchar("teaching_guide_type"), // 'pdf' ou 'video'
+  suggestedWeeklyHours: varchar("suggested_weekly_hours"), // ex: "1h", "2h", etc
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -378,8 +399,13 @@ export const books = pgTable("books", {
   description: text("description"),
   pdfUrl: varchar("pdf_url"),
   color: varchar("color").notNull().default('#3b82f6'),
-  displayOrder: integer("display_order").default(1).notNull(),
+  displayOrder: integer("display_order").default(1).notNull(), // ordem/nível do book
   totalDays: integer("total_days").default(30).notNull(),
+  weeklyHours: varchar("weekly_hours"), // ex: "01 hora semanal", "02 horas semanais"
+  hasConversation: boolean("has_conversation").default(false).notNull(),
+  hasListening: boolean("has_listening").default(false).notNull(),
+  hasCheckpoint: boolean("has_checkpoint").default(false).notNull(),
+  hasReview: boolean("has_review").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -456,10 +482,55 @@ export const teacherSchedule = pgTable("teacher_schedule", {
 export const courseUnits = pgTable("course_units", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   bookId: varchar("book_id").references(() => books.id, { onDelete: 'cascade' }).notNull(),
-  name: varchar("name").notNull(),
+  name: varchar("name").notNull(), // ex: "Unit 01"
   description: text("description"),
   displayOrder: integer("display_order").notNull(),
-  unitType: varchar("unit_type").default('lesson').notNull(),
+  unitType: varchar("unit_type").default('lesson').notNull(), // 'lesson', 'conversation', 'listening', 'checkpoint', 'review'
+  baseVideoUrl: varchar("base_video_url"), // vídeo principal da unit
+  baseVideoThumbnailUrl: varchar("base_video_thumbnail_url"),
+  numberOfDays: integer("number_of_days").default(6).notNull(), // quantidade de dias da sequência
+  hasConversation: boolean("has_conversation").default(false).notNull(),
+  hasListening: boolean("has_listening").default(false).notNull(),
+  hasCheckpoint: boolean("has_checkpoint").default(false).notNull(),
+  hasReview: boolean("has_review").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Unit Days table - Dias de estudo de cada unit (padrão 6 dias)
+export const unitDays = pgTable("unit_days", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  unitId: varchar("unit_id").references(() => courseUnits.id, { onDelete: 'cascade' }).notNull(),
+  dayNumber: integer("day_number").notNull(), // 1, 2, 3, 4, 5, 6
+  title: varchar("title").notNull(), // ex: "Dia 1 - Boas-vindas"
+  description: text("description"),
+  welcomeMessage: text("welcome_message"), // mensagem de boas-vindas
+  videoUrl: varchar("video_url"), // vídeo específico do dia (se houver)
+  hasSubtitles: boolean("has_subtitles").default(false).notNull(),
+  subtitlesUrl: varchar("subtitles_url"),
+  instructions: text("instructions"), // instruções gerais do dia
+  displayOrder: integer("display_order").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Unit Day Activities - Atividades de cada dia
+export const unitDayActivities = pgTable("unit_day_activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  dayId: varchar("day_id").references(() => unitDays.id, { onDelete: 'cascade' }).notNull(),
+  activityType: varchar("activity_type").notNull(), // usando o activityTypeEnum
+  title: varchar("title").notNull(),
+  description: text("description"),
+  instruction: text("instruction"), // enunciado da atividade
+  content: jsonb("content").notNull(), // conteúdo flexível (texto, frases, palavras, etc)
+  correctAnswer: jsonb("correct_answer"), // resposta correta (formato flexível)
+  audioUrl: varchar("audio_url"), // áudio de referência para a atividade
+  points: integer("points").default(10).notNull(),
+  hasHint: boolean("has_hint").default(false).notNull(),
+  hint: text("hint"), // dica para ajudar o aluno
+  displayOrder: integer("display_order").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -814,8 +885,24 @@ export const courseUnitsRelations = relations(courseUnits, ({ one, many }) => ({
     fields: [courseUnits.bookId],
     references: [books.id],
   }),
+  days: many(unitDays),
   videos: many(courseVideos),
   exams: many(courseExams),
+}));
+
+export const unitDaysRelations = relations(unitDays, ({ one, many }) => ({
+  unit: one(courseUnits, {
+    fields: [unitDays.unitId],
+    references: [courseUnits.id],
+  }),
+  activities: many(unitDayActivities),
+}));
+
+export const unitDayActivitiesRelations = relations(unitDayActivities, ({ one }) => ({
+  day: one(unitDays, {
+    fields: [unitDayActivities.dayId],
+    references: [unitDays.id],
+  }),
 }));
 
 export const courseVideosRelations = relations(courseVideos, ({ one, many }) => ({
@@ -1000,6 +1087,18 @@ export const insertCourseUnitSchema = createInsertSchema(courseUnits).omit({
   updatedAt: true,
 });
 
+export const insertUnitDaySchema = createInsertSchema(unitDays).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUnitDayActivitySchema = createInsertSchema(unitDayActivities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertCourseVideoSchema = createInsertSchema(courseVideos).omit({
   id: true,
   createdAt: true,
@@ -1089,6 +1188,8 @@ export type InsertClass = z.infer<typeof insertClassSchema>;
 export type InsertClassEnrollment = z.infer<typeof insertClassEnrollmentSchema>;
 export type InsertLesson = z.infer<typeof insertLessonSchema>;
 export type InsertCourseUnit = z.infer<typeof insertCourseUnitSchema>;
+export type InsertUnitDay = z.infer<typeof insertUnitDaySchema>;
+export type InsertUnitDayActivity = z.infer<typeof insertUnitDayActivitySchema>;
 export type InsertCourseVideo = z.infer<typeof insertCourseVideoSchema>;
 export type InsertCourseActivity = z.infer<typeof insertCourseActivitySchema>;
 export type InsertCourseWorkbook = z.infer<typeof insertCourseWorkbookSchema>;
@@ -1121,6 +1222,8 @@ export type Class = typeof classes.$inferSelect;
 export type ClassEnrollment = typeof classEnrollments.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
 export type CourseUnit = typeof courseUnits.$inferSelect;
+export type UnitDay = typeof unitDays.$inferSelect;
+export type UnitDayActivity = typeof unitDayActivities.$inferSelect;
 export type CourseVideo = typeof courseVideos.$inferSelect;
 export type CourseActivity = typeof courseActivities.$inferSelect;
 export type CourseWorkbook = typeof courseWorkbooks.$inferSelect;

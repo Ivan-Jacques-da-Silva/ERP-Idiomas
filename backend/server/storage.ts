@@ -21,6 +21,8 @@ import type {
   InsertFinancialResponsible,
   InsertFranchiseUnit,
   InsertCourseUnit,
+  InsertUnitDay,
+  InsertUnitDayActivity,
   InsertCourseVideo,
   InsertCourseActivity,
   InsertStudentProgress,
@@ -56,6 +58,8 @@ import type {
   SupportTicketResponse,
   SupportTicketWithResponses,
   CourseUnit,
+  UnitDay,
+  UnitDayActivity,
   CourseVideo,
   CourseActivity,
   StudentProgress,
@@ -86,6 +90,8 @@ import {
   supportTicketResponses,
   franchiseUnits,
   courseUnits,
+  unitDays,
+  unitDayActivities,
   courseVideos,
   courseActivities,
   studentProgress,
@@ -1176,6 +1182,117 @@ export async function getRoleAllowedPages(roleId: string): Promise<Page[]> {
 }
 
 // Export all storage functions
+// ============================================================================
+// COURSE UNITS OPERATIONS
+// ============================================================================
+
+export async function createCourseUnit(data: InsertCourseUnit): Promise<CourseUnit> {
+  const [unit] = await db.insert(courseUnits).values(data).returning();
+  return unit;
+}
+
+export async function getCourseUnits(): Promise<CourseUnit[]> {
+  return await db.select().from(courseUnits).where(eq(courseUnits.isActive, true));
+}
+
+export async function getCourseUnit(id: string): Promise<CourseUnit | undefined> {
+  const [unit] = await db.select().from(courseUnits).where(eq(courseUnits.id, id)).limit(1);
+  return unit;
+}
+
+export async function getCourseUnitsByBook(bookId: string): Promise<CourseUnit[]> {
+  return await db.select().from(courseUnits)
+    .where(and(eq(courseUnits.bookId, bookId), eq(courseUnits.isActive, true)))
+    .orderBy(courseUnits.displayOrder);
+}
+
+export async function updateCourseUnit(id: string, data: Partial<InsertCourseUnit>): Promise<CourseUnit> {
+  const [unit] = await db
+    .update(courseUnits)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(courseUnits.id, id))
+    .returning();
+  return unit;
+}
+
+export async function deleteCourseUnit(id: string): Promise<void> {
+  await db.delete(courseUnits).where(eq(courseUnits.id, id));
+}
+
+// ============================================================================
+// UNIT DAYS OPERATIONS
+// ============================================================================
+
+export async function createUnitDay(data: InsertUnitDay): Promise<UnitDay> {
+  const [day] = await db.insert(unitDays).values(data).returning();
+  return day;
+}
+
+export async function getUnitDays(): Promise<UnitDay[]> {
+  return await db.select().from(unitDays).where(eq(unitDays.isActive, true));
+}
+
+export async function getUnitDay(id: string): Promise<UnitDay | undefined> {
+  const [day] = await db.select().from(unitDays).where(eq(unitDays.id, id)).limit(1);
+  return day;
+}
+
+export async function getUnitDaysByUnit(unitId: string): Promise<UnitDay[]> {
+  return await db.select().from(unitDays)
+    .where(and(eq(unitDays.unitId, unitId), eq(unitDays.isActive, true)))
+    .orderBy(unitDays.displayOrder);
+}
+
+export async function updateUnitDay(id: string, data: Partial<InsertUnitDay>): Promise<UnitDay> {
+  const [day] = await db
+    .update(unitDays)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(unitDays.id, id))
+    .returning();
+  return day;
+}
+
+export async function deleteUnitDay(id: string): Promise<void> {
+  await db.delete(unitDays).where(eq(unitDays.id, id));
+}
+
+// ============================================================================
+// UNIT DAY ACTIVITIES OPERATIONS
+// ============================================================================
+
+export async function createUnitDayActivity(data: InsertUnitDayActivity): Promise<UnitDayActivity> {
+  const [activity] = await db.insert(unitDayActivities).values(data).returning();
+  return activity;
+}
+
+export async function getUnitDayActivities(): Promise<UnitDayActivity[]> {
+  return await db.select().from(unitDayActivities).where(eq(unitDayActivities.isActive, true));
+}
+
+export async function getUnitDayActivity(id: string): Promise<UnitDayActivity | undefined> {
+  const [activity] = await db.select().from(unitDayActivities).where(eq(unitDayActivities.id, id)).limit(1);
+  return activity;
+}
+
+export async function getUnitDayActivitiesByDay(dayId: string): Promise<UnitDayActivity[]> {
+  return await db.select().from(unitDayActivities)
+    .where(and(eq(unitDayActivities.dayId, dayId), eq(unitDayActivities.isActive, true)))
+    .orderBy(unitDayActivities.displayOrder);
+}
+
+export async function updateUnitDayActivity(id: string, data: Partial<InsertUnitDayActivity>): Promise<UnitDayActivity> {
+  const [activity] = await db
+    .update(unitDayActivities)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(unitDayActivities.id, id))
+    .returning();
+  return activity;
+}
+
+export async function deleteUnitDayActivity(id: string): Promise<void> {
+  await db.delete(unitDayActivities).where(eq(unitDayActivities.id, id));
+}
+
 export const storage = {
   // Users
   createUser,
@@ -1309,4 +1426,28 @@ export const storage = {
   
   // Staff with Teachers
   getTeachers,
+  
+  // Course Units
+  createCourseUnit,
+  getCourseUnits,
+  getCourseUnit,
+  getCourseUnitsByBook,
+  updateCourseUnit,
+  deleteCourseUnit,
+  
+  // Unit Days
+  createUnitDay,
+  getUnitDays,
+  getUnitDay,
+  getUnitDaysByUnit,
+  updateUnitDay,
+  deleteUnitDay,
+  
+  // Unit Day Activities
+  createUnitDayActivity,
+  getUnitDayActivities,
+  getUnitDayActivity,
+  getUnitDayActivitiesByDay,
+  updateUnitDayActivity,
+  deleteUnitDayActivity,
 };

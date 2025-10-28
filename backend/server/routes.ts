@@ -17,6 +17,9 @@ import {
   insertClassSchema,
   insertLessonSchema,
   insertBookSchema,
+  insertCourseUnitSchema,
+  insertUnitDaySchema,
+  insertUnitDayActivitySchema,
   insertPermissionCategorySchema,
   insertPermissionSchema,
   insertRoleSchema,
@@ -1558,6 +1561,217 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user settings:", error);
       res.status(400).json({ message: "Invalid settings data" });
+    }
+  });
+
+  // ============================================================================
+  // COURSE UNITS ROUTES
+  // ============================================================================
+
+  app.get("/api/course-units", auth.isAuthenticated, async (_req, res) => {
+    try {
+      const units = await storage.getCourseUnits();
+      res.json(units);
+    } catch (error) {
+      console.error("Error fetching course units:", error);
+      res.status(500).json({ message: "Failed to fetch course units" });
+    }
+  });
+
+  app.get("/api/course-units/book/:bookId", auth.isAuthenticated, async (req, res) => {
+    try {
+      const units = await storage.getCourseUnitsByBook(req.params.bookId);
+      res.json(units);
+    } catch (error) {
+      console.error("Error fetching course units by book:", error);
+      res.status(500).json({ message: "Failed to fetch course units" });
+    }
+  });
+
+  app.get("/api/course-units/:id", auth.isAuthenticated, async (req, res) => {
+    try {
+      const unit = await storage.getCourseUnit(req.params.id);
+      if (!unit) {
+        return res.status(404).json({ message: "Course unit not found" });
+      }
+      res.json(unit);
+    } catch (error) {
+      console.error("Error fetching course unit:", error);
+      res.status(500).json({ message: "Failed to fetch course unit" });
+    }
+  });
+
+  app.post("/api/course-units", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const unitData = insertCourseUnitSchema.parse(req.body);
+      const unit = await storage.createCourseUnit(unitData);
+      res.status(201).json(unit);
+    } catch (error) {
+      console.error("Error creating course unit:", error);
+      res.status(400).json({ message: "Invalid course unit data" });
+    }
+  });
+
+  app.put("/api/course-units/:id", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const existingUnit = await storage.getCourseUnit(req.params.id);
+      if (!existingUnit) {
+        return res.status(404).json({ message: "Course unit not found" });
+      }
+      const unitData = insertCourseUnitSchema.partial().parse(req.body);
+      const unit = await storage.updateCourseUnit(req.params.id, unitData);
+      res.json(unit);
+    } catch (error) {
+      console.error("Error updating course unit:", error);
+      res.status(400).json({ message: "Invalid course unit data" });
+    }
+  });
+
+  app.delete("/api/course-units/:id", auth.requireAdminOrSecretary, async (req, res) => {
+    try {
+      const existingUnit = await storage.getCourseUnit(req.params.id);
+      if (!existingUnit) {
+        return res.status(404).json({ message: "Course unit not found" });
+      }
+      await storage.deleteCourseUnit(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting course unit:", error);
+      res.status(500).json({ message: "Failed to delete course unit" });
+    }
+  });
+
+  // ============================================================================
+  // UNIT DAYS ROUTES
+  // ============================================================================
+
+  app.get("/api/unit-days/unit/:unitId", auth.isAuthenticated, async (req, res) => {
+    try {
+      const days = await storage.getUnitDaysByUnit(req.params.unitId);
+      res.json(days);
+    } catch (error) {
+      console.error("Error fetching unit days:", error);
+      res.status(500).json({ message: "Failed to fetch unit days" });
+    }
+  });
+
+  app.get("/api/unit-days/:id", auth.isAuthenticated, async (req, res) => {
+    try {
+      const day = await storage.getUnitDay(req.params.id);
+      if (!day) {
+        return res.status(404).json({ message: "Unit day not found" });
+      }
+      res.json(day);
+    } catch (error) {
+      console.error("Error fetching unit day:", error);
+      res.status(500).json({ message: "Failed to fetch unit day" });
+    }
+  });
+
+  app.post("/api/unit-days", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const dayData = insertUnitDaySchema.parse(req.body);
+      const day = await storage.createUnitDay(dayData);
+      res.status(201).json(day);
+    } catch (error) {
+      console.error("Error creating unit day:", error);
+      res.status(400).json({ message: "Invalid unit day data" });
+    }
+  });
+
+  app.put("/api/unit-days/:id", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const existingDay = await storage.getUnitDay(req.params.id);
+      if (!existingDay) {
+        return res.status(404).json({ message: "Unit day not found" });
+      }
+      const dayData = insertUnitDaySchema.partial().parse(req.body);
+      const day = await storage.updateUnitDay(req.params.id, dayData);
+      res.json(day);
+    } catch (error) {
+      console.error("Error updating unit day:", error);
+      res.status(400).json({ message: "Invalid unit day data" });
+    }
+  });
+
+  app.delete("/api/unit-days/:id", auth.requireAdminOrSecretary, async (req, res) => {
+    try {
+      const existingDay = await storage.getUnitDay(req.params.id);
+      if (!existingDay) {
+        return res.status(404).json({ message: "Unit day not found" });
+      }
+      await storage.deleteUnitDay(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting unit day:", error);
+      res.status(500).json({ message: "Failed to delete unit day" });
+    }
+  });
+
+  // ============================================================================
+  // UNIT DAY ACTIVITIES ROUTES
+  // ============================================================================
+
+  app.get("/api/unit-day-activities/day/:dayId", auth.isAuthenticated, async (req, res) => {
+    try {
+      const activities = await storage.getUnitDayActivitiesByDay(req.params.dayId);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching unit day activities:", error);
+      res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  app.get("/api/unit-day-activities/:id", auth.isAuthenticated, async (req, res) => {
+    try {
+      const activity = await storage.getUnitDayActivity(req.params.id);
+      if (!activity) {
+        return res.status(404).json({ message: "Activity not found" });
+      }
+      res.json(activity);
+    } catch (error) {
+      console.error("Error fetching activity:", error);
+      res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  app.post("/api/unit-day-activities", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const activityData = insertUnitDayActivitySchema.parse(req.body);
+      const activity = await storage.createUnitDayActivity(activityData);
+      res.status(201).json(activity);
+    } catch (error) {
+      console.error("Error creating activity:", error);
+      res.status(400).json({ message: "Invalid activity data" });
+    }
+  });
+
+  app.put("/api/unit-day-activities/:id", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const existingActivity = await storage.getUnitDayActivity(req.params.id);
+      if (!existingActivity) {
+        return res.status(404).json({ message: "Activity not found" });
+      }
+      const activityData = insertUnitDayActivitySchema.partial().parse(req.body);
+      const activity = await storage.updateUnitDayActivity(req.params.id, activityData);
+      res.json(activity);
+    } catch (error) {
+      console.error("Error updating activity:", error);
+      res.status(400).json({ message: "Invalid activity data" });
+    }
+  });
+
+  app.delete("/api/unit-day-activities/:id", auth.requireAdminOrSecretary, async (req, res) => {
+    try {
+      const existingActivity = await storage.getUnitDayActivity(req.params.id);
+      if (!existingActivity) {
+        return res.status(404).json({ message: "Activity not found" });
+      }
+      await storage.deleteUnitDayActivity(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+      res.status(500).json({ message: "Failed to delete activity" });
     }
   });
 
