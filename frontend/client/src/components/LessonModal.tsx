@@ -62,13 +62,15 @@ interface LessonModalProps {
   onClose: () => void;
   lessonToEdit?: any; // Existing lesson data when editing
   defaultClassId?: string; // Pre-select a class when creating from class context
+  defaultTeacherId?: string; // Pre-select classes from a specific teacher when filter is active
 }
 
 export default function LessonModal({ 
   isOpen, 
   onClose, 
   lessonToEdit, 
-  defaultClassId 
+  defaultClassId,
+  defaultTeacherId 
 }: LessonModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -85,6 +87,11 @@ export default function LessonModal({
       : ["/api/classes"],
     enabled: isOpen,
   });
+
+  // Filter classes by teacher if defaultTeacherId is provided
+  const filteredClasses = defaultTeacherId 
+    ? classes.filter((cls: any) => cls.teacher?.id === defaultTeacherId)
+    : classes;
 
   const form = useForm<LessonFormData>({
     resolver: zodResolver(lessonFormSchema),
@@ -303,7 +310,7 @@ export default function LessonModal({
                           <SelectValue placeholder="Selecione uma turma" />
                         </SelectTrigger>
                         <SelectContent>
-                          {(classes as any[]).map((cls: any) => (
+                          {(filteredClasses as any[]).map((cls: any) => (
                             <SelectItem key={cls.id} value={cls.id}>
                               {cls.name} - {cls.book?.name}
                               {user?.role !== 'teacher' && cls.teacher && (

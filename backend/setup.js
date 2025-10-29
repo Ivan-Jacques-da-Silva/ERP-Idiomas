@@ -230,6 +230,8 @@ CREATE TABLE IF NOT EXISTS courses (
   level VARCHAR NOT NULL,
   duration INTEGER,
   price INTEGER,
+  -- Align with schema.ts: suggested weekly study hours (e.g., "1h", "2h")
+  suggested_weekly_hours VARCHAR,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
@@ -244,6 +246,8 @@ CREATE TABLE IF NOT EXISTS books (
   color VARCHAR NOT NULL DEFAULT '#3b82f6',
   display_order INTEGER DEFAULT 1,
   total_days INTEGER DEFAULT 30,
+  -- Align with schema.ts: weekly study hours label (e.g., "01 hora semanal")
+  weekly_hours VARCHAR,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()

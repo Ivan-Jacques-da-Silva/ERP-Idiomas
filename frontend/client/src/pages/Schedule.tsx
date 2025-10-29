@@ -861,6 +861,7 @@ export default function Schedule() {
         isOpen={isLessonModalOpen}
         onClose={handleCloseModal}
         lessonToEdit={editingLesson}
+        defaultTeacherId={selectedTeacherFilter && selectedTeacherFilter !== "all" ? selectedTeacherFilter : undefined}
       />
 
       {/* Class Modal */}
@@ -868,6 +869,7 @@ export default function Schedule() {
         isOpen={isClassModalOpen}
         onClose={handleCloseClassModal}
         classToEdit={editingClass}
+        defaultTeacherId={selectedTeacherFilter && selectedTeacherFilter !== "all" ? selectedTeacherFilter : undefined}
       />
 
       {/* Class Detail Modal */}

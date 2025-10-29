@@ -64,6 +64,7 @@ interface ClassModalProps {
   isOpen: boolean;
   onClose: () => void;
   classToEdit?: any; // Existing class data when editing
+  defaultTeacherId?: string; // Pre-select a specific teacher when filter is active
 }
 
 const daysOfWeek = [
@@ -79,7 +80,8 @@ const daysOfWeek = [
 export default function ClassModal({ 
   isOpen, 
   onClose, 
-  classToEdit
+  classToEdit,
+  defaultTeacherId
 }: ClassModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -146,7 +148,7 @@ export default function ClassModal({
         form.reset({
           name: "",
           bookId: "",
-          teacherId: "",
+          teacherId: defaultTeacherId || "",
           unitId: "",
           dayOfWeek: 1,
           startTime: "",
@@ -157,7 +159,7 @@ export default function ClassModal({
         });
       }
     }
-  }, [isOpen, classToEdit, form]);
+  }, [isOpen, classToEdit, defaultTeacherId, form]);
 
   // Create class mutation
   const createClassMutation = useMutation({

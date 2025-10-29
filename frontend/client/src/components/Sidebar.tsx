@@ -86,12 +86,6 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       permission: "classes:read"
     },
     {
-      path: "/teacher-individual-schedule",
-      icon: "fas fa-calendar-week",
-      label: "Agenda Individual",
-      permission: "teacher_schedule:manage"
-    },
-    {
       path: "/student-area",
       icon: "fas fa-book-open",
       label: "Área do Aluno",

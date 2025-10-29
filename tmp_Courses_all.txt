@@ -60,8 +60,8 @@ export default function Courses() {
     defaultValues: {
       name: "",
       description: "",
-      language: "English",
-      level: "Básico",
+      language: "",
+      level: "",
       duration: undefined,
       price: undefined,
       isActive: true
@@ -207,15 +207,13 @@ export default function Courses() {
     }
   });
 
-  const handleCreateCourse = (_data: z.infer<typeof courseFormSchema>) => {
-    const values = courseForm.getValues() as any;
-    createCourseMutation.mutate(values);
+  const handleCreateCourse = (data: z.infer<typeof courseFormSchema>) => {
+    createCourseMutation.mutate(data);
   };
 
-  const handleUpdateCourse = (_data: z.infer<typeof courseFormSchema>) => {
+  const handleUpdateCourse = (data: z.infer<typeof courseFormSchema>) => {
     if (!editingCourse) return;
-    const values = courseForm.getValues() as any;
-    updateCourseMutation.mutate({ id: editingCourse.id, data: values });
+    updateCourseMutation.mutate({ id: editingCourse.id, data });
   };
 
   const handleEditCourse = (course: Course) => {
@@ -231,20 +229,18 @@ export default function Courses() {
     });
   };
 
-  const handleCreateBook = (_data: z.infer<typeof bookFormSchema>) => {
+  const handleCreateBook = (data: z.infer<typeof bookFormSchema>) => {
     if (!selectedCourse) {
       toast({ title: "Erro", description: "Selecione um curso primeiro", variant: "destructive" });
       return;
     }
-    const values = bookForm.getValues() as any;
-    const bookData = { ...values, courseId: selectedCourse.id };
-    createBookMutation.mutate(bookData as any);
+    const bookData = { ...data, courseId: selectedCourse.id };
+    createBookMutation.mutate(bookData);
   };
 
-  const handleUpdateBook = (_data: z.infer<typeof bookFormSchema>) => {
+  const handleUpdateBook = (data: z.infer<typeof bookFormSchema>) => {
     if (!editingBook) return;
-    const values = bookForm.getValues() as any;
-    updateBookMutation.mutate({ id: editingBook.id, data: values });
+    updateBookMutation.mutate({ id: editingBook.id, data });
   };
 
   const handleEditBook = (book: Book) => {
@@ -547,7 +543,7 @@ export default function Courses() {
                     control={courseForm.control}
                     name="language"
                     render={({ field }) => (
-                      <FormItem className="hidden">
+                      <FormItem>
                         <FormLabel>Idioma</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
@@ -591,40 +587,6 @@ export default function Courses() {
                     )}
                   />
                 </div>
-
-                {/* Guia de Ensino */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Guia de Ensino (tipo)</FormLabel>
-                    <Select onValueChange={(v) => courseForm.setValue('teachingGuideType' as any, v as any)}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-course-teaching-guide-type">
-                          <SelectValue placeholder="PDF ou Vídeo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="video">Vídeo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-
-                  <FormItem>
-                    <FormLabel>URL do Guia de Ensino</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://..." data-testid="input-course-teaching-guide-url" {...courseForm.register('teachingGuideUrl' as any)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </div>
-
-                <FormItem>
-                  <FormLabel>Carga Sugerida (ex: 1h semanal)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="1h semanal" data-testid="input-course-suggested-weekly-hours" {...courseForm.register('suggestedWeeklyHours' as any)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -811,32 +773,6 @@ export default function Courses() {
                   />
                 </div>
 
-                {/* Carga Semanal e Marcadores */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Carga Semanal</FormLabel>
-                    <FormControl>
-                      <Input placeholder="01 hora semanal" data-testid="input-book-weekly-hours" {...bookForm.register('weeklyHours' as any)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasConversation' as any)} /> Conversation
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasListening' as any)} /> Listening
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasCheckpoint' as any)} /> Checkpoint
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasReview' as any)} /> Review
-                    </label>
-                  </div>
-                </div>
-
                 {/* PDF Upload Section */}
                 {editingBook && (
                   <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
@@ -1009,40 +945,6 @@ export default function Courses() {
                   />
                 </div>
 
-                {/* Guia de Ensino */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Guia de Ensino (tipo)</FormLabel>
-                    <Select onValueChange={(v) => courseForm.setValue('teachingGuideType' as any, v as any)}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-edit-course-teaching-guide-type">
-                          <SelectValue placeholder="PDF ou Vídeo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="video">Vídeo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-
-                  <FormItem>
-                    <FormLabel>URL do Guia de Ensino</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://..." data-testid="input-edit-course-teaching-guide-url" {...courseForm.register('teachingGuideUrl' as any)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </div>
-
-                <FormItem>
-                  <FormLabel>Carga Sugerida (ex: 1h semanal)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="1h semanal" data-testid="input-edit-course-suggested-weekly-hours" {...courseForm.register('suggestedWeeklyHours' as any)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={courseForm.control}
@@ -1071,31 +973,6 @@ export default function Courses() {
                       </FormItem>
                     )}
                   />
-                </div>
-
-                {/* Carga Semanal e Marcadores */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Carga Semanal</FormLabel>
-                    <FormControl>
-                      <Input placeholder="01 hora semanal" data-testid="input-edit-book-weekly-hours" {...bookForm.register('weeklyHours' as any)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasConversation' as any)} /> Conversation
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasListening' as any)} /> Listening
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasCheckpoint' as any)} /> Checkpoint
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasReview' as any)} /> Review
-                    </label>
-                  </div>
                 </div>
 
                 <div className="flex gap-2 justify-end">
