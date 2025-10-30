@@ -1,0 +1,9 @@
+                </div>
+
+                {/*
+                <div className="space-y-2 hidden">
+                  <Label htmlFor="salary">Salário (R$)</Label>
+                
+
+                <div className="space-y-2">
+                  <Label htmlFor="hireDate">Data de Contratação</Label>

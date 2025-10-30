@@ -40,7 +40,6 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
     city: "",
     position: "",
     department: "",
-    salary: "",
     hireDate: "",
     unitId: "",
     unitIds: [] as string[], // Multiple units selection
@@ -128,11 +127,10 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         city: staffMember.city || "",
         position: staffMember.position || "",
         department: staffMember.department || "",
-        salary: staffMember.salary != null ? String(staffMember.salary) : "",
         hireDate: formattedHireDate,
         unitId: staffMember.unitId || "",
         unitIds: staffMember.unitIds || [],
-        login: staffMember.login || "",
+        login: staffMember.user?.email || "",
         password: "",
         guardianName: staffMember.guardianName || "",
         guardianCpf: staffMember.guardianCpf || "",
@@ -158,7 +156,6 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
         city: "",
         position: "",
         department: "",
-        salary: "",
         hireDate: "",
         unitId: "",
         unitIds: [],
@@ -263,17 +260,12 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
 
     if (!validateForm()) return;
 
-    const salarioNumero =
-      formData.salary && formData.salary.trim() !== ""
-        ? parseFloat(formData.salary.replace(/\./g, "").replace(",", "."))
-        : null;
-
     // Payload
     const submitData: any = {
       firstName: formData.firstName,
       lastName: formData.lastName,
       cpf: formData.cpf,
-      birthDate: convertBRDateToISO(formData.birthDate),
+      birthDate: convertBRDateToISO(formData.birthDate) || undefined,
       gender: formData.gender,
       phone: formData.phone,
       whatsapp: formData.whatsapp,
@@ -285,11 +277,9 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
       city: formData.city,
       position: formData.position,
       department: formData.department,
-      salary: salarioNumero,
-      hireDate: convertBRDateToISO(formData.hireDate),
+      hireDate: convertBRDateToISO(formData.hireDate) || undefined,
       unitId: formData.unitId,
       unitIds: formData.unitIds,
-      login: formData.login,
     };
 
     if (isMinor) {
@@ -301,12 +291,11 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
     }
 
     if (staffMember) {
+      submitData.userId = staffMember.user?.id || staffMember.userId;
       if (formData.email && formData.email.trim() !== "" && formData.email !== staffMember.user?.email) {
         submitData.email = formData.email;
       }
-      if (formData.password && formData.password.trim() !== "") {
-        submitData.password = formData.password;
-      }
+      // Atualização de senha não suportada neste endpoint
     } else {
       if (!formData.email || formData.email.trim() === "") {
         toast({
@@ -395,7 +384,6 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                       city: "São Paulo - SP",
                       position: "instrutor",
                       department: "Ensino",
-                      salary: "3500,00",
                       hireDate: "01/03/2024",
                       unitId: units?.[0]?.id || "",
                       unitIds: [],
@@ -685,20 +673,6 @@ export function StaffModal({ open, onOpenChange, staffMember }: StaffModalProps)
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     onKeyDown={(e) => e.stopPropagation()}
                     placeholder="Ex: Ensino, Administrativo, Marketing..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="salary">Salário (R$)</Label>
-                  <Input
-                    id="salary"
-                    data-testid="input-salary"
-                    type="text"
-                    inputMode="decimal"
-                    value={formData.salary}
-                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    placeholder="0,00"
                   />
                 </div>
 

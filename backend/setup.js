@@ -202,7 +202,6 @@ CREATE TABLE IF NOT EXISTS staff (
   employee_id VARCHAR UNIQUE,
   position VARCHAR,
   department VARCHAR,
-  salary INTEGER,
   hire_date TIMESTAMP,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW(),

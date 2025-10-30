@@ -195,7 +195,6 @@ export const staff = pgTable("staff", {
     // Informações profissionais - position agora é varchar livre
     position: varchar("position"), // ex: "Professor de Inglês", "Coordenador", etc
     department: varchar("department"),
-    salary: integer("salary"),
     hireDate: timestamp("hire_date"),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

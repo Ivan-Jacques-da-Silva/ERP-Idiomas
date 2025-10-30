@@ -256,7 +256,6 @@ export const staff = pgTable("staff", {
   // Informações profissionais - position agora é varchar livre
   position: varchar("position"), // ex: "Professor de Inglês", "Coordenador", etc
   department: varchar("department"),
-  salary: integer("salary"),
   hireDate: timestamp("hire_date"),
   
   isActive: boolean("is_active").default(true).notNull(),
@@ -1018,11 +1017,23 @@ export const insertUnitSchema = createInsertSchema(units).omit({
   updatedAt: true,
 });
 
-export const insertStaffSchema = createInsertSchema(staff).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertStaffSchema = createInsertSchema(staff)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    // Permitir datas como string ISO ou nulas durante updates
+    birthDate: z
+      .union([z.string().datetime(), z.null()])
+      .optional()
+      .transform((val) => (val ? new Date(val) : undefined)),
+    hireDate: z
+      .union([z.string().datetime(), z.null()])
+      .optional()
+      .transform((val) => (val ? new Date(val) : undefined)),
+  });
 
 export const insertGuardianSchema = createInsertSchema(guardians).omit({
   id: true,

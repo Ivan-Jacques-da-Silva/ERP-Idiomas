@@ -469,6 +469,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Evitar staff duplicado para o mesmo usuário
+      const existingStaffForUser = await db
+        .select()
+        .from(staff)
+        .where(eq(staff.userId, user.id))
+        .limit(1);
+      if (existingStaffForUser.length > 0) {
+        return res.status(400).json({ message: "Já existe um colaborador vinculado a este usuário" });
+      }
+
       // Processar campos de data - converter strings ISO para objetos Date
       const processedStaffFields = { ...staffFields };
       if (processedStaffFields.birthDate && typeof processedStaffFields.birthDate === 'string') {
@@ -1790,4 +1800,3 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   return server;
 }
-

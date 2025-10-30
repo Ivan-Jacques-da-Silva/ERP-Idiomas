@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// seed-demo-users.js — cria usuários/unidades demo usando pg (ESM)
+// seed-demo-users.js �?" cria usuǭrios/unidades demo usando pg (ESM)
 
 import 'dotenv/config';
 import pkg from 'pg';
@@ -11,8 +11,8 @@ const { Pool } = pkg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-/* ========================= CONEXÃO PG ========================= */
-// Usa as mesmas variáveis do setup.js
+/* ========================= CONEXǟO PG ========================= */
+// Usa as mesmas variǭveis do setup.js
 const TARGET_DB       = process.env.DB_NAME_TARGET  || "school_system";
 const TARGET_USER     = process.env.DB_USER_TARGET  || "school_admin";
 const TARGET_PASSWORD = process.env.DB_PASS_TARGET  || "SchoolSys2024!@#";
@@ -32,7 +32,7 @@ const pool = new Pool({
 
 // log alvo (sem senha)
 console.log(
-  '🔌 PG alvo:',
+  '�Y"O PG alvo:',
   `${TARGET_USER}@${DB_HOST}:${DB_PORT}/${TARGET_DB}`.replace(/:(.*?)@/, '://****@')
 );
 
@@ -40,18 +40,18 @@ console.log(
 const usuariosDemo = [
   { email: 'admin@demo.com',     first_name: 'Admin',      last_name: 'Sistema',  role: 'admin',     password: 'demo123' },
   { email: 'teacher@demo.com',   first_name: 'Professor',  last_name: 'Demo',     role: 'teacher',   password: 'demo123' },
-  { email: 'secretary@demo.com', first_name: 'Secretária', last_name: 'Demo',     role: 'secretary', password: 'demo123' },
-  { email: 'student@demo.com',   first_name: 'João',       last_name: 'Silva',    role: 'student',   password: 'demo123' },
+  { email: 'secretary@demo.com', first_name: 'Secretǭria', last_name: 'Demo',     role: 'secretary', password: 'demo123' },
+  { email: 'student@demo.com',   first_name: 'Joǜo',       last_name: 'Silva',    role: 'student',   password: 'demo123' },
 ];
 
 const unidadesDemo = [
   { name: 'Unidade Centro',    address: 'Rua das Flores, 123 - Centro',       phone: '(11) 3456-7890', email: 'centro@vision.dev.br' },
 ];
 
-/* ======================= FUNÇÕES AUXILIARES ======================= */
+/* ======================= FUN���ES AUXILIARES ======================= */
 async function obterRoleIdPorNome(cli, nome) {
   const r = await cli.query(`SELECT id FROM roles WHERE name = $1`, [nome]);
-  if (r.rowCount === 0) throw new Error(`Role não encontrada: ${nome}`);
+  if (r.rowCount === 0) throw new Error(`Role nǜo encontrada: ${nome}`);
   return r.rows[0].id;
 }
 
@@ -66,7 +66,7 @@ async function upsertUsuario(cli, u) {
           last_name  = EXCLUDED.last_name,
           role       = EXCLUDED.role,
           role_id    = EXCLUDED.role_id,
-          -- só define a senha se ainda estiver nula
+          -- s�� define a senha se ainda estiver nula
           password   = COALESCE(users.password, EXCLUDED.password),
           updated_at = NOW()
     RETURNING id, email;
@@ -88,29 +88,29 @@ async function upsertUnidade(cli, un) {
   return r.rows[0];
 }
 
-async function upsertStaffPorEmail(cli, emailUsuario, unidadeId, cargo, depto, salario) {
+async function upsertStaffPorEmail(cli, emailUsuario, unidadeId, cargo, depto) {
   const u = await cli.query(`SELECT id FROM users WHERE email = $1`, [emailUsuario]);
-  if (!u.rowCount) throw new Error(`Usuário não encontrado: ${emailUsuario}`);
+  if (!u.rowCount) throw new Error(`Usuǭrio nǜo encontrado: ${emailUsuario}`);
   const userId = u.rows[0].id;
 
   const existe = await cli.query(`SELECT id FROM staff WHERE user_id = $1`, [userId]);
   if (existe.rowCount) {
     await cli.query(
-      `UPDATE staff SET unit_id=$2, position=$3, department=$4, salary=$5, updated_at=NOW() WHERE user_id=$1`,
-      [userId, unidadeId, cargo, depto, salario]
+      `UPDATE staff SET unit_id=$2, position=$3, department=$4, updated_at=NOW() WHERE user_id=$1`,
+      [userId, unidadeId, cargo, depto]
     );
   } else {
     await cli.query(
-      `INSERT INTO staff (id, user_id, unit_id, position, department, salary, hire_date, is_active, created_at, updated_at)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), true, NOW(), NOW())`,
-      [userId, unidadeId, cargo, depto, salario]
+      `INSERT INTO staff (id, user_id, unit_id, position, department, hire_date, is_active, created_at, updated_at)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW(), true, NOW(), NOW())`,
+      [userId, unidadeId, cargo, depto]
     );
   }
 }
 
 async function upsertAlunoPorEmail(cli, emailUsuario, studentId, unidadeId) {
   const u = await cli.query(`SELECT id FROM users WHERE email = $1`, [emailUsuario]);
-  if (!u.rowCount) throw new Error(`Usuário não encontrado: ${emailUsuario}`);
+  if (!u.rowCount) throw new Error(`Usuǭrio nǜo encontrado: ${emailUsuario}`);
   const userId = u.rows[0].id;
 
   const existe = await cli.query(`SELECT id FROM students WHERE user_id = $1`, [userId]);
@@ -150,10 +150,10 @@ export async function seedDatabase() {
   try {
     await cli.query('BEGIN');
 
-    // usuários
+    // usuǭrios
     for (const u of usuariosDemo) {
       const criado = await upsertUsuario(cli, u);
-      console.log(`✅ usuário: ${criado.email}`);
+      console.log(`�o. usuǭrio: ${criado.email}`);
     }
 
     // unidades
@@ -161,23 +161,23 @@ export async function seedDatabase() {
     for (const un of unidadesDemo) {
       const c = await upsertUnidade(cli, un);
       unidadesCriadas.push(c);
-      console.log(`✅ unidade: ${c.name}`);
+      console.log(`�o. unidade: ${c.name}`);
     }
 
     const unidadePrincipalId = unidadesCriadas[0]?.id;
-    if (!unidadePrincipalId) throw new Error('Unidade principal não encontrada para staff');
+    if (!unidadePrincipalId) throw new Error('Unidade principal nǜo encontrada para staff');
 
     // staff
-    await upsertStaffPorEmail(cli, 'admin@demo.com',     unidadePrincipalId, 'diretor',      'Administração', 10000);
-    await upsertStaffPorEmail(cli, 'teacher@demo.com',   unidadePrincipalId, 'instrutor',    'Ensino',         5000);
-    await upsertStaffPorEmail(cli, 'secretary@demo.com', unidadePrincipalId, 'recepcionista','Administrativo', 3000);
-    console.log('✅ staff atualizado');
+    await upsertStaffPorEmail(cli, 'admin@demo.com',     unidadePrincipalId, 'diretor',      'Administra��ǜo');
+    await upsertStaffPorEmail(cli, 'teacher@demo.com',   unidadePrincipalId, 'instrutor',    'Ensino');
+    await upsertStaffPorEmail(cli, 'secretary@demo.com', unidadePrincipalId, 'recepcionista','Administrativo');
+    console.log('�o. staff atualizado');
 
     // aluno demo
     await upsertAlunoPorEmail(cli, 'student@demo.com', 'STD001', unidadePrincipalId);
-    console.log('✅ aluno demo criado');
+    console.log('�o. aluno demo criado');
 
-    // (opcional) matrícula no curso "Journey - English for Life"
+    // (opcional) matr��cula no curso "Journey - English for Life"
     const studentData = await cli.query(`
       SELECT s.id FROM students s
       JOIN users u ON u.id = s.user_id
@@ -207,14 +207,14 @@ export async function seedDatabase() {
         ON CONFLICT DO NOTHING
       `, [studentId, courseId, bookData.rows[0]?.id, unitData.rows[0]?.id]);
 
-      console.log('✅ aluno matriculado no curso Journey');
+      console.log('�o. aluno matriculado no curso Journey');
     }
 
     await cli.query('COMMIT');
-    console.log('🎉 Seed concluído com sucesso!');
+    console.log('�YZ% Seed conclu��do com sucesso!');
   } catch (e) {
     await cli.query('ROLLBACK');
-    console.error('❌ Erro no seed:', e.message);
+    console.error('�?O Erro no seed:', e.message);
     throw e;
   } finally {
     cli.release();
@@ -223,26 +223,28 @@ export async function seedDatabase() {
 
 /* ============================ CLI ============================ */
 async function main() {
-  console.log('🚀 Iniciando seed dos usuários demo...');
+  console.log('�Ys? Iniciando seed dos usuǭrios demo...');
   const ok = await verificarTabelas();
   if (!ok) {
-    console.log('⚠️  Rode primeiro: node setup.js');
+    console.log('�s���?  Rode primeiro: node setup.js');
     process.exit(1);
   }
   await seedDatabase();
   await pool.end();
 
-  console.log('\n📋 Logins demo:');
-  console.log('👤 admin@demo.com / demo123 (Admin)');
-  console.log('👤 teacher@demo.com / demo123 (Professor)');
-  console.log('👤 secretary@demo.com / demo123 (Secretária)');
-  console.log('🎓 student@demo.com / demo123 (Aluno - Curso Journey)');
+  console.log('\n�Y"< Logins demo:');
+  console.log('�Y'� admin@demo.com / demo123 (Admin)');
+  console.log('�Y'� teacher@demo.com / demo123 (Professor)');
+  console.log('�Y'� secretary@demo.com / demo123 (Secretǭria)');
+  console.log('�YZ" student@demo.com / demo123 (Aluno - Curso Journey)');
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(async (e) => {
-    console.error('💥 Erro fatal:', e.message);
+    console.error('�Y'� Erro fatal:', e.message);
     await pool.end();
     process.exit(1);
   });
 }
+
+
