@@ -335,13 +335,12 @@ export default function Courses() {
   };
 
   const handleCreateBook = (_data: z.infer<typeof bookFormSchema>) => {
-    if (!selectedCourse) {
-      toast({ title: "Erro", description: "Selecione um curso primeiro", variant: "destructive" });
+    const values = bookForm.getValues() as any;
+    if (!values.courseId) {
+      toast({ title: "Erro", description: "Selecione um curso", variant: "destructive" });
       return;
     }
-    const values = bookForm.getValues() as any;
-    const bookData = { ...values, courseId: selectedCourse.id };
-    createBookMutation.mutate(bookData as any);
+    createBookMutation.mutate(values as any);
   };
 
   const handleUpdateBook = (_data: z.infer<typeof bookFormSchema>) => {
@@ -435,24 +434,33 @@ export default function Courses() {
             <h1 className="text-3xl font-bold text-gradient">Gerenciar Cursos</h1>
             <p className="text-muted-foreground">Administre cursos, livros e conteúdo educacional</p>
           </div>
-          <Button
-            onClick={() => setIsCreateCourseOpen(true)}
-            className="gap-2"
-            data-testid="button-create-course"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Curso
-          </Button>
         </div>
 
-        <Tabs defaultValue="courses" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="courses">Cursos</TabsTrigger>
-            <TabsTrigger value="books">Livros</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="courses" className="w-full" onValueChange={(value) => {
+          // Reset selected course quando mudar de aba
+          if (value === 'courses') {
+            setSelectedCourse(null);
+          }
+        }}>
+          <div className="flex items-center justify-between mb-4">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="courses">Cursos</TabsTrigger>
+              <TabsTrigger value="books">Livros</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Courses Tab */}
           <TabsContent value="courses" className="space-y-4">
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setIsCreateCourseOpen(true)}
+                className="gap-2"
+                data-testid="button-create-course"
+              >
+                <Plus className="w-4 h-4" />
+                Novo Curso
+              </Button>
+            </div>
             {coursesLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
@@ -858,11 +866,32 @@ export default function Courses() {
           <DialogContent data-testid="dialog-create-book" className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {editingBook ? 'Editar Livro' : `Novo Livro - ${selectedCourse?.name}`}
+                {editingBook ? 'Editar Livro' : 'Novo Livro'}
               </DialogTitle>
             </DialogHeader>
             <Form {...bookForm}>
               <form onSubmit={bookForm.handleSubmit(editingBook ? handleUpdateBook : handleCreateBook)} className="space-y-4">
+                {!editingBook && (
+                  <FormItem>
+                    <FormLabel>Curso</FormLabel>
+                    <Select onValueChange={(value) => bookForm.setValue('courseId' as any, value)} defaultValue={selectedCourse?.id}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-book-course">
+                          <SelectValue placeholder="Selecione um curso" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Array.isArray(courses) && courses.map((course) => (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+
                 <FormField
                   control={bookForm.control}
                   name="name"
