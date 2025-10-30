@@ -380,14 +380,14 @@ export const courses = pgTable("courses", {
   description: text("description"),
   language: varchar("language").notNull(),
   level: varchar("level").notNull(),
+  duration: integer("duration"), // Duração em horas (compatibilidade)
   totalDuration: integer("total_duration"), // Duração total do curso em dias/semanas
   workloadHours: integer("workload_hours"), // Carga horária em horas
   workloadWeeks: integer("workload_weeks"), // Carga horária em semanas
   price: integer("price"), // Preço em centavos
-  teachingGuideUrl: varchar("teaching_guide_url"), // PDF do guia de ensino
-  teachingGuideAudioUrl: varchar("teaching_guide_audio_url"), // Áudio do guia de ensino
-  teachingGuideVideoUrl: varchar("teaching_guide_video_url"), // Vídeo do guia de ensino
-  bookId: varchar("book_id").references(() => books.id), // Livro associado ao curso
+  teachingGuideType: varchar("teaching_guide_type"), // 'pdf' ou 'video'
+  teachingGuideUrl: varchar("teaching_guide_url"), // URL do guia de ensino
+  suggestedWeeklyHours: varchar("suggested_weekly_hours"), // Carga sugerida semanal
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1068,10 +1068,14 @@ export const insertCourseSchema = createInsertSchema(courses)
     updatedAt: true,
   })
   .extend({
+    duration: z.number().positive().optional(),
     totalDuration: z.number().positive().optional(),
     workloadHours: z.number().positive().optional(),
     workloadWeeks: z.number().positive().optional(),
     price: z.number().positive().optional(),
+    teachingGuideType: z.string().optional(),
+    teachingGuideUrl: z.string().optional(),
+    suggestedWeeklyHours: z.string().optional(),
   });
 
 export const insertBookSchema = createInsertSchema(books).omit({

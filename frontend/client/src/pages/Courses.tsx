@@ -40,11 +40,14 @@ export default function Courses() {
     description: z.string().optional(),
     language: z.string().min(1, "Idioma é obrigatório"),
     level: z.string().min(1, "Nível é obrigatório"),
+    duration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     totalDuration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     workloadHours: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     workloadWeeks: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     price: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
-    bookId: z.string().optional(),
+    teachingGuideType: z.string().optional(),
+    teachingGuideUrl: z.string().optional(),
+    suggestedWeeklyHours: z.string().optional(),
     isActive: z.boolean().default(true)
   });
 
@@ -67,11 +70,14 @@ export default function Courses() {
       description: "",
       language: "English",
       level: "Básico",
+      duration: undefined,
       totalDuration: undefined,
       workloadHours: undefined,
       workloadWeeks: undefined,
       price: undefined,
-      bookId: "",
+      teachingGuideType: "",
+      teachingGuideUrl: "",
+      suggestedWeeklyHours: "",
       isActive: true
     }
   });
@@ -285,6 +291,7 @@ export default function Courses() {
     // Converter campos numéricos explicitamente
     const courseData = {
       ...values,
+      duration: values.duration ? Number(values.duration) : undefined,
       totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
       workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
       workloadWeeks: values.workloadWeeks ? Number(values.workloadWeeks) : undefined,
@@ -299,6 +306,7 @@ export default function Courses() {
     // Converter campos numéricos explicitamente
     const courseData = {
       ...values,
+      duration: values.duration ? Number(values.duration) : undefined,
       totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
       workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
       workloadWeeks: values.workloadWeeks ? Number(values.workloadWeeks) : undefined,
@@ -314,11 +322,14 @@ export default function Courses() {
       description: course.description || "",
       language: course.language,
       level: course.level,
+      duration: course.duration || undefined,
       totalDuration: course.totalDuration || undefined,
       workloadHours: course.workloadHours || undefined,
       workloadWeeks: course.workloadWeeks || undefined,
       price: course.price || undefined,
-      bookId: course.bookId || "",
+      teachingGuideType: (course as any).teachingGuideType || "",
+      teachingGuideUrl: (course as any).teachingGuideUrl || "",
+      suggestedWeeklyHours: (course as any).suggestedWeeklyHours || "",
       isActive: course.isActive
     });
   };
