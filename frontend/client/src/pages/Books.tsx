@@ -279,19 +279,65 @@ export default function Books() {
                   <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
                     <Label className="text-sm font-semibold">Materiais do Livro (opcional)</Label>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Você poderá anexar os materiais após criar o livro</p>
+                    
+                    {/* Hidden file inputs */}
+                    <input
+                      type="file"
+                      ref={pdfInputRef}
+                      className="hidden"
+                      accept=".pdf"
+                      data-testid="input-pdf-create"
+                    />
+                    <input
+                      type="file"
+                      ref={audioInputRef}
+                      className="hidden"
+                      accept="audio/*"
+                      multiple
+                      data-testid="input-audio-create"
+                    />
+                    <input
+                      type="file"
+                      ref={videoInputRef}
+                      className="hidden"
+                      accept="video/*"
+                      multiple
+                      data-testid="input-video-create"
+                    />
+
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900">
-                        <FileText className="h-8 w-8 text-gray-400 mb-2" />
-                        <span className="text-xs text-gray-500">PDF do Livro</span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900">
-                        <Music className="h-8 w-8 text-gray-400 mb-2" />
-                        <span className="text-xs text-gray-500">Áudios</span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900">
-                        <Video className="h-8 w-8 text-gray-400 mb-2" />
-                        <span className="text-xs text-gray-500">Vídeos</span>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => pdfInputRef.current?.click()}
+                        className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900 hover:border-primary transition-colors cursor-pointer"
+                        data-testid="card-pdf-upload"
+                      >
+                        <FileText className="h-8 w-8 text-red-500 mb-2" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">PDF do Livro</span>
+                        <span className="text-xs text-primary mt-1">Clique para anexar</span>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => audioInputRef.current?.click()}
+                        className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900 hover:border-primary transition-colors cursor-pointer"
+                        data-testid="card-audio-upload"
+                      >
+                        <Music className="h-8 w-8 text-blue-500 mb-2" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Áudios</span>
+                        <span className="text-xs text-primary mt-1">Clique para anexar</span>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => videoInputRef.current?.click()}
+                        className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900 hover:border-primary transition-colors cursor-pointer"
+                        data-testid="card-video-upload"
+                      >
+                        <Video className="h-8 w-8 text-green-500 mb-2" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Vídeos</span>
+                        <span className="text-xs text-primary mt-1">Clique para anexar</span>
+                      </button>
                     </div>
                   </div>
 
