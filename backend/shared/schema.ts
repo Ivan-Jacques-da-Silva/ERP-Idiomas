@@ -378,6 +378,7 @@ export const courses = pgTable("courses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   description: text("description"),
+  language: varchar("language").notNull(),
   level: varchar("level").notNull(),
   duration: integer("duration"), // Duração em horas (compatibilidade)
   totalDuration: integer("total_duration"), // Duração total do curso em dias/semanas

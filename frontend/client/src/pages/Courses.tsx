@@ -38,6 +38,7 @@ export default function Courses() {
   const courseFormSchema = z.object({
     name: z.string().min(1, "Nome é obrigatório"),
     description: z.string().optional(),
+    language: z.string().min(1, "Idioma é obrigatório"),
     level: z.string().min(1, "Nível é obrigatório"),
     duration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     totalDuration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
@@ -66,6 +67,7 @@ export default function Courses() {
     defaultValues: {
       name: "",
       description: "",
+      language: "Inglês",
       level: "Básico",
       duration: undefined,
       totalDuration: undefined,
@@ -314,6 +316,7 @@ export default function Courses() {
     courseForm.reset({
       name: course.name,
       description: course.description || "",
+      language: (course as any).language || "Inglês",
       level: course.level,
       duration: course.duration || undefined,
       totalDuration: course.totalDuration || undefined,
@@ -658,6 +661,7 @@ export default function Courses() {
                     courseForm.reset({
                       name: "Inglês Intermediário",
                       description: "Curso completo de inglês para nível intermediário com foco em conversação e gramática avançada",
+                      language: "Inglês",
                       level: "Intermediário",
                       duration: 180,
                       totalDuration: 180,
@@ -711,6 +715,32 @@ export default function Courses() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={courseForm.control}
+                  name="language"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Idioma *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-course-language">
+                            <SelectValue placeholder="Selecione o idioma" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Inglês">Inglês</SelectItem>
+                          <SelectItem value="Espanhol">Espanhol</SelectItem>
+                          <SelectItem value="Francês">Francês</SelectItem>
+                          <SelectItem value="Alemão">Alemão</SelectItem>
+                          <SelectItem value="Italiano">Italiano</SelectItem>
+                          <SelectItem value="Português">Português</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
