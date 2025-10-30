@@ -812,11 +812,7 @@ export const financialResponsiblesRelations = relations(financialResponsibles, (
   }),
 }));
 
-export const coursesRelations = relations(courses, ({ one, many }) => ({
-  book: one(books, {
-    fields: [courses.bookId],
-    references: [books.id],
-  }),
+export const coursesRelations = relations(courses, ({ many }) => ({
   studentEnrollments: many(studentCourseEnrollments),
 }));
 
