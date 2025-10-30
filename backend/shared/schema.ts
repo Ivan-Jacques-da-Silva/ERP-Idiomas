@@ -403,7 +403,6 @@ export const books = pgTable("books", {
   audioUrls: text("audio_urls").array(), // URLs de áudios
   videoUrls: text("video_urls").array(), // URLs de vídeos
   color: varchar("color").notNull().default('#3b82f6'),
-  displayOrder: integer("display_order").default(1).notNull(), // ordem/nível do book
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1076,9 +1075,7 @@ export const insertCourseSchema = createInsertSchema(courses)
     teachingGuideType: z.string().optional(),
     teachingGuideUrl: z.string().optional(),
     suggestedWeeklyHours: z.string().optional(),
-  })
-  .partial({ language: true })
-  .omit({ language: true });
+  });
 
 export const insertBookSchema = createInsertSchema(books).omit({
   id: true,

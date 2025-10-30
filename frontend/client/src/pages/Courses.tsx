@@ -55,7 +55,6 @@ export default function Courses() {
     name: z.string().min(1, "Nome é obrigatório"),
     description: z.string().optional(),
     numberOfUnits: z.coerce.number().min(1, "Número de unidades deve ser pelo menos 1"),
-    displayOrder: z.coerce.number().min(1, "Ordem deve ser pelo menos 1"),
     color: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor deve estar em formato hexadecimal válido"),
     isActive: z.boolean().default(true)
   });
@@ -92,7 +91,6 @@ export default function Courses() {
       description: "",
       numberOfUnits: 10,
       color: "#3b82f6",
-      displayOrder: 1,
       isActive: true
     }
   });
@@ -351,7 +349,6 @@ export default function Courses() {
       description: book.description || "",
       numberOfUnits: book.numberOfUnits,
       color: book.color,
-      displayOrder: book.displayOrder ?? 1,
       isActive: book.isActive
     });
   };
@@ -904,8 +901,7 @@ export default function Courses() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
+                <FormField
                     control={bookForm.control}
                     name="numberOfUnits"
                     render={({ field }) => (
@@ -924,27 +920,6 @@ export default function Courses() {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={bookForm.control}
-                    name="displayOrder"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ordem de Exibição</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="1"
-                            data-testid="input-book-order"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
 
                 <FormField
                   control={bookForm.control}
