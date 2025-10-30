@@ -653,7 +653,36 @@ export default function Courses() {
         <Dialog open={isCreateCourseOpen} onOpenChange={setIsCreateCourseOpen}>
           <DialogContent data-testid="dialog-create-course">
             <DialogHeader>
-              <DialogTitle>Criar Novo Curso</DialogTitle>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Criar Novo Curso</DialogTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    courseForm.reset({
+                      name: "Inglês Intermediário",
+                      description: "Curso completo de inglês para nível intermediário com foco em conversação e gramática avançada",
+                      level: "Intermediário",
+                      duration: 180,
+                      totalDuration: 180,
+                      workloadHours: 120,
+                      workloadWeeks: 24,
+                      price: 599,
+                      teachingGuideType: "pdf",
+                      teachingGuideUrl: "https://example.com/guide.pdf",
+                      suggestedWeeklyHours: "5 horas semanais",
+                      isActive: true
+                    });
+                    toast({
+                      title: "Dados de teste carregados",
+                      description: "Formulário preenchido com dados exemplares",
+                    });
+                  }}
+                >
+                  📝 Dados de Teste
+                </Button>
+              </div>
             </DialogHeader>
             <Form {...courseForm}>
               <form onSubmit={courseForm.handleSubmit(handleCreateCourse)} className="space-y-4">

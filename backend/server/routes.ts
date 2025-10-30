@@ -162,24 +162,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/login', async (req, res) => {
     try {
       const { email, password } = req.body;
-      
+
       console.log('🔑 Tentativa de login:', { email, password: '***' });
-      
+
       const result = await auth.authenticateUser(email, password);
-      
+
       if (!result) {
         console.log('❌ Credenciais inválidas para:', email);
         return res.status(401).json({ message: "Credenciais inválidas" });
       }
 
       const { user, token } = result;
-      
+
       // Buscar role para incluir no retorno
       const role = await storage.getRoles();
       const userRole = role.find(r => r.id === user.roleId);
 
       console.log('✅ Login bem-sucedido para:', email);
-      
+
       res.json({ 
         user: {
           id: user.id,
@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/register', async (req, res) => {
     try {
       const { email, password, firstName, lastName } = req.body;
-      
+
       // Verificar se usuário já existe
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
@@ -276,12 +276,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = await storage.getUserById(req.user.id);
       if (!user) {
-        return res.status(404).json({ message: "Usu�rio n�o encontrado" });
+        return res.status(404).json({ message: "Usurio no encontrado" });
       }
 
       const roles = await storage.getRoles();
       const userRole = roles.find(r => r.id === user.roleId);
-      
+
       let permissions: any[] = [];
       if (userRole) {
         const rolePermissions = await storage.getRolePermissionsByName(userRole.name);
@@ -299,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           permMap.delete(ov.permission.id);
         }
       }
-      
+
       res.json({ permissions: Array.from(permMap.values()) });
     } catch (error) {
       console.error('Error getting effective permissions:', error);
@@ -374,7 +374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(unit);
     } catch (error: any) {
       console.error("Error creating unit:", error);
-      
+
       // Tratamento específico para erros de validação
       if (error.issues) {
         const fieldErrors = error.issues.map((issue: any) => {
@@ -385,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Dados inválidos: ${fieldErrors}` 
         });
       }
-      
+
       res.status(400).json({ message: error.message || "Erro ao criar unidade" });
     }
   });
@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(unit);
     } catch (error: any) {
       console.error("Error updating unit:", error);
-      
+
       // Tratamento específico para erros de validação
       if (error.issues) {
         const fieldErrors = error.issues.map((issue: any) => {
@@ -408,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Dados inválidos: ${fieldErrors}` 
         });
       }
-      
+
       res.status(400).json({ message: error.message || "Erro ao atualizar unidade" });
     }
   });
@@ -453,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/staff", auth.requireAdmin, requirePagePermission('staff'), async (req, res) => {
     try {
       const { firstName, lastName, email, password, ...staffFields } = req.body;
-      
+
       // Validação: verificar se já existe um colaborador com este CPF (apenas se CPF for fornecido)
       if (staffFields.cpf && staffFields.cpf.trim() !== '') {
         const existingStaffByCpf = await db
@@ -461,19 +461,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from(staff)
           .where(eq(staff.cpf, staffFields.cpf))
           .limit(1);
-        
+
         if (existingStaffByCpf.length > 0) {
           return res.status(400).json({ 
             message: "Já existe um colaborador cadastrado com este CPF" 
           });
         }
       }
-      
+
       // Normalizar position para minúsculo
       if (staffFields.position) {
         staffFields.position = staffFields.position.toLowerCase();
       }
-      
+
       // Mapear cargo para role automaticamente
       const getRole = (position: string): string => {
         switch (position?.toLowerCase()) {
@@ -493,9 +493,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return 'teacher'; // padrão
         }
       };
-      
+
       const role = getRole(staffFields.position);
-      
+
       // Buscar role
       const userRole = await storage.getRoleByName(role);
       if (!userRole) {
@@ -504,7 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verificar se já existe um usuário com este email
       const existingUser = await storage.getUserByEmail(email);
-      
+
       let user;
       if (existingUser) {
         // Atualizar o usuário existente (REMOVIDA validação de staff duplicado por email)
@@ -553,7 +553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(staffMember);
     } catch (error) {
       console.error("Error creating staff:", error);
-      
+
       // Verificar se é erro de validação do Zod
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
@@ -561,7 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors 
         });
       }
-      
+
       res.status(500).json({ message: "Erro ao criar colaborador" });
     }
   });
@@ -569,7 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/staff/:id", auth.requireAdmin, async (req, res) => {
     try {
       const { firstName, lastName, email, userId, ...staffFields } = req.body;
-      
+
       // Atualizar usuário se dados fornecidos
       if (userId && (firstName || lastName || email)) {
         await storage.updateUser(userId, {
@@ -578,21 +578,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...(email && { email }),
         });
       }
-      
+
       // Atualizar staff
       const staffData = insertStaffSchema.partial().parse(staffFields);
       const staff = await storage.updateStaff(req.params.id, staffData);
       res.json(staff);
     } catch (error: any) {
       console.error("Error updating staff member:", error);
-      
+
       // Tratamento específico para erro de email duplicado
       if (error.message && error.message.includes('users_email_unique')) {
         return res.status(400).json({ 
           message: "Este e-mail já está cadastrado no sistema. Por favor, utilize um e-mail diferente." 
         });
       }
-      
+
       // Outros erros de validação do Zod
       if (error.issues) {
         const fieldErrors = error.issues.map((issue: any) => {
@@ -603,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Dados inválidos: ${fieldErrors}` 
         });
       }
-      
+
       res.status(400).json({ message: error.message || "Erro ao atualizar colaborador" });
     }
   });
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/students", auth.requireAdminOrSecretary, requirePagePermission('students'), async (req, res) => {
     try {
       const { firstName, lastName, email, password, guardian, ...studentFields } = req.body;
-      
+
       // Verificar se CPF já existe (se fornecido)
       if (studentFields.cpf && studentFields.cpf.trim() !== '') {
         const existingStudent = await storage.getStudentByCpf(studentFields.cpf);
@@ -658,7 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Buscar role student
       const studentRole = await storage.getRoleByName('student');
       if (!studentRole) {
@@ -667,7 +667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hash da senha
       const hashedPassword = await auth.hashPassword(password || 'senha123');
-      
+
       // Criar usuário primeiro
       const user = await storage.createUser({
         email,
@@ -677,16 +677,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         roleId: studentRole.id,
         isActive: true,
       });
-      
+
       let guardianId = null;
-      
+
       // Criar guardian se fornecido
       if (guardian) {
         const { financialResponsible, ...guardianFields } = guardian;
         const guardianData = insertGuardianSchema.parse(guardianFields);
         const createdGuardian = await storage.createGuardian(guardianData);
         guardianId = createdGuardian.id;
-        
+
         // Criar responsável financeiro se fornecido
         if (financialResponsible) {
           const financialData = insertFinancialResponsibleSchema.parse({
@@ -696,26 +696,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createFinancialResponsible(financialData);
         }
       }
-      
+
       // Criar student com userId e guardianId
       const studentData = insertStudentSchema.parse({
         ...studentFields,
         userId: user.id,
         guardianId,
       });
-      
+
       const student = await storage.createStudent(studentData);
       res.status(201).json(student);
     } catch (error: any) {
       console.error("Error creating student:", error);
-      
+
       // Tratamento específico para erro de email duplicado
       if (error.message && error.message.includes('users_email_unique')) {
         return res.status(400).json({ 
           message: "Este e-mail já está cadastrado no sistema. Por favor, utilize um e-mail diferente." 
         });
       }
-      
+
       // Outros erros de validação do Zod
       if (error.issues) {
         const fieldErrors = error.issues.map((issue: any) => {
@@ -726,7 +726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Dados inválidos: ${fieldErrors}` 
         });
       }
-      
+
       res.status(400).json({ message: error.message || "Erro ao cadastrar estudante" });
     }
   });
@@ -734,7 +734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/students/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
       const { firstName, lastName, email, userId, guardian, ...studentFields } = req.body;
-      
+
       // Verificar se CPF já existe (se fornecido e diferente do atual)
       if (studentFields.cpf && studentFields.cpf.trim() !== '') {
         const existingStudent = await storage.getStudentByCpf(studentFields.cpf);
@@ -744,7 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Atualizar usuário se dados fornecidos
       if (userId && (firstName || lastName || email)) {
         await storage.updateUser(userId, {
@@ -753,16 +753,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...(email && { email }),
         });
       }
-      
+
       // Tratar atualizações de guardian se fornecido
       if (guardian) {
         const { financialResponsible, ...guardianFields } = guardian;
-        
+
         // Se estudante já tem guardian, atualizar, senão criar novo
         const currentStudent = await storage.getStudent(req.params.id);
         if (currentStudent?.guardianId) {
           await storage.updateGuardian(currentStudent.guardianId, guardianFields);
-          
+
           // Tratar responsável financeiro
           if (financialResponsible) {
             const guardianWithFinancial = await storage.getGuardianWithFinancial(currentStudent.guardianId);
@@ -781,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const guardianData = insertGuardianSchema.parse(guardianFields);
           const createdGuardian = await storage.createGuardian(guardianData);
           studentFields.guardianId = createdGuardian.id;
-          
+
           // Criar responsável financeiro se fornecido
           if (financialResponsible) {
             const financialData = insertFinancialResponsibleSchema.parse({
@@ -792,21 +792,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-      
+
       // Atualizar student
       const studentData = insertStudentSchema.partial().parse(studentFields);
       const student = await storage.updateStudent(req.params.id, studentData);
       res.json(student);
     } catch (error: any) {
       console.error("Error updating student:", error);
-      
+
       // Tratamento específico para erro de email duplicado
       if (error.message && error.message.includes('users_email_unique')) {
         return res.status(400).json({ 
           message: "Este e-mail já está cadastrado no sistema. Por favor, utilize um e-mail diferente." 
         });
       }
-      
+
       // Outros erros de validação do Zod
       if (error.issues) {
         const fieldErrors = error.issues.map((issue: any) => {
@@ -817,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Dados inválidos: ${fieldErrors}` 
         });
       }
-      
+
       res.status(400).json({ message: error.message || "Erro ao atualizar estudante" });
     }
   });
@@ -890,12 +890,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/courses", auth.requireAdminOrSecretary, async (req, res) => {
     try {
-      const courseData = insertCourseSchema.parse(req.body);
-      const course = await storage.createCourse(courseData);
+      const { language, ...courseData } = req.body; // Remove language field if present
+      const result = insertCourseSchema.parse(courseData);
+      const course = await storage.createCourse(result);
       res.status(201).json(course);
     } catch (error: any) {
       console.error("Error creating course:", error);
-      
+
       // Tratamento específico para erros de validação
       if (error.issues) {
         const fieldErrors = error.issues.map((issue: any) => {
@@ -906,7 +907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Dados inválidos: ${fieldErrors}` 
         });
       }
-      
+
       res.status(400).json({ message: error.message || "Erro ao criar curso" });
     }
   });
@@ -918,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(course);
     } catch (error: any) {
       console.error("Error updating course:", error);
-      
+
       // Tratamento específico para erros de validação
       if (error.issues) {
         const fieldErrors = error.issues.map((issue: any) => {
@@ -929,7 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Dados inválidos: ${fieldErrors}` 
         });
       }
-      
+
       res.status(400).json({ message: error.message || "Erro ao atualizar curso" });
     }
   });
@@ -1060,7 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Criar URLs dos áudios
       const audioUrls = files.map(file => `/uploads/books/audio/${file.filename}`);
-      
+
       // Adicionar aos áudios existentes (se houver)
       const existingAudios = book.audioUrls || [];
       const allAudioUrls = [...existingAudios, ...audioUrls];
@@ -1105,7 +1106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Criar URLs dos vídeos
       const videoUrls = files.map(file => `/uploads/books/video/${file.filename}`);
-      
+
       // Adicionar aos vídeos existentes (se houver)
       const existingVideos = book.videoUrls || [];
       const allVideoUrls = [...existingVideos, ...videoUrls];
@@ -1250,7 +1251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/teacher-schedule/:teacherId", auth.isAuthenticated, async (req: any, res) => {
     try {
       const { teacherId } = req.params;
-      
+
       // Verificar se é admin/secretário ou o próprio professor
       const userRole = req.user.role;
       if (userRole !== 'admin' && userRole !== 'secretary' && req.user.id !== teacherId) {
@@ -1598,11 +1599,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { pagePermissions } = updateRolePagePermissionsSchema.parse(req.body);
       const roleId = req.params.id;
-      
+
       // Update each page permission
       for (const permission of pagePermissions) {
         const existing = await storage.getRolePagePermission(roleId, permission.pageId);
-        
+
         if (existing) {
           await storage.updateRolePagePermission(roleId, permission.pageId, {
             canAccess: permission.canAccess
@@ -1615,7 +1616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       res.json({ message: "Page permissions updated successfully" });
     } catch (error) {
       console.error("Error updating role page permissions:", error);
