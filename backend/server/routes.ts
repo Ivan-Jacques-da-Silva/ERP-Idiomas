@@ -94,6 +94,62 @@ const franchiseUploads = multer({
   }
 });
 
+const bookAudioUploads = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = './uploads/books/audio';
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const bookId = req.params.id;
+      const ext = path.extname(file.originalname);
+      cb(null, `book_${bookId}_audio_${Date.now()}${ext}`);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/x-m4a'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio files are allowed!') as any, false);
+    }
+  },
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit for audio
+  }
+});
+
+const bookVideoUploads = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = './uploads/books/video';
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const bookId = req.params.id;
+      const ext = path.extname(file.originalname);
+      cb(null, `book_${bookId}_video_${Date.now()}${ext}`);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only video files are allowed!') as any, false);
+    }
+  },
+  limits: {
+    fileSize: 500 * 1024 * 1024 // 500MB limit for video
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
   app.use('/uploads', express.static('uploads'));
@@ -983,6 +1039,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Only PDF files are allowed" });
       }
       res.status(500).json({ message: "Failed to upload PDF file" });
+    }
+  });
+
+  // Audio upload route for books (supports multiple files)
+  app.post("/api/books/:id/upload-audio", auth.requireAdminOrSecretary, bookAudioUploads.array('audio', 10), async (req, res) => {
+    try {
+      const bookId = req.params.id;
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No audio files provided" });
+      }
+
+      // Verificar se book existe
+      const book = await storage.getBook(bookId);
+      if (!book) {
+        return res.status(404).json({ message: "Book not found" });
+      }
+
+      // Criar URLs dos áudios
+      const audioUrls = files.map(file => `/uploads/books/audio/${file.filename}`);
+      
+      // Adicionar aos áudios existentes (se houver)
+      const existingAudios = book.audioUrls || [];
+      const allAudioUrls = [...existingAudios, ...audioUrls];
+
+      // Atualizar book com novas URLs de áudio
+      const updatedBook = await storage.updateBook(bookId, { audioUrls: allAudioUrls });
+
+      res.json({
+        message: "Audio files uploaded successfully",
+        book: updatedBook,
+        filesInfo: files.map((file, index) => ({
+          filename: file.filename,
+          originalName: file.originalname,
+          size: file.size,
+          url: audioUrls[index]
+        }))
+      });
+    } catch (error: any) {
+      console.error("Error uploading audio:", error);
+      if (error.message === 'Only audio files are allowed!') {
+        return res.status(400).json({ message: "Only audio files are allowed" });
+      }
+      res.status(500).json({ message: "Failed to upload audio files" });
+    }
+  });
+
+  // Video upload route for books (supports multiple files)
+  app.post("/api/books/:id/upload-video", auth.requireAdminOrSecretary, bookVideoUploads.array('video', 10), async (req, res) => {
+    try {
+      const bookId = req.params.id;
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No video files provided" });
+      }
+
+      // Verificar se book existe
+      const book = await storage.getBook(bookId);
+      if (!book) {
+        return res.status(404).json({ message: "Book not found" });
+      }
+
+      // Criar URLs dos vídeos
+      const videoUrls = files.map(file => `/uploads/books/video/${file.filename}`);
+      
+      // Adicionar aos vídeos existentes (se houver)
+      const existingVideos = book.videoUrls || [];
+      const allVideoUrls = [...existingVideos, ...videoUrls];
+
+      // Atualizar book com novas URLs de vídeo
+      const updatedBook = await storage.updateBook(bookId, { videoUrls: allVideoUrls });
+
+      res.json({
+        message: "Video files uploaded successfully",
+        book: updatedBook,
+        filesInfo: files.map((file, index) => ({
+          filename: file.filename,
+          originalName: file.originalname,
+          size: file.size,
+          url: videoUrls[index]
+        }))
+      });
+    } catch (error: any) {
+      console.error("Error uploading video:", error);
+      if (error.message === 'Only video files are allowed!') {
+        return res.status(400).json({ message: "Only video files are allowed" });
+      }
+      res.status(500).json({ message: "Failed to upload video files" });
     }
   });
 

@@ -37,19 +37,21 @@ export default function Courses() {
     description: z.string().optional(),
     language: z.string().min(1, "Idioma é obrigatório"),
     level: z.string().min(1, "Nível é obrigatório"),
-    duration: z.coerce.number().positive("Duração deve ser maior que 0").optional(),
+    totalDuration: z.coerce.number().positive("Duração total deve ser maior que 0").optional(),
+    workloadHours: z.coerce.number().positive("Carga horária em horas deve ser maior que 0").optional(),
+    workloadWeeks: z.coerce.number().positive("Carga horária em semanas deve ser maior que 0").optional(),
     price: z.coerce.number().positive("Preço deve ser maior que 0").optional(),
+    bookId: z.string().optional(),
     isActive: z.boolean().default(true)
   });
 
   const bookFormSchema = z.object({
     name: z.string().min(1, "Nome é obrigatório"),
     description: z.string().optional(),
-    courseId: z.string().min(1, "Curso é obrigatório"),
-    displayOrder: z.number().min(1, "Ordem deve ser pelo menos 1"),
-    isActive: z.boolean().default(true),
-    totalDays: z.coerce.number().min(1, "Total de dias deve ser pelo menos 1"),
-    color: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor deve estar em formato hexadecimal válido")
+    numberOfUnits: z.coerce.number().min(1).max(10, "Número de unidades deve ser entre 1 e 10"),
+    displayOrder: z.coerce.number().min(1, "Ordem deve ser pelo menos 1"),
+    color: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor deve estar em formato hexadecimal válido"),
+    isActive: z.boolean().default(true)
   });
 
   // Course form
@@ -62,8 +64,11 @@ export default function Courses() {
       description: "",
       language: "English",
       level: "Básico",
-      duration: undefined,
+      totalDuration: undefined,
+      workloadHours: undefined,
+      workloadWeeks: undefined,
       price: undefined,
+      bookId: "",
       isActive: true
     }
   });
@@ -76,9 +81,8 @@ export default function Courses() {
     defaultValues: {
       name: "",
       description: "",
+      numberOfUnits: 10,
       color: "#3b82f6",
-      totalDays: 30,
-      courseId: "",
       displayOrder: 1,
       isActive: true
     }

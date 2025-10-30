@@ -13,6 +13,7 @@ import FranchiseUnits from "@/pages/FranchiseUnits";
 import Staff from "@/pages/Staff";
 import Students from "@/pages/Students";
 import Courses from "@/pages/Courses";
+import Books from "@/pages/Books";
 import Schedule from "@/pages/Schedule";
 import ScheduleManagement from "@/pages/ScheduleManagement";
 import TeacherIndividualSchedule from "@/pages/TeacherIndividualSchedule";
@@ -62,6 +63,7 @@ function Router() {
           <Route path="/staff" component={Staff} />
           <Route path="/students" component={Students} />
           <Route path="/courses" component={Courses} />
+          <Route path="/books" component={Books} />
           <Route path="/schedule" component={Schedule} />
           <Route path="/schedule-management" component={ScheduleManagement} />
           <Route path="/teacher-individual-schedule" component={TeacherIndividualSchedule} />

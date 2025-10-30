@@ -380,31 +380,30 @@ export const courses = pgTable("courses", {
   description: text("description"),
   language: varchar("language").notNull(),
   level: varchar("level").notNull(),
-  duration: integer("duration"),
+  totalDuration: integer("total_duration"), // Duração total do curso
   price: integer("price"),
-  teachingGuideUrl: varchar("teaching_guide_url"), // PDF ou vídeo do guia de ensino
-  teachingGuideType: varchar("teaching_guide_type"), // 'pdf' ou 'video'
-  suggestedWeeklyHours: varchar("suggested_weekly_hours"), // ex: "1h", "2h", etc
+  teachingGuideUrl: varchar("teaching_guide_url"), // PDF do guia de ensino
+  teachingGuideAudioUrl: varchar("teaching_guide_audio_url"), // Áudio do guia de ensino
+  teachingGuideVideoUrl: varchar("teaching_guide_video_url"), // Vídeo do guia de ensino
+  workloadHours: integer("workload_hours"), // Carga horária em horas
+  workloadWeeks: integer("workload_weeks"), // Carga horária em semanas
+  bookId: varchar("book_id").references(() => books.id), // Livro associado ao curso
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Books table - livros dentro de cada curso
+// Books table - livros independentes que podem ser associados a cursos
 export const books = pgTable("books", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  courseId: varchar("course_id").references(() => courses.id, { onDelete: 'cascade' }).notNull(),
   name: varchar("name").notNull(),
   description: text("description"),
-  pdfUrl: varchar("pdf_url"),
+  numberOfUnits: integer("number_of_units").default(10).notNull(), // Número de unidades (1-10)
+  pdfUrl: varchar("pdf_url"), // PDF do livro
+  audioUrls: text("audio_urls").array(), // URLs de áudios
+  videoUrls: text("video_urls").array(), // URLs de vídeos
   color: varchar("color").notNull().default('#3b82f6'),
   displayOrder: integer("display_order").default(1).notNull(), // ordem/nível do book
-  totalDays: integer("total_days").default(30).notNull(),
-  weeklyHours: varchar("weekly_hours"), // ex: "01 hora semanal", "02 horas semanais"
-  hasConversation: boolean("has_conversation").default(false).notNull(),
-  hasListening: boolean("has_listening").default(false).notNull(),
-  hasCheckpoint: boolean("has_checkpoint").default(false).notNull(),
-  hasReview: boolean("has_review").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -813,16 +812,16 @@ export const financialResponsiblesRelations = relations(financialResponsibles, (
   }),
 }));
 
-export const coursesRelations = relations(courses, ({ many }) => ({
-  books: many(books),
+export const coursesRelations = relations(courses, ({ one, many }) => ({
+  book: one(books, {
+    fields: [courses.bookId],
+    references: [books.id],
+  }),
   studentEnrollments: many(studentCourseEnrollments),
 }));
 
-export const booksRelations = relations(books, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [books.courseId],
-    references: [courses.id],
-  }),
+export const booksRelations = relations(books, ({ many }) => ({
+  courses: many(courses),
   classes: many(classes),
   units: many(courseUnits),
   workbooks: many(courseWorkbooks),
