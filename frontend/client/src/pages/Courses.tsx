@@ -1282,31 +1282,6 @@ export default function Courses() {
                   />
                 </div>
 
-                {/* Carga Semanal e Marcadores */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Carga Semanal</FormLabel>
-                    <FormControl>
-                      <Input placeholder="01 hora semanal" data-testid="input-edit-book-weekly-hours" {...bookForm.register('weeklyHours' as any)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasConversation' as any)} /> Conversation
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasListening' as any)} /> Listening
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasCheckpoint' as any)} /> Checkpoint
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasReview' as any)} /> Review
-                    </label>
-                  </div>
-                </div>
-
                 <div className="flex gap-2 justify-end">
                   <Button type="button" variant="outline" onClick={() => { setEditingCourse(null); courseForm.reset(); }}>
                     Cancelar
