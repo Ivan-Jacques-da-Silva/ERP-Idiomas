@@ -386,7 +386,7 @@ export const courses = pgTable("courses", {
   price: integer("price"), // Preço em centavos
   teachingGuideType: varchar("teaching_guide_type"), // 'pdf' ou 'video'
   teachingGuideUrl: varchar("teaching_guide_url"), // URL do guia de ensino
-  suggestedWeeklyHours: varchar("suggested_weekly_hours"), // Carga sugerida semanal
+  audioUrl: varchar("audio_url"), // URL do áudio do curso
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1074,7 +1074,7 @@ export const insertCourseSchema = createInsertSchema(courses)
     price: z.number().positive().optional(),
     teachingGuideType: z.string().optional(),
     teachingGuideUrl: z.string().optional(),
-    suggestedWeeklyHours: z.string().optional(),
+    audioUrl: z.string().optional(),
   });
 
 export const insertBookSchema = createInsertSchema(books).omit({

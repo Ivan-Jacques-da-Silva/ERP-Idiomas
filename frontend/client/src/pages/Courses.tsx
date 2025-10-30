@@ -46,7 +46,7 @@ export default function Courses() {
     price: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     teachingGuideType: z.string().optional(),
     teachingGuideUrl: z.string().optional(),
-    suggestedWeeklyHours: z.string().optional(),
+    audioUrl: z.string().optional(),
     isActive: z.boolean().default(true)
   });
 
@@ -75,7 +75,7 @@ export default function Courses() {
       price: undefined,
       teachingGuideType: "",
       teachingGuideUrl: "",
-      suggestedWeeklyHours: "",
+      audioUrl: "",
       isActive: true
     }
   });
@@ -326,7 +326,7 @@ export default function Courses() {
       price: course.price || undefined,
       teachingGuideType: (course as any).teachingGuideType || "",
       teachingGuideUrl: (course as any).teachingGuideUrl || "",
-      suggestedWeeklyHours: (course as any).suggestedWeeklyHours || "",
+      audioUrl: (course as any).audioUrl || "",
       isActive: course.isActive
     });
   };
@@ -671,7 +671,7 @@ export default function Courses() {
                       price: 599,
                       teachingGuideType: "pdf",
                       teachingGuideUrl: "https://example.com/guide.pdf",
-                      suggestedWeeklyHours: "5 horas semanais",
+                      audioUrl: "https://example.com/audio.mp3",
                       isActive: true
                     });
                     toast({
@@ -772,9 +772,9 @@ export default function Courses() {
                 </div>
 
                 <FormItem>
-                  <FormLabel>Carga Sugerida (ex: 1h semanal)</FormLabel>
+                  <FormLabel>URL do Áudio</FormLabel>
                   <FormControl>
-                    <Input placeholder="1h semanal" data-testid="input-course-suggested-weekly-hours" {...courseForm.register('suggestedWeeklyHours' as any)} />
+                    <Input placeholder="https://..." data-testid="input-course-audio-url" {...courseForm.register('audioUrl' as any)} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1222,9 +1222,9 @@ export default function Courses() {
                 </div>
 
                 <FormItem>
-                  <FormLabel>Carga Sugerida (ex: 1h semanal)</FormLabel>
+                  <FormLabel>URL do Áudio</FormLabel>
                   <FormControl>
-                    <Input placeholder="1h semanal" data-testid="input-edit-course-suggested-weekly-hours" {...courseForm.register('suggestedWeeklyHours' as any)} />
+                    <Input placeholder="https://..." data-testid="input-edit-course-audio-url" {...courseForm.register('audioUrl' as any)} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
