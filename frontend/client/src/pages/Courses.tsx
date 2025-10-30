@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, BookOpen, Upload, Edit, Trash2, Eye, Palette } from "lucide-react";
+import { Plus, BookOpen, Upload, Edit, Trash2, Eye, Palette, Music, Video, FileText } from "lucide-react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,10 @@ export default function Courses() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [uploadingPdf, setUploadingPdf] = useState<string | null>(null);
+  const [uploadingBook, setUploadingBook] = useState<string | null>(null);
 
   // Extended schemas for form validation
   const courseFormSchema = z.object({
@@ -199,6 +202,72 @@ export default function Courses() {
     }
   });
 
+  // Audio upload mutation
+  const uploadAudioMutation = useMutation({
+    mutationFn: async ({ bookId, files }: { bookId: string, files: FileList }) => {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('audio', file);
+      });
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`${API_BASE}/api/books/${bookId}/upload-audio`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: formData,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Upload failed');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/books"] });
+      toast({ title: "Áudios enviados com sucesso!" });
+      setUploadingBook(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao enviar áudios", description: extractErrorMessage(error), variant: "destructive" });
+      setUploadingBook(null);
+    }
+  });
+
+  // Video upload mutation
+  const uploadVideoMutation = useMutation({
+    mutationFn: async ({ bookId, files }: { bookId: string, files: FileList }) => {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('video', file);
+      });
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`${API_BASE}/api/books/${bookId}/upload-video`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: formData,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Upload failed');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/books"] });
+      toast({ title: "Vídeos enviados com sucesso!" });
+      setUploadingBook(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao enviar vídeos", description: extractErrorMessage(error), variant: "destructive" });
+      setUploadingBook(null);
+    }
+  });
+
   // Delete book mutation
   const deleteBookMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/books/${id}`),
@@ -269,6 +338,16 @@ export default function Courses() {
     uploadPdfMutation.mutate({ bookId, file });
   };
 
+  const handleAudioUpload = (bookId: string, files: FileList) => {
+    setUploadingBook(bookId);
+    uploadAudioMutation.mutate({ bookId, files });
+  };
+
+  const handleVideoUpload = (bookId: string, files: FileList) => {
+    setUploadingBook(bookId);
+    uploadVideoMutation.mutate({ bookId, files });
+  };
+
   const openPdfFileDialog = (bookId: string) => {
     if (fileInputRef.current) {
       fileInputRef.current.onchange = (e) => {
@@ -280,6 +359,30 @@ export default function Courses() {
         }
       };
       fileInputRef.current.click();
+    }
+  };
+
+  const openAudioFileDialog = (bookId: string) => {
+    if (audioInputRef.current) {
+      audioInputRef.current.onchange = (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (files && files.length > 0) {
+          handleAudioUpload(bookId, files);
+        }
+      };
+      audioInputRef.current.click();
+    }
+  };
+
+  const openVideoFileDialog = (bookId: string) => {
+    if (videoInputRef.current) {
+      videoInputRef.current.onchange = (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (files && files.length > 0) {
+          handleVideoUpload(bookId, files);
+        }
+      };
+      videoInputRef.current.click();
     }
   };
 
@@ -410,82 +513,92 @@ export default function Courses() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {getBooksByCourseid(selectedCourse.id).map((book) => (
                     <Card key={book.id} className="glassmorphism-card" data-testid={`card-book-${book.id}`}>
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-6 h-6 rounded-md border-2 border-white shadow-sm ring-1 ring-black/10"
-                            style={{ backgroundColor: book.color }}
-                            title={`Cor: ${book.color}`}
-                          ></div>
-                          <CardTitle className="text-base">{book.name}</CardTitle>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditBook(book)}
-                            data-testid={`button-edit-book-${book.id}`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deleteBookMutation.mutate(book.id)}
-                            data-testid={`button-delete-book-${book.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                      <CardHeader style={{ borderLeftWidth: '4px', borderLeftColor: book.color }}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-base">{book.name}</CardTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {book.numberOfUnits} unidades
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditBook(book)}
+                              data-testid={`button-edit-book-${book.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deleteBookMutation.mutate(book.id)}
+                              data-testid={`button-delete-book-${book.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-muted-foreground mb-3">{book.description}</p>
-                        <div className="space-y-3 text-sm">
-                          <div className="flex justify-between">
-                            <span>Total de dias:</span>
-                            <span className="font-medium">{book.totalDays ?? 30}</span>
-                          </div>
+                        {book.description && (
+                          <p className="text-sm text-muted-foreground mb-4">{book.description}</p>
+                        )}
 
-                          {/* PDF Section */}
-                          <div className="space-y-2">
-                            {book.pdfUrl ? (
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Eye className="w-4 h-4 text-primary" />
-                                  <span className="text-sm">PDF disponível</span>
-                                </div>
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => window.open(book.pdfUrl!, '_blank')}
-                                    className="h-7 px-2"
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => openPdfFileDialog(book.id)}
-                                    disabled={uploadingPdf === book.id}
-                                    className="h-7 px-2"
-                                  >
-                                    <Upload className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openPdfFileDialog(book.id)}
-                                disabled={uploadingPdf === book.id}
-                                className="w-full h-8"
-                              >
-                                <Upload className="w-3 h-3 mr-1" />
-                                {uploadingPdf === book.id ? 'Enviando...' : 'Upload PDF'}
-                              </Button>
-                            )}
+                        <div className="space-y-2 mb-4">
+                          {book.pdfUrl && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <FileText className="h-4 w-4 text-primary" />
+                              <span>PDF anexado</span>
+                            </div>
+                          )}
+                          {book.audioUrls && book.audioUrls.length > 0 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Music className="h-4 w-4 text-primary" />
+                              <span>{book.audioUrls.length} áudio(s)</span>
+                            </div>
+                          )}
+                          {book.videoUrls && book.videoUrls.length > 0 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Video className="h-4 w-4 text-primary" />
+                              <span>{book.videoUrls.length} vídeo(s)</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => openPdfFileDialog(book.id)}
+                              disabled={uploadingPdf === book.id}
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              PDF
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => openAudioFileDialog(book.id)}
+                              disabled={uploadingBook === book.id}
+                            >
+                              <Music className="h-4 w-4 mr-1" />
+                              Áudio
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => openVideoFileDialog(book.id)}
+                              disabled={uploadingBook === book.id}
+                            >
+                              <Video className="h-4 w-4 mr-1" />
+                              Vídeo
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -1205,11 +1318,25 @@ export default function Courses() {
         </Dialog>
 
 
-        {/* Hidden file input for PDF uploads */}
+        {/* Hidden file inputs for uploads */}
         <input
           ref={fileInputRef}
           type="file"
           accept="application/pdf"
+          style={{ display: 'none' }}
+        />
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept="audio/*"
+          multiple
+          style={{ display: 'none' }}
+        />
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept="video/*"
+          multiple
           style={{ display: 'none' }}
         />
       </div>

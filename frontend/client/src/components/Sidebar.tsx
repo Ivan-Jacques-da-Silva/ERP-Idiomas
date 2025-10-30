@@ -80,12 +80,6 @@ export default function Sidebar({ expanded, isMobile }: SidebarProps) {
       permission: "courses:read"
     },
     {
-      path: "/books",
-      icon: "fas fa-book-open",
-      label: "Livros",
-      permission: "courses:read"
-    },
-    {
       path: "/schedule",
       icon: "fas fa-calendar-alt",
       label: "Agenda",
