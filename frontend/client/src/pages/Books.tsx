@@ -276,6 +276,25 @@ export default function Books() {
                     )}
                   />
 
+                  <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                    <Label className="text-sm font-semibold">Materiais do Livro (opcional)</Label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Você poderá anexar os materiais após criar o livro</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900">
+                        <FileText className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="text-xs text-gray-500">PDF do Livro</span>
+                      </div>
+                      <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900">
+                        <Music className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="text-xs text-gray-500">Áudios</span>
+                      </div>
+                      <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-white dark:bg-gray-900">
+                        <Video className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="text-xs text-gray-500">Vídeos</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} data-testid="button-cancel">
                       Cancelar

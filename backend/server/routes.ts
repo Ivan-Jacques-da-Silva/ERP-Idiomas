@@ -890,7 +890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/courses", auth.requireAdminOrSecretary, async (req, res) => {
     try {
-      const { language, ...courseData } = req.body; // Remove language field if present
+      const courseData = req.body;
       const result = insertCourseSchema.parse(courseData);
       const course = await storage.createCourse(result);
       res.status(201).json(course);
