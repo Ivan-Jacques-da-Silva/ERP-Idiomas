@@ -762,18 +762,37 @@ export default function Courses() {
                   <FormMessage />
                 </FormItem>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <FormField
                     control={courseForm.control}
-                    name="duration"
+                    name="workloadHours"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Duração (horas)</FormLabel>
+                        <FormLabel>Carga Horária (horas)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             placeholder="120"
-                            data-testid="input-course-duration"
+                            data-testid="input-course-workload-hours"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={courseForm.control}
+                    name="workloadWeeks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Semanas</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="12"
+                            data-testid="input-course-workload-weeks"
                             {...field}
                           />
                         </FormControl>
@@ -1179,15 +1198,29 @@ export default function Courses() {
                   <FormMessage />
                 </FormItem>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <FormField
                     control={courseForm.control}
-                    name="duration"
+                    name="workloadHours"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Duração (horas)</FormLabel>
+                        <FormLabel>Carga Horária (horas)</FormLabel>
                         <FormControl>
-                          <Input type="number" data-testid="input-edit-course-duration" {...field} />
+                          <Input type="number" data-testid="input-edit-course-workload-hours" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={courseForm.control}
+                    name="workloadWeeks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Semanas</FormLabel>
+                        <FormControl>
+                          <Input type="number" data-testid="input-edit-course-workload-weeks" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
