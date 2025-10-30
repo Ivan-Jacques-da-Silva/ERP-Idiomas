@@ -373,7 +373,7 @@ export const students = pgTable("students", {
 // ACADEMIC TABLES
 // ============================================================================
 
-// Courses table
+// Courses table - Todos os cursos são de inglês
 export const courses = pgTable("courses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
@@ -1076,7 +1076,9 @@ export const insertCourseSchema = createInsertSchema(courses)
     teachingGuideType: z.string().optional(),
     teachingGuideUrl: z.string().optional(),
     suggestedWeeklyHours: z.string().optional(),
-  });
+  })
+  .partial({ language: true })
+  .omit({ language: true });
 
 export const insertBookSchema = createInsertSchema(books).omit({
   id: true,
