@@ -340,15 +340,64 @@ export default function Courses() {
       const uploadPromises = [];
       
       if (selectedPdfFile) {
-        uploadPromises.push(handlePdfUpload(book.id, selectedPdfFile));
+        const formData = new FormData();
+        formData.append('pdf', selectedPdfFile);
+        const token = localStorage.getItem('authToken');
+        uploadPromises.push(
+          fetch(`${API_BASE}/api/books/${book.id}/upload`, {
+            method: 'POST',
+            headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: formData,
+            credentials: 'include',
+          }).then(res => {
+            if (!res.ok) throw new Error('Upload de PDF falhou');
+            return res.json();
+          })
+        );
       }
       
       if (selectedAudioFiles && selectedAudioFiles.length > 0) {
-        uploadPromises.push(handleAudioUpload(book.id, selectedAudioFiles));
+        const formData = new FormData();
+        Array.from(selectedAudioFiles).forEach(file => {
+          formData.append('audio', file);
+        });
+        const token = localStorage.getItem('authToken');
+        uploadPromises.push(
+          fetch(`${API_BASE}/api/books/${book.id}/upload-audio`, {
+            method: 'POST',
+            headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: formData,
+            credentials: 'include',
+          }).then(res => {
+            if (!res.ok) throw new Error('Upload de áudios falhou');
+            return res.json();
+          })
+        );
       }
       
       if (selectedVideoFiles && selectedVideoFiles.length > 0) {
-        uploadPromises.push(handleVideoUpload(book.id, selectedVideoFiles));
+        const formData = new FormData();
+        Array.from(selectedVideoFiles).forEach(file => {
+          formData.append('video', file);
+        });
+        const token = localStorage.getItem('authToken');
+        uploadPromises.push(
+          fetch(`${API_BASE}/api/books/${book.id}/upload-video`, {
+            method: 'POST',
+            headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: formData,
+            credentials: 'include',
+          }).then(res => {
+            if (!res.ok) throw new Error('Upload de vídeos falhou');
+            return res.json();
+          })
+        );
       }
       
       if (uploadPromises.length > 0) {
