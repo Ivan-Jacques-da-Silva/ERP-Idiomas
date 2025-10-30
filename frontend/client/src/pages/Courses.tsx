@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, BookOpen, Upload, Edit, Trash2, Eye, Palette, Music, Video, FileText } from "lucide-react";
+import { Plus, BookOpen, Upload, Edit, Trash2, Eye, Music, Video, FileText } from "lucide-react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,13 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, extractErrorMessage } from "@/lib/queryClient";
 import { API_BASE } from "@/lib/api";
-import type { Course, Book, CourseWithDetails, BookWithDetails } from "@shared/schema";
+import type { Course, Book } from "@shared/schema";
 
 import { z } from "zod";
 
@@ -520,29 +520,35 @@ export default function Courses() {
           <TabsContent value="books" className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {selectedCourse ? `Livros do curso: ${selectedCourse.name}` : "Selecione um curso para gerenciar livros"}
+                {selectedCourse ? `Livros do curso: ${selectedCourse.name}` : "Todos os livros cadastrados"}
               </p>
-              {selectedCourse && (
-                <Button
-                  onClick={() => setIsCreateBookOpen(true)}
-                  size="sm"
-                  className="gap-2"
-                  data-testid="button-create-book"
-                >
-                  <Plus className="w-4 h-4" />
-                  Novo Livro
-                </Button>
-              )}
+              <Button
+                onClick={() => {
+                  setEditingBook(null);
+                  if (selectedCourse) {
+                    bookForm.setValue('courseId', selectedCourse.id);
+                  }
+                  setIsCreateBookOpen(true);
+                }}
+                size="sm"
+                className="gap-2"
+                data-testid="button-create-book"
+              >
+                <Plus className="w-4 h-4" />
+                Novo Livro
+              </Button>
             </div>
 
-            {selectedCourse ? (
-              booksLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {getBooksByCourseid(selectedCourse.id).map((book) => (
+            {booksLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Carregando livros...</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {(selectedCourse ? getBooksByCourseid(selectedCourse.id) : books).map((book) => {
+                  const bookCourse = courses.find(c => c.id === book.courseId);
+                  return (
                     <Card key={book.id} className="glassmorphism-card" data-testid={`card-book-${book.id}`}>
                       <CardHeader style={{ borderLeftWidth: '4px', borderLeftColor: book.color }}>
                         <div className="flex items-center justify-between">
@@ -551,6 +557,11 @@ export default function Courses() {
                             <p className="text-sm text-muted-foreground mt-1">
                               {book.numberOfUnits} unidades
                             </p>
+                            {!selectedCourse && bookCourse && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Curso: {bookCourse.name}
+                              </p>
+                            )}
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -634,13 +645,8 @@ export default function Courses() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
-              )
-            ) : (
-              <div className="text-center py-12">
-                <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Selecione um curso na aba "Cursos" para gerenciar seus livros</p>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -1319,38 +1325,22 @@ export default function Courses() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={bookForm.control}
-                    name="color"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cor do Livro</FormLabel>
-                        <FormControl>
-                          <div className="flex gap-2 items-center">
-                            <Input type="color" className="w-12 h-10 p-1" value={field.value} onChange={(e) => field.onChange(e.target.value)} data-testid="input-edit-book-color" />
-                            <Input value={field.value} onChange={(e) => field.onChange(e.target.value)} placeholder="#3b82f6" data-testid="input-edit-book-color-hex" />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={bookForm.control}
-                    name="totalDays"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Total de Dias</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="1" data-testid="input-edit-book-total-days" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={bookForm.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cor do Livro</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-2 items-center">
+                          <Input type="color" className="w-12 h-10 p-1" value={field.value} onChange={(e) => field.onChange(e.target.value)} data-testid="input-edit-book-color" />
+                          <Input value={field.value} onChange={(e) => field.onChange(e.target.value)} placeholder="#3b82f6" data-testid="input-edit-book-color-hex" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="flex gap-2 justify-end">
                   <Button type="button" variant="outline" onClick={() => { setEditingBook(null); bookForm.reset(); }}>

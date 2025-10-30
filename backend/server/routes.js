@@ -42,6 +42,62 @@ const bookUploads = multer({
         fileSize: 50 * 1024 * 1024 // 50MB limit
     }
 });
+const audioUploads = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            const uploadDir = './uploads/books/audio';
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+            cb(null, uploadDir);
+        },
+        filename: (req, file, cb) => {
+            const bookId = req.params.id;
+            const ext = path.extname(file.originalname);
+            cb(null, `book_${bookId}_audio_${Date.now()}${ext}`);
+        }
+    }),
+    fileFilter: (req, file, cb) => {
+        const audioMimes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/x-m4a'];
+        if (audioMimes.includes(file.mimetype)) {
+            cb(null, true);
+        }
+        else {
+            cb(new Error('Only audio files are allowed!'), false);
+        }
+    },
+    limits: {
+        fileSize: 100 * 1024 * 1024 // 100MB limit
+    }
+});
+const videoUploads = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            const uploadDir = './uploads/books/video';
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+            cb(null, uploadDir);
+        },
+        filename: (req, file, cb) => {
+            const bookId = req.params.id;
+            const ext = path.extname(file.originalname);
+            cb(null, `book_${bookId}_video_${Date.now()}${ext}`);
+        }
+    }),
+    fileFilter: (req, file, cb) => {
+        const videoMimes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+        if (videoMimes.includes(file.mimetype)) {
+            cb(null, true);
+        }
+        else {
+            cb(new Error('Only video files are allowed!'), false);
+        }
+    },
+    limits: {
+        fileSize: 500 * 1024 * 1024 // 500MB limit
+    }
+});
 const franchiseUploads = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => {
@@ -877,6 +933,82 @@ export async function registerRoutes(app) {
                 return res.status(400).json({ message: "Only PDF files are allowed" });
             }
             res.status(500).json({ message: "Failed to upload PDF file" });
+        }
+    });
+    // Audio upload route for books
+    app.post("/api/books/:id/upload-audio", auth.requireAdminOrSecretary, audioUploads.array('audio', 10), async (req, res) => {
+        try {
+            const bookId = req.params.id;
+            const files = req.files;
+            if (!files || files.length === 0) {
+                return res.status(400).json({ message: "No audio files provided" });
+            }
+            // Verificar se book existe
+            const book = await storage.getBook(bookId);
+            if (!book) {
+                return res.status(404).json({ message: "Book not found" });
+            }
+            // Criar array de URLs dos áudios
+            const audioUrls = files.map(file => `/uploads/books/audio/${file.filename}`);
+            // Adicionar às URLs existentes (se houver)
+            const existingAudioUrls = book.audioUrls || [];
+            const updatedAudioUrls = [...existingAudioUrls, ...audioUrls];
+            // Atualizar book com novas URLs de áudio
+            const updatedBook = await storage.updateBook(bookId, { audioUrls: updatedAudioUrls });
+            res.json({
+                message: "Audio files uploaded successfully",
+                book: updatedBook,
+                filesInfo: files.map(file => ({
+                    filename: file.filename,
+                    originalName: file.originalname,
+                    size: file.size,
+                }))
+            });
+        }
+        catch (error) {
+            console.error("Error uploading audio files:", error);
+            if (error.message === 'Only audio files are allowed!') {
+                return res.status(400).json({ message: "Only audio files are allowed" });
+            }
+            res.status(500).json({ message: "Failed to upload audio files" });
+        }
+    });
+    // Video upload route for books
+    app.post("/api/books/:id/upload-video", auth.requireAdminOrSecretary, videoUploads.array('video', 10), async (req, res) => {
+        try {
+            const bookId = req.params.id;
+            const files = req.files;
+            if (!files || files.length === 0) {
+                return res.status(400).json({ message: "No video files provided" });
+            }
+            // Verificar se book existe
+            const book = await storage.getBook(bookId);
+            if (!book) {
+                return res.status(404).json({ message: "Book not found" });
+            }
+            // Criar array de URLs dos vídeos
+            const videoUrls = files.map(file => `/uploads/books/video/${file.filename}`);
+            // Adicionar às URLs existentes (se houver)
+            const existingVideoUrls = book.videoUrls || [];
+            const updatedVideoUrls = [...existingVideoUrls, ...videoUrls];
+            // Atualizar book com novas URLs de vídeo
+            const updatedBook = await storage.updateBook(bookId, { videoUrls: updatedVideoUrls });
+            res.json({
+                message: "Video files uploaded successfully",
+                book: updatedBook,
+                filesInfo: files.map(file => ({
+                    filename: file.filename,
+                    originalName: file.originalname,
+                    size: file.size,
+                }))
+            });
+        }
+        catch (error) {
+            console.error("Error uploading video files:", error);
+            if (error.message === 'Only video files are allowed!') {
+                return res.status(400).json({ message: "Only video files are allowed" });
+            }
+            res.status(500).json({ message: "Failed to upload video files" });
         }
     });
     // ============================================================================
