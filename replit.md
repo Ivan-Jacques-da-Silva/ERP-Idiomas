@@ -2,6 +2,14 @@
 
 EduManage is a comprehensive school management system designed specifically for language schools. The system provides role-based access control for different user types (admins, teachers, secretaries, financial staff, students, and developers) to manage educational operations including student enrollment, staff management, class scheduling, and course administration.
 
+# Recent Changes
+
+**October 30, 2025**:
+- Added `language` field to courses (migration 0008): Required field with predefined language options (Inglês, Espanhol, Francês, Alemão, Italiano, Português, Outro)
+- Enhanced book creation: Users can now upload PDF, audio, and video files during initial book creation (not just when editing)
+- Fixed async upload handling to properly await file uploads before closing the creation modal
+- Improved error handling in the book creation flow to surface upload failures
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
