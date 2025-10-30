@@ -380,13 +380,13 @@ export const courses = pgTable("courses", {
   description: text("description"),
   language: varchar("language").notNull(),
   level: varchar("level").notNull(),
-  totalDuration: integer("total_duration"), // Duração total do curso
-  price: integer("price"),
+  totalDuration: integer("total_duration"), // Duração total do curso em dias/semanas
+  workloadHours: integer("workload_hours"), // Carga horária em horas
+  workloadWeeks: integer("workload_weeks"), // Carga horária em semanas
+  price: integer("price"), // Preço em centavos
   teachingGuideUrl: varchar("teaching_guide_url"), // PDF do guia de ensino
   teachingGuideAudioUrl: varchar("teaching_guide_audio_url"), // Áudio do guia de ensino
   teachingGuideVideoUrl: varchar("teaching_guide_video_url"), // Vídeo do guia de ensino
-  workloadHours: integer("workload_hours"), // Carga horária em horas
-  workloadWeeks: integer("workload_weeks"), // Carga horária em semanas
   bookId: varchar("book_id").references(() => books.id), // Livro associado ao curso
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1061,11 +1061,18 @@ export const insertStudentSchema = createInsertSchema(students).omit({
   birthDate: z.string().datetime().optional().transform((val) => val ? new Date(val) : undefined),
 });
 
-export const insertCourseSchema = createInsertSchema(courses).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertCourseSchema = createInsertSchema(courses)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    totalDuration: z.number().positive().optional(),
+    workloadHours: z.number().positive().optional(),
+    workloadWeeks: z.number().positive().optional(),
+    price: z.number().positive().optional(),
+  });
 
 export const insertBookSchema = createInsertSchema(books).omit({
   id: true,
