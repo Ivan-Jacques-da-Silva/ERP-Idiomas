@@ -38,7 +38,6 @@ export default function Courses() {
   const courseFormSchema = z.object({
     name: z.string().min(1, "Nome é obrigatório"),
     description: z.string().optional(),
-    language: z.string().min(1, "Idioma é obrigatório"),
     level: z.string().min(1, "Nível é obrigatório"),
     duration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     totalDuration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
@@ -69,7 +68,6 @@ export default function Courses() {
     defaultValues: {
       name: "",
       description: "",
-      language: "English",
       level: "Básico",
       duration: undefined,
       totalDuration: undefined,
@@ -322,7 +320,6 @@ export default function Courses() {
     courseForm.reset({
       name: course.name,
       description: course.description || "",
-      language: course.language,
       level: course.level,
       duration: course.duration || undefined,
       totalDuration: course.totalDuration || undefined,
@@ -490,7 +487,6 @@ export default function Courses() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Badge variant="secondary">{course.language}</Badge>
                         <Badge variant="outline">{course.level}</Badge>
                       </div>
                     </CardHeader>
@@ -694,55 +690,28 @@ export default function Courses() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={courseForm.control}
-                    name="language"
-                    render={({ field }) => (
-                      <FormItem className="hidden">
-                        <FormLabel>Idioma</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-course-language">
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="English">Inglês</SelectItem>
-                            <SelectItem value="Spanish">Espanhol</SelectItem>
-                            <SelectItem value="French">Francês</SelectItem>
-                            <SelectItem value="German">Alemão</SelectItem>
-                            <SelectItem value="Italian">Italiano</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={courseForm.control}
-                    name="level"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nível</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-course-level">
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Básico">Básico</SelectItem>
-                            <SelectItem value="Intermediário">Intermediário</SelectItem>
-                            <SelectItem value="Avançado">Avançado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={courseForm.control}
+                  name="level"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nível</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-course-level">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Básico">Básico</SelectItem>
+                          <SelectItem value="Intermediário">Intermediário</SelectItem>
+                          <SelectItem value="Avançado">Avançado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Guia de Ensino */}
                 <div className="grid grid-cols-2 gap-4">
@@ -1193,55 +1162,28 @@ export default function Courses() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={courseForm.control}
-                    name="language"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Idioma</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-edit-course-language">
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="English">Inglês</SelectItem>
-                            <SelectItem value="Spanish">Espanhol</SelectItem>
-                            <SelectItem value="French">Francês</SelectItem>
-                            <SelectItem value="German">Alemão</SelectItem>
-                            <SelectItem value="Italian">Italiano</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={courseForm.control}
-                    name="level"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nível</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-edit-course-level">
-                              <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Básico">Básico</SelectItem>
-                            <SelectItem value="Intermediário">Intermediário</SelectItem>
-                            <SelectItem value="Avançado">Avançado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={courseForm.control}
+                  name="level"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nível</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-edit-course-level">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Básico">Básico</SelectItem>
+                          <SelectItem value="Intermediário">Intermediário</SelectItem>
+                          <SelectItem value="Avançado">Avançado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Guia de Ensino */}
                 <div className="grid grid-cols-2 gap-4">
