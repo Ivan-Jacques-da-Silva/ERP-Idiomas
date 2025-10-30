@@ -746,12 +746,13 @@ export default function Courses() {
                     <Select onValueChange={(v) => courseForm.setValue('teachingGuideType' as any, v as any)}>
                       <FormControl>
                         <SelectTrigger data-testid="select-course-teaching-guide-type">
-                          <SelectValue placeholder="PDF ou Vídeo" />
+                          <SelectValue placeholder="PDF, Vídeo ou Áudio" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="pdf">PDF</SelectItem>
                         <SelectItem value="video">Vídeo</SelectItem>
+                        <SelectItem value="audio">Áudio</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>
@@ -764,14 +765,6 @@ export default function Courses() {
                     <FormMessage />
                   </FormItem>
                 </div>
-
-                <FormItem>
-                  <FormLabel>URL do Áudio</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://..." data-testid="input-course-audio-url" {...courseForm.register('audioUrl' as any)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -1177,12 +1170,13 @@ export default function Courses() {
                     <Select onValueChange={(v) => courseForm.setValue('teachingGuideType' as any, v as any)}>
                       <FormControl>
                         <SelectTrigger data-testid="select-edit-course-teaching-guide-type">
-                          <SelectValue placeholder="PDF ou Vídeo" />
+                          <SelectValue placeholder="PDF, Vídeo ou Áudio" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="pdf">PDF</SelectItem>
                         <SelectItem value="video">Vídeo</SelectItem>
+                        <SelectItem value="audio">Áudio</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>
@@ -1195,14 +1189,6 @@ export default function Courses() {
                     <FormMessage />
                   </FormItem>
                 </div>
-
-                <FormItem>
-                  <FormLabel>URL do Áudio</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://..." data-testid="input-edit-course-audio-url" {...courseForm.register('audioUrl' as any)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
