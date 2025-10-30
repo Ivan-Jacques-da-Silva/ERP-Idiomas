@@ -40,10 +40,10 @@ export default function Courses() {
     description: z.string().optional(),
     language: z.string().min(1, "Idioma é obrigatório"),
     level: z.string().min(1, "Nível é obrigatório"),
-    totalDuration: z.coerce.number().positive("Duração total deve ser maior que 0").optional(),
-    workloadHours: z.coerce.number().positive("Carga horária em horas deve ser maior que 0").optional(),
-    workloadWeeks: z.coerce.number().positive("Carga horária em semanas deve ser maior que 0").optional(),
-    price: z.coerce.number().positive("Preço deve ser maior que 0").optional(),
+    totalDuration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
+    workloadHours: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
+    workloadWeeks: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
+    price: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     bookId: z.string().optional(),
     isActive: z.boolean().default(true)
   });
@@ -282,13 +282,29 @@ export default function Courses() {
 
   const handleCreateCourse = (_data: z.infer<typeof courseFormSchema>) => {
     const values = courseForm.getValues() as any;
-    createCourseMutation.mutate(values);
+    // Converter campos numéricos explicitamente
+    const courseData = {
+      ...values,
+      totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
+      workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
+      workloadWeeks: values.workloadWeeks ? Number(values.workloadWeeks) : undefined,
+      price: values.price ? Number(values.price) : undefined,
+    };
+    createCourseMutation.mutate(courseData);
   };
 
   const handleUpdateCourse = (_data: z.infer<typeof courseFormSchema>) => {
     if (!editingCourse) return;
     const values = courseForm.getValues() as any;
-    updateCourseMutation.mutate({ id: editingCourse.id, data: values });
+    // Converter campos numéricos explicitamente
+    const courseData = {
+      ...values,
+      totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
+      workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
+      workloadWeeks: values.workloadWeeks ? Number(values.workloadWeeks) : undefined,
+      price: values.price ? Number(values.price) : undefined,
+    };
+    updateCourseMutation.mutate({ id: editingCourse.id, data: courseData });
   };
 
   const handleEditCourse = (course: Course) => {
@@ -298,8 +314,11 @@ export default function Courses() {
       description: course.description || "",
       language: course.language,
       level: course.level,
-      duration: course.duration || undefined,
+      totalDuration: course.totalDuration || undefined,
+      workloadHours: course.workloadHours || undefined,
+      workloadWeeks: course.workloadWeeks || undefined,
       price: course.price || undefined,
+      bookId: course.bookId || "",
       isActive: course.isActive
     });
   };
