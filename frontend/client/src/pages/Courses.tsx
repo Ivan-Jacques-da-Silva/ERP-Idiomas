@@ -42,7 +42,6 @@ export default function Courses() {
     duration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     totalDuration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     workloadHours: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
-    workloadWeeks: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     price: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     teachingGuideType: z.string().optional(),
     teachingGuideUrl: z.string().optional(),
@@ -71,7 +70,6 @@ export default function Courses() {
       duration: undefined,
       totalDuration: undefined,
       workloadHours: undefined,
-      workloadWeeks: undefined,
       price: undefined,
       teachingGuideType: "",
       teachingGuideUrl: "",
@@ -292,7 +290,6 @@ export default function Courses() {
       duration: values.duration ? Number(values.duration) : undefined,
       totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
       workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
-      workloadWeeks: values.workloadWeeks ? Number(values.workloadWeeks) : undefined,
       price: values.price ? Number(values.price) : undefined,
     };
     createCourseMutation.mutate(courseData);
@@ -307,7 +304,6 @@ export default function Courses() {
       duration: values.duration ? Number(values.duration) : undefined,
       totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
       workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
-      workloadWeeks: values.workloadWeeks ? Number(values.workloadWeeks) : undefined,
       price: values.price ? Number(values.price) : undefined,
     };
     updateCourseMutation.mutate({ id: editingCourse.id, data: courseData });
@@ -322,7 +318,6 @@ export default function Courses() {
       duration: course.duration || undefined,
       totalDuration: course.totalDuration || undefined,
       workloadHours: course.workloadHours || undefined,
-      workloadWeeks: course.workloadWeeks || undefined,
       price: course.price || undefined,
       teachingGuideType: (course as any).teachingGuideType || "",
       teachingGuideUrl: (course as any).teachingGuideUrl || "",
@@ -667,7 +662,6 @@ export default function Courses() {
                       duration: 180,
                       totalDuration: 180,
                       workloadHours: 120,
-                      workloadWeeks: 24,
                       price: 599,
                       teachingGuideType: "pdf",
                       teachingGuideUrl: "https://example.com/guide.pdf",
@@ -779,7 +773,7 @@ export default function Courses() {
                   <FormMessage />
                 </FormItem>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={courseForm.control}
                     name="workloadHours"
@@ -791,25 +785,6 @@ export default function Courses() {
                             type="number"
                             placeholder="120"
                             data-testid="input-course-workload-hours"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={courseForm.control}
-                    name="workloadWeeks"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Semanas</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="12"
-                            data-testid="input-course-workload-weeks"
                             {...field}
                           />
                         </FormControl>
@@ -1229,7 +1204,7 @@ export default function Courses() {
                   <FormMessage />
                 </FormItem>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={courseForm.control}
                     name="workloadHours"
@@ -1238,20 +1213,6 @@ export default function Courses() {
                         <FormLabel>Carga Horária (horas)</FormLabel>
                         <FormControl>
                           <Input type="number" data-testid="input-edit-course-workload-hours" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={courseForm.control}
-                    name="workloadWeeks"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Semanas</FormLabel>
-                        <FormControl>
-                          <Input type="number" data-testid="input-edit-course-workload-weeks" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
