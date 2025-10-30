@@ -52,9 +52,10 @@ export default function Courses() {
   });
 
   const bookFormSchema = z.object({
+    courseId: z.string().min(1, "Curso é obrigatório"),
     name: z.string().min(1, "Nome é obrigatório"),
     description: z.string().optional(),
-    numberOfUnits: z.coerce.number().min(1).max(10, "Número de unidades deve ser entre 1 e 10"),
+    numberOfUnits: z.coerce.number().min(1, "Número de unidades deve ser pelo menos 1"),
     displayOrder: z.coerce.number().min(1, "Ordem deve ser pelo menos 1"),
     color: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor deve estar em formato hexadecimal válido"),
     isActive: z.boolean().default(true)
@@ -88,6 +89,7 @@ export default function Courses() {
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
+      courseId: "",
       name: "",
       description: "",
       numberOfUnits: 10,
@@ -334,13 +336,8 @@ export default function Courses() {
     });
   };
 
-  const handleCreateBook = (_data: z.infer<typeof bookFormSchema>) => {
-    const values = bookForm.getValues() as any;
-    if (!values.courseId) {
-      toast({ title: "Erro", description: "Selecione um curso", variant: "destructive" });
-      return;
-    }
-    createBookMutation.mutate(values as any);
+  const handleCreateBook = (data: z.infer<typeof bookFormSchema>) => {
+    createBookMutation.mutate(data);
   };
 
   const handleUpdateBook = (_data: z.infer<typeof bookFormSchema>) => {
@@ -352,11 +349,11 @@ export default function Courses() {
   const handleEditBook = (book: Book) => {
     setEditingBook(book);
     bookForm.reset({
+      courseId: book.courseId || "",
       name: book.name,
       description: book.description || "",
+      numberOfUnits: book.numberOfUnits,
       color: book.color,
-      totalDays: book.totalDays ?? 30,
-      courseId: book.courseId,
       displayOrder: book.displayOrder ?? 1,
       isActive: book.isActive
     });
@@ -863,7 +860,7 @@ export default function Courses() {
 
         {/* Create Book Dialog */}
         <Dialog open={isCreateBookOpen} onOpenChange={setIsCreateBookOpen}>
-          <DialogContent data-testid="dialog-create-book" className="max-w-2xl">
+          <DialogContent data-testid="dialog-create-book" className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingBook ? 'Editar Livro' : 'Novo Livro'}
@@ -871,26 +868,30 @@ export default function Courses() {
             </DialogHeader>
             <Form {...bookForm}>
               <form onSubmit={bookForm.handleSubmit(editingBook ? handleUpdateBook : handleCreateBook)} className="space-y-4">
-                {!editingBook && (
-                  <FormItem>
-                    <FormLabel>Curso</FormLabel>
-                    <Select onValueChange={(value) => bookForm.setValue('courseId' as any, value)} defaultValue={selectedCourse?.id}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-book-course">
-                          <SelectValue placeholder="Selecione um curso" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Array.isArray(courses) && courses.map((course) => (
-                          <SelectItem key={course.id} value={course.id}>
-                            {course.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                <FormField
+                  control={bookForm.control}
+                  name="courseId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Curso *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={selectedCourse?.id || field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-book-course">
+                            <SelectValue placeholder="Selecione um curso" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Array.isArray(courses) && courses.map((course) => (
+                            <SelectItem key={course.id} value={course.id}>
+                              {course.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={bookForm.control}
@@ -931,54 +932,18 @@ export default function Courses() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={bookForm.control}
-                    name="color"
+                    name="numberOfUnits"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Cor do Livro</FormLabel>
+                        <FormLabel>Número de Unidades</FormLabel>
                         <FormControl>
-                          <div className="space-y-3">
-                            {/* Color Preview */}
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="w-8 h-8 rounded-md border-2 border-muted shadow-sm"
-                                style={{ backgroundColor: field.value }}
-                              ></div>
-                              <span className="text-sm text-muted-foreground">Preview</span>
-                            </div>
-
-                            {/* Predefined Color Swatches */}
-                            <div className="grid grid-cols-5 gap-2">
-                              {predefinedColors.map((color) => (
-                                <button
-                                  key={color}
-                                  type="button"
-                                  className={`w-8 h-8 rounded-md border-2 transition-all hover:scale-110 ${field.value === color ? 'border-primary' : 'border-muted'
-                                    }`}
-                                  style={{ backgroundColor: color }}
-                                  onClick={() => field.onChange(color)}
-                                  aria-label={`Select color ${color}`}
-                                />
-                              ))}
-                            </div>
-
-                            {/* Color Input and Hex Input */}
-                            <div className="flex gap-2">
-                              <input
-                                type="color"
-                                value={field.value}
-                                onChange={(e) => field.onChange(e.target.value)}
-                                className="w-12 h-10 rounded border cursor-pointer"
-                                data-testid="input-book-color"
-                              />
-                              <Input
-                                value={field.value}
-                                onChange={(e) => field.onChange(e.target.value)}
-                                placeholder="#3b82f6"
-                                data-testid="input-book-color-hex"
-                                className="flex-1"
-                              />
-                            </div>
-                          </div>
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="10"
+                            data-testid="input-book-units"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -987,16 +952,16 @@ export default function Courses() {
 
                   <FormField
                     control={bookForm.control}
-                    name="totalDays"
+                    name="displayOrder"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Total de Dias</FormLabel>
+                        <FormLabel>Ordem de Exibição</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min="1"
-                            placeholder="30"
-                            data-testid="input-book-total-days"
+                            placeholder="1"
+                            data-testid="input-book-order"
                             {...field}
                           />
                         </FormControl>
@@ -1006,47 +971,80 @@ export default function Courses() {
                   />
                 </div>
 
-                {/* Carga Semanal e Marcadores */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Carga Semanal</FormLabel>
-                    <FormControl>
-                      <Input placeholder="01 hora semanal" data-testid="input-book-weekly-hours" {...bookForm.register('weeklyHours' as any)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                <FormField
+                  control={bookForm.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cor do Livro</FormLabel>
+                      <FormControl>
+                        <div className="space-y-3">
+                          {/* Color Preview */}
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-md border-2 border-muted shadow-sm"
+                              style={{ backgroundColor: field.value }}
+                            ></div>
+                            <span className="text-sm text-muted-foreground">Preview da cor</span>
+                          </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasConversation' as any)} /> Conversation
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasListening' as any)} /> Listening
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasCheckpoint' as any)} /> Checkpoint
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...bookForm.register('hasReview' as any)} /> Review
-                    </label>
-                  </div>
-                </div>
+                          {/* Predefined Color Swatches */}
+                          <div className="grid grid-cols-10 gap-2">
+                            {predefinedColors.map((color) => (
+                              <button
+                                key={color}
+                                type="button"
+                                className={`w-8 h-8 rounded-md border-2 transition-all hover:scale-110 ${field.value === color ? 'border-primary ring-2 ring-primary' : 'border-muted'
+                                  }`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => field.onChange(color)}
+                                aria-label={`Select color ${color}`}
+                              />
+                            ))}
+                          </div>
 
-                {/* PDF Upload Section */}
-                {editingBook && (
-                  <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      <span className="font-medium">PDF do Livro</span>
-                    </div>
-
-                    {editingBook.pdfUrl ? (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Eye className="w-4 h-4 text-primary" />
-                          <span className="text-sm">PDF disponível</span>
+                          {/* Color Input and Hex Input */}
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={field.value}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              className="w-12 h-10 rounded border cursor-pointer"
+                              data-testid="input-book-color"
+                            />
+                            <Input
+                              value={field.value}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              placeholder="#3b82f6"
+                              data-testid="input-book-color-hex"
+                              className="flex-1"
+                            />
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Seção de Upload de Materiais */}
+                {editingBook && (
+                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Upload className="w-5 h-5" />
+                      Materiais do Livro
+                    </h3>
+
+                    {/* PDF Upload */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-red-500" />
+                        PDF do Livro
+                      </Label>
+                      {editingBook.pdfUrl ? (
+                        <div className="flex items-center gap-2 p-3 bg-background rounded-md border">
+                          <FileText className="w-5 h-5 text-red-500" />
+                          <span className="flex-1 text-sm">PDF anexado</span>
                           <Button
                             type="button"
                             size="sm"
@@ -1054,7 +1052,7 @@ export default function Courses() {
                             onClick={() => window.open(editingBook.pdfUrl!, '_blank')}
                           >
                             <Eye className="w-4 h-4 mr-1" />
-                            Ver PDF
+                            Visualizar
                           </Button>
                           <Button
                             type="button"
@@ -1067,20 +1065,61 @@ export default function Courses() {
                             {uploadingPdf === editingBook.id ? 'Enviando...' : 'Substituir'}
                           </Button>
                         </div>
-                      </div>
-                    ) : (
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openPdfFileDialog(editingBook.id)}
+                          disabled={uploadingPdf === editingBook.id}
+                          className="w-full h-24 border-dashed"
+                        >
+                          <div className="flex flex-col items-center gap-2">
+                            <FileText className="w-8 h-8 text-muted-foreground" />
+                            <span>{uploadingPdf === editingBook.id ? 'Enviando...' : 'Clique para selecionar PDF'}</span>
+                          </div>
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Audio Upload */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Music className="w-4 h-4 text-purple-500" />
+                        Áudios ({editingBook.audioUrls?.length || 0} arquivo(s))
+                      </Label>
                       <Button
                         type="button"
-                        size="sm"
                         variant="outline"
-                        onClick={() => openPdfFileDialog(editingBook.id)}
-                        disabled={uploadingPdf === editingBook.id}
-                        className="w-full"
+                        onClick={() => openAudioFileDialog(editingBook.id)}
+                        disabled={uploadingBook === editingBook.id}
+                        className="w-full h-20 border-dashed"
                       >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {uploadingPdf === editingBook.id ? 'Enviando...' : 'Fazer Upload do PDF'}
+                        <div className="flex flex-col items-center gap-2">
+                          <Music className="w-7 h-7 text-muted-foreground" />
+                          <span>{uploadingBook === editingBook.id ? 'Enviando...' : 'Clique para selecionar áudios (múltiplos)'}</span>
+                        </div>
                       </Button>
-                    )}
+                    </div>
+
+                    {/* Video Upload */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-blue-500" />
+                        Vídeos ({editingBook.videoUrls?.length || 0} arquivo(s))
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => openVideoFileDialog(editingBook.id)}
+                        disabled={uploadingBook === editingBook.id}
+                        className="w-full h-20 border-dashed"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <Video className="w-7 h-7 text-muted-foreground" />
+                          <span>{uploadingBook === editingBook.id ? 'Enviando...' : 'Clique para selecionar vídeos (múltiplos)'}</span>
+                        </div>
+                      </Button>
+                    </div>
                   </div>
                 )}
 

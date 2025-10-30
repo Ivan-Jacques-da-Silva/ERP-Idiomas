@@ -396,9 +396,10 @@ export const courses = pgTable("courses", {
 // Books table - livros independentes que podem ser associados a cursos
 export const books = pgTable("books", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").references(() => courses.id, { onDelete: 'cascade' }), // Vinculado ao curso
   name: varchar("name").notNull(),
   description: text("description"),
-  numberOfUnits: integer("number_of_units").default(10).notNull(), // Número de unidades (1-10)
+  numberOfUnits: integer("number_of_units").default(10).notNull(), // Número de unidades (sem limite máximo)
   pdfUrl: varchar("pdf_url"), // PDF do livro
   audioUrls: text("audio_urls").array(), // URLs de áudios
   videoUrls: text("video_urls").array(), // URLs de vídeos
@@ -813,11 +814,15 @@ export const financialResponsiblesRelations = relations(financialResponsibles, (
 }));
 
 export const coursesRelations = relations(courses, ({ many }) => ({
+  books: many(books),
   studentEnrollments: many(studentCourseEnrollments),
 }));
 
-export const booksRelations = relations(books, ({ many }) => ({
-  courses: many(courses),
+export const booksRelations = relations(books, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [books.courseId],
+    references: [courses.id],
+  }),
   classes: many(classes),
   units: many(courseUnits),
   workbooks: many(courseWorkbooks),
