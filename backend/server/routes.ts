@@ -1193,7 +1193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================================================
-  // TEACHER SCHEDULE ROUTES
+  // TEACHER SCHEDULEROUTES
   // ============================================================================
 
   app.get("/api/teachers", auth.requireAdminOrSecretary, async (req, res) => {
@@ -1799,7 +1799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================================================
-  // UNIT DAYS ROUTES
+  // UNIT DAYSROUTES
   // ============================================================================
 
   app.get("/api/unit-days/unit/:unitId", auth.isAuthenticated, async (req, res) => {
@@ -1866,7 +1866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================================================
-  // UNIT DAY ACTIVITIES ROUTES
+  // UNIT DAY ACTIVITIESROUTES
   // ============================================================================
 
   app.get("/api/unit-day-activities/day/:dayId", auth.isAuthenticated, async (req, res) => {

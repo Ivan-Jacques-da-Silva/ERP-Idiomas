@@ -47,7 +47,6 @@ export default function Courses() {
     duration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     totalDuration: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     workloadHours: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
-    price: z.union([z.string(), z.number()]).optional().transform(val => val ? Number(val) : undefined),
     teachingGuideType: z.string().optional(),
     teachingGuideUrl: z.string().optional(),
     audioUrl: z.string().optional(),
@@ -76,7 +75,6 @@ export default function Courses() {
       duration: undefined,
       totalDuration: undefined,
       workloadHours: undefined,
-      price: undefined,
       teachingGuideType: "",
       teachingGuideUrl: "",
       audioUrl: "",
@@ -296,7 +294,6 @@ export default function Courses() {
       duration: values.duration ? Number(values.duration) : undefined,
       totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
       workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
-      price: values.price ? Number(values.price) : undefined,
     };
     createCourseMutation.mutate(courseData);
   };
@@ -310,7 +307,6 @@ export default function Courses() {
       duration: values.duration ? Number(values.duration) : undefined,
       totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
       workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
-      price: values.price ? Number(values.price) : undefined,
     };
     updateCourseMutation.mutate({ id: editingCourse.id, data: courseData });
   };
@@ -318,18 +314,17 @@ export default function Courses() {
   const handleEditCourse = (course: Course) => {
     setEditingCourse(course);
     courseForm.reset({
-      name: course.name,
+      name: course.name || "",
       description: course.description || "",
       language: (course as any).language || "Inglês",
-      level: course.level,
+      level: course.level || "Básico",
       duration: course.duration || undefined,
       totalDuration: course.totalDuration || undefined,
       workloadHours: course.workloadHours || undefined,
-      price: course.price || undefined,
       teachingGuideType: (course as any).teachingGuideType || "",
       teachingGuideUrl: (course as any).teachingGuideUrl || "",
       audioUrl: (course as any).audioUrl || "",
-      isActive: course.isActive
+      isActive: course.isActive ?? true
     });
   };
 
@@ -573,10 +568,11 @@ export default function Courses() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span>Duração: {course.duration}h</span>
-                        <span className="font-semibold">R$ {course.price}</span>
-                      </div>
+                      {course.duration && (
+                        <div className="mb-4 text-sm">
+                          <span>Duração: {course.duration}h</span>
+                        </div>
+                      )}
                       <div className="mt-4">
                         <p className="text-sm mb-2">Livros: {getBooksByCourseid(course.id).length}</p>
                         <Button
@@ -752,7 +748,6 @@ export default function Courses() {
                       duration: 180,
                       totalDuration: 180,
                       workloadHours: 120,
-                      price: 599,
                       teachingGuideType: "pdf",
                       teachingGuideUrl: "https://example.com/guide.pdf",
                       audioUrl: "https://example.com/audio.mp3",
@@ -882,45 +877,24 @@ export default function Courses() {
                   </FormItem>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={courseForm.control}
-                    name="workloadHours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Carga Horária (horas)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="120"
-                            data-testid="input-course-workload-hours"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={courseForm.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preço (R$)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="299"
-                            data-testid="input-course-price"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={courseForm.control}
+                  name="workloadHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Carga Horária (horas)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="120"
+                          data-testid="input-course-workload-hours"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="flex gap-2 justify-end pt-4">
                   <Button
@@ -1403,35 +1377,19 @@ export default function Courses() {
                   </FormItem>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={courseForm.control}
-                    name="workloadHours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Carga Horária (horas)</FormLabel>
-                        <FormControl>
-                          <Input type="number" data-testid="input-edit-course-workload-hours" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={courseForm.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preço (R$)</FormLabel>
-                        <FormControl>
-                          <Input type="number" data-testid="input-edit-course-price" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={courseForm.control}
+                  name="workloadHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Carga Horária (horas)</FormLabel>
+                      <FormControl>
+                        <Input type="number" data-testid="input-edit-course-workload-hours" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="flex gap-2 justify-end">
                   <Button type="button" variant="outline" onClick={() => { setEditingCourse(null); courseForm.reset(); }}>
