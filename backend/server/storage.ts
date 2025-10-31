@@ -706,7 +706,9 @@ export async function getCourseWithBooksBasic(courseId: string): Promise<(Course
 // ============================================================================
 
 export async function createCourse(data: InsertCourse): Promise<Course> {
+  console.log("💾 Salvando curso no banco com dados:", data);
   const [course] = await db.insert(courses).values(data).returning();
+  console.log("✅ Curso salvo:", course);
   return course;
 }
 
@@ -720,11 +722,13 @@ export async function getCourse(id: string): Promise<Course | undefined> {
 }
 
 export async function updateCourse(id: string, data: Partial<InsertCourse>): Promise<Course> {
+  console.log("💾 Atualizando curso no banco com dados:", data);
   const [course] = await db
     .update(courses)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(courses.id, id))
     .returning();
+  console.log("✅ Curso atualizado:", course);
   return course;
 }
 

@@ -892,9 +892,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/courses", auth.requireAdminOrSecretary, async (req, res) => {
     try {
-      const courseData = req.body;
-      const result = insertCourseSchema.parse(courseData);
-      const course = await storage.createCourse(result);
+      console.log("📝 Dados recebidos para criar curso:", req.body);
+      const courseData = insertCourseSchema.parse(req.body);
+      console.log("✅ Dados validados:", courseData);
+      const course = await storage.createCourse(courseData);
+      console.log("💾 Curso salvo no banco:", course);
       res.status(201).json(course);
     } catch (error: any) {
       console.error("Error creating course:", error);
@@ -916,8 +918,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/courses/:id", auth.requireAdminOrSecretary, async (req, res) => {
     try {
+      console.log("📝 Dados recebidos para atualizar curso:", req.body);
       const courseData = insertCourseSchema.partial().parse(req.body);
+      console.log("✅ Dados validados:", courseData);
       const course = await storage.updateCourse(req.params.id, courseData);
+      console.log("💾 Curso atualizado no banco:", course);
       res.json(course);
     } catch (error: any) {
       console.error("Error updating course:", error);

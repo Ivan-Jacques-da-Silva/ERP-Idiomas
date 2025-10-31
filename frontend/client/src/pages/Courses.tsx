@@ -569,13 +569,12 @@ export default function Courses() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
-                      {course.duration && (
+                      {course.workloadHours && (
                         <div className="mb-4 text-sm">
-                          <span>Duração: {course.duration}h</span>
+                          <span className="font-medium">Carga Horária:</span> {course.workloadHours}h
                         </div>
                       )}
                       <div className="mt-4">
-                        <p className="text-sm mb-2">Livros: {getBooksByCourseid(course.id).length}</p>
                         <Button
                           size="sm"
                           variant="outline"
