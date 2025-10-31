@@ -288,26 +288,44 @@ export default function Courses() {
 
   const handleCreateCourse = (_data: z.infer<typeof courseFormSchema>) => {
     const values = courseForm.getValues() as any;
+    console.log("📤 Dados do formulário antes de enviar:", values);
     // Converter campos numéricos explicitamente
     const courseData = {
-      ...values,
+      name: values.name,
+      description: values.description,
+      language: values.language,
+      level: values.level,
       duration: values.duration ? Number(values.duration) : undefined,
       totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
       workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
+      teachingGuideType: values.teachingGuideType || undefined,
+      teachingGuideUrl: values.teachingGuideUrl || undefined,
+      audioUrl: values.audioUrl || undefined,
+      isActive: values.isActive,
     };
+    console.log("📤 Dados processados para enviar:", courseData);
     createCourseMutation.mutate(courseData);
   };
 
   const handleUpdateCourse = (_data: z.infer<typeof courseFormSchema>) => {
     if (!editingCourse) return;
     const values = courseForm.getValues() as any;
+    console.log("📤 Dados do formulário antes de enviar:", values);
     // Converter campos numéricos explicitamente
     const courseData = {
-      ...values,
+      name: values.name,
+      description: values.description,
+      language: values.language,
+      level: values.level,
       duration: values.duration ? Number(values.duration) : undefined,
       totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
       workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
+      teachingGuideType: values.teachingGuideType || undefined,
+      teachingGuideUrl: values.teachingGuideUrl || undefined,
+      audioUrl: values.audioUrl || undefined,
+      isActive: values.isActive,
     };
+    console.log("📤 Dados processados para enviar:", courseData);
     updateCourseMutation.mutate({ id: editingCourse.id, data: courseData });
   };
 
@@ -1352,29 +1370,42 @@ export default function Courses() {
 
                 {/* Guia de Ensino */}
                 <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Guia de Ensino (tipo)</FormLabel>
-                    <Select onValueChange={(v) => courseForm.setValue('teachingGuideType' as any, v as any)}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-edit-course-teaching-guide-type">
-                          <SelectValue placeholder="PDF, Vídeo ou Áudio" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="video">Vídeo</SelectItem>
-                        <SelectItem value="audio">Áudio</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
+                  <FormField
+                    control={courseForm.control}
+                    name="teachingGuideType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Guia de Ensino (tipo)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-edit-course-teaching-guide-type">
+                              <SelectValue placeholder="PDF, Vídeo ou Áudio" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pdf">PDF</SelectItem>
+                            <SelectItem value="video">Vídeo</SelectItem>
+                            <SelectItem value="audio">Áudio</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  <FormItem>
-                    <FormLabel>URL do Guia de Ensino</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://..." data-testid="input-edit-course-teaching-guide-url" {...courseForm.register('teachingGuideUrl' as any)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <FormField
+                    control={courseForm.control}
+                    name="teachingGuideUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL do Guia de Ensino</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://..." data-testid="input-edit-course-teaching-guide-url" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <FormField
