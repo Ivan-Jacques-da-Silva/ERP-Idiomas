@@ -4,6 +4,15 @@ EduManage is a comprehensive school management system designed specifically for 
 
 # Recent Changes
 
+**October 31, 2025**:
+- Fixed course schema validation: Removed stale `price` field reference from `insertCourseSchema` that was causing TypeScript errors
+- Updated course schema to ensure all fields are properly saved and retrieved during create/edit operations:
+  - `teachingGuideType`: Type of teaching guide (PDF or video)
+  - `teachingGuideUrl`: URL of the teaching guide
+  - `workloadHours`: Course workload in hours
+  - `totalDuration`, `workloadWeeks`, `audioUrl`: Additional course metadata fields
+- Synchronized schema definitions between `backend/shared/schema.ts` and `backend/shared/schema.js`
+
 **October 30, 2025**:
 - Added `language` field to courses (migration 0008): Required field with predefined language options (Inglês, Espanhol, Francês, Alemão, Italiano, Português, Outro)
 - Enhanced book creation: Users can now upload PDF, audio, and video files during initial book creation (not just when editing)
