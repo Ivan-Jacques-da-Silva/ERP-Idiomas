@@ -187,7 +187,7 @@ export const units = pgTable("units", {
   phone: varchar("phone"),
   email: varchar("email"),
   managerId: varchar("manager_id").references(() => users.id),
-  
+
   // Dados do Franqueado
   franchiseeName: varchar("franchisee_name"),
   franchiseeCpf: varchar("franchisee_cpf"),
@@ -201,7 +201,7 @@ export const units = pgTable("units", {
   franchiseeCurriculumDoc: varchar("franchisee_curriculum_doc"),
   franchiseeAssetsDoc: varchar("franchisee_assets_doc"),
   franchiseeIncomeDoc: varchar("franchisee_income_doc"),
-  
+
   // Dados PJ
   franchiseeSocialContractDoc: varchar("franchisee_social_contract_doc"),
   franchiseeCnpj: varchar("franchisee_cnpj"),
@@ -210,20 +210,20 @@ export const units = pgTable("units", {
   franchiseeStateRegistrationDoc: varchar("franchisee_state_registration_doc"),
   franchiseePartnersDocsDoc: varchar("franchisee_partners_docs_doc"),
   franchiseeCertificatesDoc: varchar("franchisee_certificates_doc"),
-  
+
   // Dados Financeiros
   financialCapitalDoc: varchar("financial_capital_doc"),
   financialCashFlowDoc: varchar("financial_cash_flow_doc"),
   financialTaxReturnsDoc: varchar("financial_tax_returns_doc"),
   financialBankReferences: text("financial_bank_references"),
   financialBankReferencesDoc: varchar("financial_bank_references_doc"),
-  
+
   // Dados Imobiliários
   realEstateLocation: text("real_estate_location"),
   realEstatePropertyDoc: varchar("real_estate_property_doc"),
   realEstateLeaseDoc: varchar("real_estate_lease_doc"),
   realEstateFloorPlanDoc: varchar("real_estate_floor_plan_doc"),
-  
+
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -234,16 +234,16 @@ export const staff = pgTable("staff", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   unitId: varchar("unit_id").references(() => units.id),
-  
+
   // Informações pessoais
   cpf: varchar("cpf", { length: 14 }),
   birthDate: timestamp("birth_date"),
   gender: genderEnum("gender"),
-  
+
   // Contatos
   phone: varchar("phone"),
   whatsapp: varchar("whatsapp"),
-  
+
   // Endereço
   cep: varchar("cep", { length: 9 }),
   address: text("address"),
@@ -252,12 +252,12 @@ export const staff = pgTable("staff", {
   neighborhood: varchar("neighborhood"),
   city: varchar("city"),
   state: varchar("state"),
-  
+
   // Informações profissionais - position agora é varchar livre
   position: varchar("position"), // ex: "Professor de Inglês", "Coordenador", etc
   department: varchar("department"),
   hireDate: timestamp("hire_date"),
-  
+
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -266,19 +266,19 @@ export const staff = pgTable("staff", {
 // Guardians table - responsáveis legais
 export const guardians = pgTable("guardians", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+
   // Informações pessoais
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
   cpf: varchar("cpf", { length: 14 }),
   birthDate: timestamp("birth_date"),
   gender: genderEnum("gender"),
-  
+
   // Contatos
   email: varchar("email"),
   phone: varchar("phone"),
   whatsapp: varchar("whatsapp"),
-  
+
   // Endereço
   cep: varchar("cep", { length: 9 }),
   address: text("address"),
@@ -287,10 +287,10 @@ export const guardians = pgTable("guardians", {
   neighborhood: varchar("neighborhood"),
   city: varchar("city"),
   state: varchar("state"),
-  
+
   // Relação com o aluno
   relationship: varchar("relationship"),
-  
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -299,19 +299,19 @@ export const guardians = pgTable("guardians", {
 export const financialResponsibles = pgTable("financial_responsibles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   guardianId: varchar("guardian_id").references(() => guardians.id, { onDelete: 'cascade' }).notNull(),
-  
+
   // Informações pessoais
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
   cpf: varchar("cpf", { length: 14 }),
   birthDate: timestamp("birth_date"),
   gender: genderEnum("gender"),
-  
+
   // Contatos
   email: varchar("email"),
   phone: varchar("phone"),
   whatsapp: varchar("whatsapp"),
-  
+
   // Endereço
   cep: varchar("cep", { length: 9 }),
   address: text("address"),
@@ -320,10 +320,10 @@ export const financialResponsibles = pgTable("financial_responsibles", {
   neighborhood: varchar("neighborhood"),
   city: varchar("city"),
   state: varchar("state"),
-  
+
   // Relação com o responsável legal
   relationship: varchar("relationship"),
-  
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -334,16 +334,16 @@ export const students = pgTable("students", {
   userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   studentId: varchar("student_id").unique(),
   unitId: varchar("unit_id").references(() => units.id),
-  
+
   // Informações pessoais
   cpf: varchar("cpf", { length: 14 }),
   birthDate: timestamp("birth_date"),
   gender: genderEnum("gender"),
-  
+
   // Contatos
   phone: varchar("phone"),
   whatsapp: varchar("whatsapp"),
-  
+
   // Endereço
   cep: varchar("cep", { length: 9 }),
   address: text("address"),
@@ -352,18 +352,18 @@ export const students = pgTable("students", {
   neighborhood: varchar("neighborhood"),
   city: varchar("city"),
   state: varchar("state"),
-  
+
   // Informações de cobrança
   billingType: billingTypeEnum("billing_type"),
-  
+
   // Responsável (se menor de idade)
   guardianId: varchar("guardian_id").references(() => guardians.id),
-  
+
   enrollmentDate: timestamp("enrollment_date"),
   status: varchar("status").default('active').notNull(),
   emergencyContact: text("emergency_contact"),
   notes: text("notes"),
-  
+
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -384,7 +384,6 @@ export const courses = pgTable("courses", {
   totalDuration: integer("total_duration"), // Duração total do curso em dias/semanas
   workloadHours: integer("workload_hours"), // Carga horária em horas
   workloadWeeks: integer("workload_weeks"), // Carga horária em semanas
-  price: integer("price"), // Preço em centavos
   teachingGuideType: varchar("teaching_guide_type"), // 'pdf' ou 'video'
   teachingGuideUrl: varchar("teaching_guide_url"), // URL do guia de ensino
   audioUrl: varchar("audio_url"), // URL do áudio do curso
@@ -688,15 +687,15 @@ export const supportTicketResponses = pgTable("support_ticket_responses", {
 export const franchiseUnits = pgTable("franchise_units", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   entityType: varchar("entity_type").notNull(),
-  
+
   // Dados básicos
   fullName: text("full_name"),
   cpf: varchar("cpf"),
   cnpj: varchar("cnpj"),
-  
+
   // Documentos (JSON com URLs)
   documents: text("documents"), // JSON com todos os documentos
-  
+
   // Status
   status: varchar("status").default('pending').notNull(),
   isActive: boolean("is_active").default(true).notNull(),
@@ -1066,13 +1065,13 @@ export const insertCourseSchema = createInsertSchema(courses)
     id: true,
     createdAt: true,
     updatedAt: true,
+    price: true,
   })
   .extend({
     duration: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
     totalDuration: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
     workloadHours: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
     workloadWeeks: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
-    price: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
     teachingGuideType: z.string().optional(),
     teachingGuideUrl: z.string().optional(),
     audioUrl: z.string().optional(),

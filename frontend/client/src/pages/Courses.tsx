@@ -870,29 +870,42 @@ export default function Courses() {
 
                 {/* Guia de Ensino */}
                 <div className="grid grid-cols-2 gap-4">
-                  <FormItem>
-                    <FormLabel>Guia de Ensino (tipo)</FormLabel>
-                    <Select onValueChange={(v) => courseForm.setValue('teachingGuideType' as any, v as any)}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-course-teaching-guide-type">
-                          <SelectValue placeholder="PDF, Vídeo ou Áudio" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="video">Vídeo</SelectItem>
-                        <SelectItem value="audio">Áudio</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
+                  <FormField
+                    control={courseForm.control}
+                    name="teachingGuideType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Guia de Ensino (tipo)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-course-teaching-guide-type">
+                              <SelectValue placeholder="PDF, Vídeo ou Áudio" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pdf">PDF</SelectItem>
+                            <SelectItem value="video">Vídeo</SelectItem>
+                            <SelectItem value="audio">Áudio</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  <FormItem>
-                    <FormLabel>URL do Guia de Ensino</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://..." data-testid="input-course-teaching-guide-url" {...courseForm.register('teachingGuideUrl' as any)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <FormField
+                    control={courseForm.control}
+                    name="teachingGuideUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL do Guia de Ensino</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://..." data-testid="input-course-teaching-guide-url" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <FormField
@@ -907,6 +920,7 @@ export default function Courses() {
                           placeholder="120"
                           data-testid="input-course-workload-hours"
                           {...field}
+                          value={field.value || ""}
                         />
                       </FormControl>
                       <FormMessage />
