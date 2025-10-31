@@ -12,6 +12,9 @@ EduManage is a comprehensive school management system designed specifically for 
   - `workloadHours`: Course workload in hours
   - `totalDuration`, `workloadWeeks`, `audioUrl`: Additional course metadata fields
 - Synchronized schema definitions between `backend/shared/schema.ts` and `backend/shared/schema.js`
+- **Critical fix**: Executed `db:push` to sync database schema - the `courses` table was missing from the database, preventing data persistence
+  - All course-related columns now properly created in database including teaching guide and workload fields
+  - Note: Previous course data was lost as table didn't exist before
 
 **October 30, 2025**:
 - Added `language` field to courses (migration 0008): Required field with predefined language options (Inglês, Espanhol, Francês, Alemão, Italiano, Português, Outro)
