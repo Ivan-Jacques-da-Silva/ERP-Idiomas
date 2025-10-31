@@ -24,7 +24,7 @@ import { z } from "zod";
 export default function Courses() {
   const { toast } = useToast();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [isCreateCourseOpen, setIsCreateCourseOpen] = useState(false);
+  const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false);
   const [isCreateBookOpen, setIsCreateBookOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
@@ -109,31 +109,23 @@ export default function Courses() {
     retry: false,
   });
 
-  // Create course mutation
-  const createCourseMutation = useMutation({
-    mutationFn: (data: z.infer<typeof courseFormSchema>) => apiRequest("POST", "/api/courses", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
-      toast({ title: "Curso criado com sucesso!" });
-      setIsCreateCourseOpen(false);
-      courseForm.reset();
+  // Create/Update course mutation
+  const saveCourseMutation = useMutation({
+    mutationFn: ({ id, data }: { id?: string, data: z.infer<typeof courseFormSchema> }) => {
+      if (id) {
+        return apiRequest("PUT", `/api/courses/${id}`, data);
+      }
+      return apiRequest("POST", "/api/courses", data);
     },
-    onError: (error: any) => {
-      toast({ title: "Erro ao criar curso", description: extractErrorMessage(error), variant: "destructive" });
-    }
-  });
-
-  // Update course mutation
-  const updateCourseMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: z.infer<typeof courseFormSchema> }) => apiRequest("PUT", `/api/courses/${id}`, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
-      toast({ title: "Curso atualizado com sucesso!" });
+      toast({ title: variables.id ? "Curso atualizado com sucesso!" : "Curso criado com sucesso!" });
+      setIsCourseDialogOpen(false);
       setEditingCourse(null);
       courseForm.reset();
     },
     onError: (error: any) => {
-      toast({ title: "Erro ao atualizar curso", description: extractErrorMessage(error), variant: "destructive" });
+      toast({ title: "Erro ao salvar curso", description: extractErrorMessage(error), variant: "destructive" });
     }
   });
 
@@ -286,9 +278,10 @@ export default function Courses() {
     }
   });
 
-  const handleCreateCourse = (_data: z.infer<typeof courseFormSchema>) => {
+  const handleSaveCourse = (_data: z.infer<typeof courseFormSchema>) => {
     const values = courseForm.getValues() as any;
     console.log("📤 Dados do formulário antes de enviar:", values);
+    
     // Converter campos numéricos explicitamente
     const courseData = {
       name: values.name,
@@ -303,35 +296,14 @@ export default function Courses() {
       audioUrl: values.audioUrl || undefined,
       isActive: values.isActive,
     };
+    
     console.log("📤 Dados processados para enviar:", courseData);
-    createCourseMutation.mutate(courseData);
-  };
-
-  const handleUpdateCourse = (_data: z.infer<typeof courseFormSchema>) => {
-    if (!editingCourse) return;
-    const values = courseForm.getValues() as any;
-    console.log("📤 Dados do formulário antes de enviar:", values);
-    // Converter campos numéricos explicitamente
-    const courseData = {
-      name: values.name,
-      description: values.description,
-      language: values.language,
-      level: values.level,
-      duration: values.duration ? Number(values.duration) : undefined,
-      totalDuration: values.totalDuration ? Number(values.totalDuration) : undefined,
-      workloadHours: values.workloadHours ? Number(values.workloadHours) : undefined,
-      teachingGuideType: values.teachingGuideType || undefined,
-      teachingGuideUrl: values.teachingGuideUrl || undefined,
-      audioUrl: values.audioUrl || undefined,
-      isActive: values.isActive,
-    };
-    console.log("📤 Dados processados para enviar:", courseData);
-    updateCourseMutation.mutate({ id: editingCourse.id, data: courseData });
+    saveCourseMutation.mutate({ id: editingCourse?.id, data: courseData });
   };
 
   const handleEditCourse = (course: Course) => {
-    setEditingCourse(course);
     console.log("🔍 Dados do curso para edição:", course);
+    setEditingCourse(course);
     courseForm.reset({
       name: course.name || "",
       description: course.description || "",
@@ -345,6 +317,25 @@ export default function Courses() {
       audioUrl: course.audioUrl || "",
       isActive: course.isActive ?? true
     });
+    setIsCourseDialogOpen(true);
+  };
+
+  const handleNewCourse = () => {
+    setEditingCourse(null);
+    courseForm.reset({
+      name: "",
+      description: "",
+      language: "Inglês",
+      level: "Básico",
+      duration: undefined,
+      totalDuration: undefined,
+      workloadHours: undefined,
+      teachingGuideType: "",
+      teachingGuideUrl: "",
+      audioUrl: "",
+      isActive: true
+    });
+    setIsCourseDialogOpen(true);
   };
 
   const handleCreateBook = async (data: z.infer<typeof bookFormSchema>) => {
@@ -542,7 +533,7 @@ export default function Courses() {
           <TabsContent value="courses" className="space-y-4">
             <div className="flex justify-end">
               <Button
-                onClick={() => setIsCreateCourseOpen(true)}
+                onClick={handleNewCourse}
                 className="gap-2"
                 data-testid="button-create-course"
               >
@@ -747,42 +738,50 @@ export default function Courses() {
           </TabsContent>
         </Tabs>
 
-        {/* Create Course Dialog */}
-        <Dialog open={isCreateCourseOpen} onOpenChange={setIsCreateCourseOpen}>
-          <DialogContent data-testid="dialog-create-course">
+        {/* Course Dialog (Create/Edit) */}
+        <Dialog open={isCourseDialogOpen} onOpenChange={(open) => {
+          setIsCourseDialogOpen(open);
+          if (!open) {
+            setEditingCourse(null);
+            courseForm.reset();
+          }
+        }}>
+          <DialogContent data-testid="dialog-course">
             <DialogHeader>
               <div className="flex items-center justify-between">
-                <DialogTitle>Criar Novo Curso</DialogTitle>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    courseForm.reset({
-                      name: "Inglês Intermediário",
-                      description: "Curso completo de inglês para nível intermediário com foco em conversação e gramática avançada",
-                      language: "Inglês",
-                      level: "Intermediário",
-                      duration: 180,
-                      totalDuration: 180,
-                      workloadHours: 120,
-                      teachingGuideType: "pdf",
-                      teachingGuideUrl: "https://example.com/guide.pdf",
-                      audioUrl: "https://example.com/audio.mp3",
-                      isActive: true
-                    });
-                    toast({
-                      title: "Dados de teste carregados",
-                      description: "Formulário preenchido com dados exemplares",
-                    });
-                  }}
-                >
-                  📝 Dados de Teste
-                </Button>
+                <DialogTitle>{editingCourse ? 'Editar Curso' : 'Criar Novo Curso'}</DialogTitle>
+                {!editingCourse && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      courseForm.reset({
+                        name: "Inglês Intermediário",
+                        description: "Curso completo de inglês para nível intermediário com foco em conversação e gramática avançada",
+                        language: "Inglês",
+                        level: "Intermediário",
+                        duration: 180,
+                        totalDuration: 180,
+                        workloadHours: 120,
+                        teachingGuideType: "pdf",
+                        teachingGuideUrl: "https://example.com/guide.pdf",
+                        audioUrl: "https://example.com/audio.mp3",
+                        isActive: true
+                      });
+                      toast({
+                        title: "Dados de teste carregados",
+                        description: "Formulário preenchido com dados exemplares",
+                      });
+                    }}
+                  >
+                    📝 Dados de Teste
+                  </Button>
+                )}
               </div>
             </DialogHeader>
             <Form {...courseForm}>
-              <form onSubmit={courseForm.handleSubmit(handleCreateCourse)} className="space-y-4">
+              <form onSubmit={courseForm.handleSubmit(handleSaveCourse)} className="space-y-4">
                 <FormField
                   control={courseForm.control}
                   name="name"
@@ -932,16 +931,23 @@ export default function Courses() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsCreateCourseOpen(false)}
+                    onClick={() => {
+                      setIsCourseDialogOpen(false);
+                      setEditingCourse(null);
+                      courseForm.reset();
+                    }}
                   >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
-                    disabled={createCourseMutation.isPending || !courseForm.formState.isValid}
+                    disabled={saveCourseMutation.isPending || !courseForm.formState.isValid}
                     data-testid="button-save-course"
                   >
-                    {createCourseMutation.isPending ? 'Criando...' : 'Criar Curso'}
+                    {saveCourseMutation.isPending 
+                      ? (editingCourse ? 'Atualizando...' : 'Criando...') 
+                      : (editingCourse ? 'Atualizar Curso' : 'Criar Curso')
+                    }
                   </Button>
                 </div>
               </form>
@@ -1317,137 +1323,7 @@ export default function Courses() {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Course Dialog */}
-        <Dialog open={!!editingCourse} onOpenChange={(open) => {
-          if (!open) {
-            setEditingCourse(null);
-            courseForm.reset();
-          }
-        }}>
-          <DialogContent data-testid="dialog-edit-course">
-            <DialogHeader>
-              <DialogTitle>Editar Curso</DialogTitle>
-            </DialogHeader>
-
-            <Form {...courseForm}>
-              <form onSubmit={courseForm.handleSubmit(handleUpdateCourse)} className="space-y-4">
-                <FormField
-                  control={courseForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Curso</FormLabel>
-                      <FormControl>
-                        <Input data-testid="input-edit-course-name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={courseForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea data-testid="input-edit-course-description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={courseForm.control}
-                  name="level"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nível</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-edit-course-level">
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Básico">Básico</SelectItem>
-                          <SelectItem value="Intermediário">Intermediário</SelectItem>
-                          <SelectItem value="Avançado">Avançado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Guia de Ensino */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={courseForm.control}
-                    name="teachingGuideType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Guia de Ensino (tipo)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-edit-course-teaching-guide-type">
-                              <SelectValue placeholder="PDF, Vídeo ou Áudio" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="pdf">PDF</SelectItem>
-                            <SelectItem value="video">Vídeo</SelectItem>
-                            <SelectItem value="audio">Áudio</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={courseForm.control}
-                    name="teachingGuideUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>URL do Guia de Ensino</FormLabel>
-                        <FormControl>
-                          <Input placeholder="https://..." data-testid="input-edit-course-teaching-guide-url" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={courseForm.control}
-                  name="workloadHours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Carga Horária (horas)</FormLabel>
-                      <FormControl>
-                        <Input type="number" data-testid="input-edit-course-workload-hours" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={() => { setEditingCourse(null); courseForm.reset(); }}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={updateCourseMutation.isPending} data-testid="button-update-course">
-                    {updateCourseMutation.isPending ? 'Atualizando...' : 'Atualizar'}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        
 
 
         {/* Edit Book Dialog */}
