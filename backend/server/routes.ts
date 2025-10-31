@@ -30,6 +30,8 @@ import {
   insertFinancialResponsibleSchema,
   insertFranchiseUnitSchema,
   staff,
+  createInsertSchema,
+  courses,
 } from "../shared/schema.js";
 import { z } from "zod";
 import { db } from "./db.js";

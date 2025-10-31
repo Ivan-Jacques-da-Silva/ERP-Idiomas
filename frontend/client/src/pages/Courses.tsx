@@ -313,17 +313,18 @@ export default function Courses() {
 
   const handleEditCourse = (course: Course) => {
     setEditingCourse(course);
+    console.log("🔍 Dados do curso para edição:", course);
     courseForm.reset({
       name: course.name || "",
       description: course.description || "",
-      language: (course as any).language || "Inglês",
+      language: course.language || "Inglês",
       level: course.level || "Básico",
       duration: course.duration || undefined,
       totalDuration: course.totalDuration || undefined,
       workloadHours: course.workloadHours || undefined,
-      teachingGuideType: (course as any).teachingGuideType || "",
-      teachingGuideUrl: (course as any).teachingGuideUrl || "",
-      audioUrl: (course as any).audioUrl || "",
+      teachingGuideType: course.teachingGuideType || "",
+      teachingGuideUrl: course.teachingGuideUrl || "",
+      audioUrl: course.audioUrl || "",
       isActive: course.isActive ?? true
     });
   };

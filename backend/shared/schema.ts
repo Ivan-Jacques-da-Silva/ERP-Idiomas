@@ -1068,11 +1068,11 @@ export const insertCourseSchema = createInsertSchema(courses)
     updatedAt: true,
   })
   .extend({
-    duration: z.number().positive().optional(),
-    totalDuration: z.number().positive().optional(),
-    workloadHours: z.number().positive().optional(),
-    workloadWeeks: z.number().positive().optional(),
-    price: z.number().positive().optional(),
+    duration: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
+    totalDuration: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
+    workloadHours: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
+    workloadWeeks: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
+    price: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
     teachingGuideType: z.string().optional(),
     teachingGuideUrl: z.string().optional(),
     audioUrl: z.string().optional(),
