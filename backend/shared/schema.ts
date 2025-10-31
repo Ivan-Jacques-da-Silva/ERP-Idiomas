@@ -1065,7 +1065,6 @@ export const insertCourseSchema = createInsertSchema(courses)
     id: true,
     createdAt: true,
     updatedAt: true,
-    price: true,
   })
   .extend({
     duration: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),

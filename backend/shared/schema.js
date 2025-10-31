@@ -297,10 +297,12 @@ export const courses = pgTable("courses", {
     language: varchar("language").notNull(),
     level: varchar("level").notNull(),
     duration: integer("duration"),
-    price: integer("price"),
-    teachingGuideUrl: varchar("teaching_guide_url"),
+    totalDuration: integer("total_duration"),
+    workloadHours: integer("workload_hours"),
+    workloadWeeks: integer("workload_weeks"),
     teachingGuideType: varchar("teaching_guide_type"),
-    suggestedWeeklyHours: varchar("suggested_weekly_hours"),
+    teachingGuideUrl: varchar("teaching_guide_url"),
+    audioUrl: varchar("audio_url"),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -818,11 +820,21 @@ export const insertStudentSchema = createInsertSchema(students).omit({
     // Permite que birthDate seja uma string ISO que será convertida para Date
     birthDate: z.string().datetime().optional().transform((val) => val ? new Date(val) : undefined),
 });
-export const insertCourseSchema = createInsertSchema(courses).omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-});
+export const insertCourseSchema = createInsertSchema(courses)
+    .omit({
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+    })
+    .extend({
+        duration: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
+        totalDuration: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
+        workloadHours: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
+        workloadWeeks: z.union([z.number(), z.string()]).optional().transform(val => val ? Number(val) : undefined),
+        teachingGuideType: z.string().optional(),
+        teachingGuideUrl: z.string().optional(),
+        audioUrl: z.string().optional(),
+    });
 export const insertBookSchema = createInsertSchema(books).omit({
     id: true,
     createdAt: true,
