@@ -490,6 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'marketing':
             return 'secretary';
           case 'instrutor':
+          case 'professor':
             return 'teacher';
           default:
             return 'teacher'; // padrão
@@ -572,13 +573,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { firstName, lastName, email, userId, ...staffFields } = req.body;
 
+      // Normalizar position para minúsculo
+      if (staffFields.position) {
+        staffFields.position = staffFields.position.toLowerCase();
+      }
+
+      // Mapear cargo para role automaticamente
+      const getRole = (position: string): string => {
+        switch (position?.toLowerCase()) {
+          case 'ceo':
+          case 'diretor':
+            return 'admin';
+          case 'coordenador':
+          case 'administrativo':
+          case 'financeiro':
+          case 'recepcionista':
+          case 'comercial':
+          case 'marketing':
+            return 'secretary';
+          case 'instrutor':
+          case 'professor':
+            return 'teacher';
+          default:
+            return 'teacher'; // padrão
+        }
+      };
+
       // Atualizar usuário se dados fornecidos
-      if (userId && (firstName || lastName || email)) {
-        await storage.updateUser(userId, {
-          ...(firstName && { firstName }),
-          ...(lastName && { lastName }),
-          ...(email && { email }),
-        });
+      if (userId) {
+        const updateData: any = {};
+        
+        if (firstName) updateData.firstName = firstName;
+        if (lastName) updateData.lastName = lastName;
+        if (email) updateData.email = email;
+        
+        // Atualizar role se position foi alterado
+        if (staffFields.position) {
+          const role = getRole(staffFields.position);
+          const userRole = await storage.getRoleByName(role);
+          if (userRole) {
+            updateData.roleId = userRole.id;
+          }
+        }
+        
+        if (Object.keys(updateData).length > 0) {
+          await storage.updateUser(userId, updateData);
+        }
       }
 
       // Atualizar staff

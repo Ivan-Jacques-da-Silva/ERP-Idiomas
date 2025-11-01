@@ -67,6 +67,7 @@ import type {
   StudentCourseEnrollment,
   GuardianWithFinancial,
   TeacherSchedule,
+  Teacher,
 } from "../shared/schema.js";
 import {
   units,
@@ -842,7 +843,7 @@ export async function deleteClass(id: string): Promise<void> {
   await db.delete(classes).where(eq(classes.id, id));
 }
 
-export async function getTeachers(): Promise<StaffWithUser[]> {
+export async function getTeachers(): Promise<Teacher[]> {
   const result = await db
     .select({
       staff: staff,

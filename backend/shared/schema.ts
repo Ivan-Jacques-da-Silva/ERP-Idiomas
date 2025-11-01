@@ -1289,6 +1289,16 @@ export type GuardianWithFinancial = Guardian & {
   financialResponsible?: FinancialResponsible;
 };
 
+export type Teacher = {
+  id: string;
+  name: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  position: string | null;
+  staffId: string;
+};
+
 export type PermissionsByCategory = Record<string, Permission[]>;
 
 export type CourseWithDetails = Course & {
