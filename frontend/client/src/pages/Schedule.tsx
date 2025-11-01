@@ -144,7 +144,7 @@ export default function Schedule() {
   // });
 
   // Fetch units for filter
-  // const { data: units = [] } = useQuery<any[]>({
+  // const { data: units = [] } = useQuery<any[]>(({
   //   queryKey: ["/api/units"],
   //   enabled: isAuthenticated && (user?.role === 'admin' || user?.role === 'secretary'),
   //   retry: false,
@@ -444,7 +444,7 @@ export default function Schedule() {
               </Button>
             </div>
             <h3 className="text-lg font-semibold text-center sm:text-left">
-              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
+              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 5), "dd MMM yyyy", { locale: ptBR })}
             </h3>
           </div>
 
@@ -643,7 +643,7 @@ export default function Schedule() {
               </Button>
             </div>
             <h3 className="text-lg font-semibold text-center sm:text-left">
-              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
+              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 5), "dd MMM yyyy", { locale: ptBR })}
             </h3>
           </div>
         </div>
