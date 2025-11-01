@@ -73,7 +73,7 @@ interface ClassModalProps {
   defaultStartTime?: string; // Pre-select start time from calendar click
 }
 
-// Monday to Saturday only (removed Sunday)
+// Monday to Saturday only (1-6) - Sunday disabled
 const daysOfWeek = [
   { value: 1, label: "Segunda-feira" },
   { value: 2, label: "Terça-feira" },

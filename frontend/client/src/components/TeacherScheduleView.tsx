@@ -29,7 +29,6 @@ interface TeacherScheduleEntry {
 }
 
 const DAYS_OF_WEEK = [
-  { value: 0, label: 'Domingo', short: 'Dom' },
   { value: 1, label: 'Segunda-feira', short: 'Seg' },
   { value: 2, label: 'Terça-feira', short: 'Ter' },
   { value: 3, label: 'Quarta-feira', short: 'Qua' },

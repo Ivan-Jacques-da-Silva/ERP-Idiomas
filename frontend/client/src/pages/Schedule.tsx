@@ -530,8 +530,8 @@ export default function Schedule() {
                           ))}
                         </div>
 
-                        {/* Add class button for empty slots or when admin */}
-                        {dayClasses.length === 0 && isAdminView && (
+                        {/* Add class button for empty slots or when admin (disabled on Sunday) */}
+                        {dayClasses.length === 0 && isAdminView && day.getDay() !== 0 && (
                           <div
                             className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer bg-muted bg-opacity-50"
                             onClick={() => handleNewClass(day.getDay(), timeSlot)}
