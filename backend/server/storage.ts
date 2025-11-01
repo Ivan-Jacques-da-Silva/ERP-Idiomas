@@ -1,4 +1,4 @@
-replit_final_file>
+import { db } from './db';
 import type {
   InsertUnit,
   InsertStaff,
@@ -906,7 +906,7 @@ export async function getTeacherSchedule(teacherId: string) {
   // Gerar horários disponíveis (8h às 22h, de segunda a sábado)
   const availableSlots = [];
   const timeSlots = [
-    '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
+    '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00',
     '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'
   ];
 
@@ -916,8 +916,8 @@ export async function getTeacherSchedule(teacherId: string) {
       const endTime = timeSlots[i + 1];
 
       // Verificar se este horário não está ocupado
-      const isOccupied = occupiedSlots.some(slot => 
-        slot.dayOfWeek === day && 
+      const isOccupied = occupiedSlots.some(slot =>
+        slot.dayOfWeek === day &&
         slot.startTime === startTime
       );
 
@@ -1466,5 +1466,3 @@ export const storage = {
   updateUnitDayActivity,
   deleteUnitDayActivity,
 };
-
-</replit_final_file>
