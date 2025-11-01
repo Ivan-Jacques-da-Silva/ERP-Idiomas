@@ -269,7 +269,7 @@ export default function Schedule() {
 
   const renderAdminCalendarView = () => {
     // Segunda a Sábado (6 dias)
-    const weekDays = Array.from({ length: 6 }, (_, i) => addDays(currentWeekStart, i));
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)); // Changed to 7 days to include Saturday
     const timeSlots = Array.from({ length: 14 }, (_, i) => `${(8 + i).toString().padStart(2, '0')}:00`); // 08:00 to 21:00
 
     // Dados de agenda administrativa (turmas regulares)
@@ -418,6 +418,39 @@ export default function Schedule() {
         studentsCount: 14,
         maxStudents: 15,
         unitId: '1'
+      },
+      // Adicionando aulas de exemplo para sábado
+      {
+        id: '10',
+        title: 'Inglês Sábado - Manhã',
+        teacher: 'Prof. João Silva',
+        teacherId: 'user-1',
+        book: 'English Basic - Book 1',
+        dayOfWeek: 6, // Sábado
+        startTime: '09:00',
+        endTime: '11:00',
+        room: 'Sala 101',
+        currentDay: 5,
+        totalDays: 30,
+        studentsCount: 12,
+        maxStudents: 15,
+        unitId: '1'
+      },
+      {
+        id: '11',
+        title: 'Espanhol Sábado - Tarde',
+        teacher: 'Prof. Maria Santos',
+        teacherId: 'user-2',
+        book: 'Español Básico - Libro 1',
+        dayOfWeek: 6, // Sábado
+        startTime: '14:00',
+        endTime: '16:00',
+        room: 'Sala 201',
+        currentDay: 4,
+        totalDays: 25,
+        studentsCount: 9,
+        maxStudents: 12,
+        unitId: '1'
       }
     ];
 
@@ -444,7 +477,7 @@ export default function Schedule() {
               </Button>
             </div>
             <h3 className="text-lg font-semibold text-center sm:text-left">
-              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 5), "dd MMM yyyy", { locale: ptBR })}
+              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
             </h3>
           </div>
 
@@ -477,7 +510,7 @@ export default function Schedule() {
         </div>
 
         <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
-          <div className="grid grid-cols-7 gap-0 min-w-[1200px]">
+          <div className="grid grid-cols-8 gap-0 min-w-[1200px]">
             {/* Header row */}
             <div className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">Horário</div>
             {weekDays.map((day) => (
@@ -568,7 +601,7 @@ export default function Schedule() {
 
   const renderTeacherCalendarView = () => {
     // Segunda a Sábado (6 dias)
-    const weekDays = Array.from({ length: 6 }, (_, i) => addDays(currentWeekStart, i));
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)); // Changed to 7 days to include Saturday
     const timeSlots = Array.from({ length: 14 }, (_, i) => `${(8 + i).toString().padStart(2, '0')}:00`);
 
     // Dados específicos do professor
@@ -624,6 +657,20 @@ export default function Schedule() {
         totalDays: 35,
         studentsCount: 10,
         maxStudents: 15
+      },
+      // Adicionando aulas de exemplo para sábado
+      {
+        id: '5',
+        title: 'Inglês Sábado - Manhã',
+        book: 'English Basic - Book 1',
+        dayOfWeek: 6, // Sábado
+        startTime: '09:00',
+        endTime: '11:00',
+        room: 'Sala 101',
+        currentDay: 5,
+        totalDays: 30,
+        studentsCount: 12,
+        maxStudents: 15
       }
     ];
 
@@ -643,13 +690,13 @@ export default function Schedule() {
               </Button>
             </div>
             <h3 className="text-lg font-semibold text-center sm:text-left">
-              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 5), "dd MMM yyyy", { locale: ptBR })}
+              {format(currentWeekStart, "dd MMM", { locale: ptBR })} - {format(addDays(currentWeekStart, 6), "dd MMM yyyy", { locale: ptBR })}
             </h3>
           </div>
         </div>
 
         <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
-          <div className="grid grid-cols-7 gap-0 min-w-[1200px]">
+          <div className="grid grid-cols-8 gap-0 min-w-[1200px]">
             {/* Header */}
             <div className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">Horário</div>
             {weekDays.map((day) => (
