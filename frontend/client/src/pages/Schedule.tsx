@@ -512,7 +512,7 @@ export default function Schedule() {
         <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
           <div className="grid grid-cols-8 gap-0 min-w-[1200px]">
             {/* Header row */}
-            <div className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">Horário</div>
+            <div className="font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm" style={{ minWidth: '60px !important', maxWidth: '60px !important', paddingLeft: '2px !important', paddingRight: '2px !important', paddingTop: '8px', paddingBottom: '8px' }}>Horário</div>
             {weekDays.map((day) => (
               <div key={day.toISOString()} className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">
                 <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
@@ -528,7 +528,7 @@ export default function Schedule() {
               return (
                 <>
                   {/* Time label */}
-                  <div key={`time-${timeSlot}`} className="p-2 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground min-w-[80px]">
+                  <div key={`time-${timeSlot}`} className="text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground" style={{ minWidth: '60px !important', maxWidth: '60px !important', paddingLeft: '2px !important', paddingRight: '2px !important', paddingTop: '8px', paddingBottom: '8px' }}>
                     {timeSlot}
                   </div>
 
@@ -698,7 +698,7 @@ export default function Schedule() {
         <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
           <div className="grid grid-cols-8 gap-0 min-w-[1200px]">
             {/* Header */}
-            <div className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">Horário</div>
+            <div className="font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm" style={{ minWidth: '60px !important', maxWidth: '60px !important', paddingLeft: '2px !important', paddingRight: '2px !important', paddingTop: '8px', paddingBottom: '8px' }}>Horário</div>
             {weekDays.map((day) => (
               <div key={day.toISOString()} className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">
                 <div className="font-semibold">{format(day, "EEE", { locale: ptBR })}</div>
@@ -713,7 +713,7 @@ export default function Schedule() {
               const [hour] = timeSlot.split(':');
               return (
                 <>
-                  <div key={`time-${timeSlot}`} className="p-1 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground w-16">
+                  <div key={`time-${timeSlot}`} className="text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground" style={{ minWidth: '60px !important', maxWidth: '60px !important', paddingLeft: '2px !important', paddingRight: '2px !important', paddingTop: '4px', paddingBottom: '4px' }}>
                     {timeSlot}
                   </div>
 
