@@ -174,7 +174,7 @@ export default function Schedule() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
-        title: "N�o autorizado",
+        title: "No autorizado",
         description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
@@ -244,7 +244,7 @@ export default function Schedule() {
     const uniqueCourses = [...new Set(classes.map(cls => cls.title))];
     const colors = [
       '#3b82f6', // Blue
-      '#10b981', // Green  
+      '#10b981', // Green
       '#f59e0b', // Orange
       '#8b5cf6', // Purple
       '#ef4444', // Red
