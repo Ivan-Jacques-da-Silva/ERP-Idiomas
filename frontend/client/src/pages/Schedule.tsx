@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { displayDateBR } from "@/lib/cpfUtils";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
 import LessonModal from "@/components/LessonModal";
@@ -120,6 +119,8 @@ export default function Schedule() {
   const [editingLesson, setEditingLesson] = useState<any>(null);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<any>(null);
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number | undefined>(undefined);
+  const [selectedStartTime, setSelectedStartTime] = useState<string | undefined>(undefined);
   const [selectedTeacherFilter, setSelectedTeacherFilter] = useState<string>("all");
   const [selectedUnitFilter, setSelectedUnitFilter] = useState<string>("all");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
@@ -210,8 +211,10 @@ export default function Schedule() {
     setEditingLesson(null);
   };
 
-  const handleNewClass = () => {
+  const handleNewClass = (dayOfWeek?: number, startTime?: string) => {
     setEditingClass(null);
+    setSelectedDayOfWeek(dayOfWeek);
+    setSelectedStartTime(startTime);
     setIsClassModalOpen(true);
   };
 
@@ -223,6 +226,8 @@ export default function Schedule() {
   const handleCloseClassModal = () => {
     setIsClassModalOpen(false);
     setEditingClass(null);
+    setSelectedDayOfWeek(undefined);
+    setSelectedStartTime(undefined);
   };
 
   const handleClassClick = (classItem: any) => {
@@ -264,7 +269,7 @@ export default function Schedule() {
 
   const renderAdminCalendarView = () => {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-    const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`); // 8:00 to 21:00
+    const timeSlots = Array.from({ length: 14 }, (_, i) => `${(8 + i).toString().padStart(2, '0')}:00`); // 08:00 to 21:00
 
     // Dados de agenda administrativa (turmas regulares)
     const mockAdminSchedule = [
@@ -528,7 +533,7 @@ export default function Schedule() {
                         {dayClasses.length === 0 && isAdminView && (
                           <div
                             className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer bg-muted bg-opacity-50"
-                            onClick={() => handleNewClass()}
+                            onClick={() => handleNewClass(day.getDay(), timeSlot)}
                           >
                             <Button size="sm" variant="outline" className="text-xs">
                               + Adicionar
@@ -562,7 +567,7 @@ export default function Schedule() {
 
   const renderTeacherCalendarView = () => {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-    const timeSlots = Array.from({ length: 14 }, (_, i) => `${8 + i}:00`);
+    const timeSlots = Array.from({ length: 14 }, (_, i) => `${(8 + i).toString().padStart(2, '0')}:00`);
 
     // Dados específicos do professor
     const mockTeacherSchedule = [
@@ -736,7 +741,7 @@ export default function Schedule() {
                 Nova Aula
               </Button>
               {isAdminView && (
-                <Button onClick={handleNewClass} data-testid="button-new-class">
+                <Button onClick={() => handleNewClass()} data-testid="button-new-class">
                   <i className="fas fa-users mr-2"></i>
                   Nova Turma
                 </Button>
@@ -870,6 +875,8 @@ export default function Schedule() {
         onClose={handleCloseClassModal}
         classToEdit={editingClass}
         defaultTeacherId={selectedTeacherFilter && selectedTeacherFilter !== "all" ? selectedTeacherFilter : undefined}
+        defaultDayOfWeek={selectedDayOfWeek}
+        defaultStartTime={selectedStartTime}
       />
 
       {/* Class Detail Modal */}

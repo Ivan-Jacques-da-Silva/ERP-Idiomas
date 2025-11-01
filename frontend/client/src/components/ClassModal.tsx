@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -31,6 +32,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Loader2, Trash2 } from "lucide-react";
 
@@ -40,10 +42,12 @@ const classFormSchema = z.object({
   bookId: z.string().min(1, "Livro é obrigatório"),
   teacherId: z.string().min(1, "Professor é obrigatório"),
   unitId: z.string().min(1, "Unidade é obrigatória"),
-  dayOfWeek: z.coerce.number().min(0).max(6, "Dia da semana deve ser entre 0-6"),
+  daysOfWeek: z.array(z.number()).min(1, "Selecione pelo menos um dia da semana"),
   startTime: z.string().min(1, "Horário de início é obrigatório"),
   endTime: z.string().min(1, "Horário de fim é obrigatório"),
   maxStudents: z.coerce.number().min(1, "Máximo de alunos deve ser pelo menos 1"),
+  room: z.string().optional(),
+  repeatWeekly: z.boolean().default(false),
 }).refine((data: any) => {
   if (data.startTime && data.endTime) {
     const start = data.startTime.split(':').map(Number);
@@ -65,10 +69,12 @@ interface ClassModalProps {
   onClose: () => void;
   classToEdit?: any; // Existing class data when editing
   defaultTeacherId?: string; // Pre-select a specific teacher when filter is active
+  defaultDayOfWeek?: number; // Pre-select day from calendar click
+  defaultStartTime?: string; // Pre-select start time from calendar click
 }
 
+// Monday to Saturday only (removed Sunday)
 const daysOfWeek = [
-  { value: 0, label: "Domingo" },
   { value: 1, label: "Segunda-feira" },
   { value: 2, label: "Terça-feira" },
   { value: 3, label: "Quarta-feira" },
@@ -81,7 +87,9 @@ export default function ClassModal({
   isOpen, 
   onClose, 
   classToEdit,
-  defaultTeacherId
+  defaultTeacherId,
+  defaultDayOfWeek,
+  defaultStartTime
 }: ClassModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -110,6 +118,14 @@ export default function ClassModal({
   // Filter teachers from staff
   const teachers = staff.filter(s => s.user?.role === 'teacher');
 
+  // Function to calculate end time (+1 hour)
+  const calculateEndTime = (startTime: string): string => {
+    if (!startTime) return "";
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const endHours = (hours + 1) % 24;
+    return `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
   const form = useForm<ClassFormData>({
     resolver: zodResolver(classFormSchema),
     defaultValues: {
@@ -117,12 +133,12 @@ export default function ClassModal({
       bookId: "",
       teacherId: "",
       unitId: "",
-      dayOfWeek: 1, // Monday by default
-      startTime: "",
-      endTime: "",
+      daysOfWeek: defaultDayOfWeek ? [defaultDayOfWeek] : [],
+      startTime: defaultStartTime || "",
+      endTime: defaultStartTime ? calculateEndTime(defaultStartTime) : "",
       room: "",
       maxStudents: 15,
-      currentStudents: 0,
+      repeatWeekly: false,
     },
   });
 
@@ -136,42 +152,64 @@ export default function ClassModal({
           bookId: classToEdit.bookId,
           teacherId: classToEdit.teacherId,
           unitId: classToEdit.unitId,
-          dayOfWeek: classToEdit.dayOfWeek,
+          daysOfWeek: [classToEdit.dayOfWeek],
           startTime: classToEdit.startTime,
           endTime: classToEdit.endTime,
           room: classToEdit.room || "",
           maxStudents: classToEdit.maxStudents || 15,
-          currentStudents: classToEdit.currentStudents || 0,
+          repeatWeekly: false,
         });
       } else {
         // Creating new class
+        const initialStartTime = defaultStartTime || "";
         form.reset({
           name: "",
           bookId: "",
           teacherId: defaultTeacherId || "",
           unitId: "",
-          dayOfWeek: 1,
-          startTime: "",
-          endTime: "",
+          daysOfWeek: defaultDayOfWeek ? [defaultDayOfWeek] : [],
+          startTime: initialStartTime,
+          endTime: initialStartTime ? calculateEndTime(initialStartTime) : "",
           room: "",
           maxStudents: 15,
-          currentStudents: 0,
+          repeatWeekly: false,
         });
       }
     }
-  }, [isOpen, classToEdit, defaultTeacherId, form]);
+  }, [isOpen, classToEdit, defaultTeacherId, defaultDayOfWeek, defaultStartTime, form]);
 
-  // Create class mutation
+  // Auto-calculate end time when start time changes
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'startTime' && value.startTime && !isEditing) {
+        const newEndTime = calculateEndTime(value.startTime);
+        form.setValue('endTime', newEndTime);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, isEditing]);
+
+  // Create class mutation - creates multiple classes for multiple days
   const createClassMutation = useMutation({
     mutationFn: async (data: ClassFormData) => {
-      return await apiRequest("POST", "/api/classes", data);
+      // Create a class for each selected day of week
+      const promises = data.daysOfWeek.map((dayOfWeek) => 
+        apiRequest("POST", "/api/classes", {
+          ...data,
+          dayOfWeek,
+        })
+      );
+      return await Promise.all(promises);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedule/admin"] });
+      const daysCount = variables.daysOfWeek.length;
       toast({
         title: "Sucesso!",
-        description: "Turma criada com sucesso.",
+        description: daysCount > 1 
+          ? `${daysCount} turmas criadas com sucesso (uma para cada dia selecionado).`
+          : "Turma criada com sucesso.",
       });
       onClose();
     },
@@ -187,7 +225,11 @@ export default function ClassModal({
   // Update class mutation
   const updateClassMutation = useMutation({
     mutationFn: async (data: ClassFormData) => {
-      return await apiRequest("PUT", `/api/classes/${classToEdit.id}`, data);
+      // When updating, only use the first selected day
+      return await apiRequest("PUT", `/api/classes/${classToEdit.id}`, {
+        ...data,
+        dayOfWeek: data.daysOfWeek[0],
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
@@ -373,31 +415,49 @@ export default function ClassModal({
                   )}
                 />
 
-                {/* Day of Week */}
+                {/* Days of Week - Multi-select */}
                 <FormField
                   control={form.control}
-                  name="dayOfWeek"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dia da Semana</FormLabel>
-                      <FormControl>
-                        <Select 
-                          value={field.value?.toString()} 
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          data-testid="select-day-of-week"
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o dia" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {daysOfWeek.map((day) => (
-                              <SelectItem key={day.value} value={day.value.toString()}>
-                                {day.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                  name="daysOfWeek"
+                  render={() => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Dias da Semana</FormLabel>
+                      <FormDescription className="text-xs">
+                        Selecione um ou mais dias (Segunda a Sábado)
+                      </FormDescription>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                        {daysOfWeek.map((day) => (
+                          <FormField
+                            key={day.value}
+                            control={form.control}
+                            name="daysOfWeek"
+                            render={({ field }) => {
+                              return (
+                                <FormItem
+                                  className="flex flex-row items-center space-x-2 space-y-0"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(day.value)}
+                                      onCheckedChange={(checked) => {
+                                        const currentValue = field.value || [];
+                                        const newValue = checked
+                                          ? [...currentValue, day.value]
+                                          : currentValue.filter((value: number) => value !== day.value);
+                                        field.onChange(newValue.sort());
+                                      }}
+                                      data-testid={`checkbox-day-${day.value}`}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal text-sm cursor-pointer">
+                                    {day.label}
+                                  </FormLabel>
+                                </FormItem>
+                              );
+                            }}
+                          />
+                        ))}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -475,6 +535,33 @@ export default function ClassModal({
                     </FormItem>
                   )}
                 />
+
+                {/* Repeat Weekly Checkbox */}
+                {!isEditing && (
+                  <FormField
+                    control={form.control}
+                    name="repeatWeekly"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/30">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="checkbox-repeat-weekly"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="cursor-pointer">
+                            Repetir todas as semanas
+                          </FormLabel>
+                          <FormDescription className="text-xs">
+                            Cria aulas semanais recorrentes (como no Google Agenda)
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
 
               {/* Form Actions */}
