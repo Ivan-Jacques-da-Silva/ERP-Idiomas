@@ -508,7 +508,7 @@ export default function Schedule() {
                     });
 
                     return (
-                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] sm:min-h-[80px] p-1 border-b border-r border-border relative min-w-[140px]">
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] sm:min-h-[80px] p-1 border-b border-r border-border relative">
                         <div className="space-y-1">
                           {dayClasses.map((classItem) => (
                             <div
@@ -678,7 +678,7 @@ export default function Schedule() {
                     });
 
                     return (
-                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] sm:min-h-[80px] p-1 border-b border-r border-border relative min-w-[140px]">
+                      <div key={`${day.toISOString()}-${timeSlot}`} className="min-h-[60px] sm:min-h-[80px] p-1 border-b border-r border-border relative">
                         {dayClasses.map((classItem) => (
                           <div
                             key={classItem.id}
