@@ -666,7 +666,7 @@ export default function Schedule() {
               const [hour] = timeSlot.split(':');
               return (
                 <>
-                  <div key={`time-${timeSlot}`} className="p-2 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground min-w-[80px]">
+                  <div key={`time-${timeSlot}`} className="p-1 text-xs font-medium text-center bg-muted border-b border-r border-border text-muted-foreground w-16">
                     {timeSlot}
                   </div>
 
