@@ -1200,10 +1200,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================================================
-  // TEACHER SCHEDULEROUTES
+  // TEACHER ROUTES
   // ============================================================================
 
-  app.get("/api/teachers", auth.requireAdminOrSecretary, async (req, res) => {
+  app.get("/api/teachers", auth.isAuthenticated, async (req, res) => {
     try {
       const teachers = await storage.getTeachers();
       res.json(teachers);

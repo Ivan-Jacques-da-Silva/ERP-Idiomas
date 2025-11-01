@@ -268,7 +268,8 @@ export default function Schedule() {
   // Mock data will be defined within each render function to avoid scope issues
 
   const renderAdminCalendarView = () => {
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+    // Segunda a Sábado (6 dias)
+    const weekDays = Array.from({ length: 6 }, (_, i) => addDays(currentWeekStart, i));
     const timeSlots = Array.from({ length: 14 }, (_, i) => `${(8 + i).toString().padStart(2, '0')}:00`); // 08:00 to 21:00
 
     // Dados de agenda administrativa (turmas regulares)
@@ -476,7 +477,7 @@ export default function Schedule() {
         </div>
 
         <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
-          <div className="grid grid-cols-8 gap-0 min-w-[1200px]">
+          <div className="grid grid-cols-7 gap-0 min-w-[1200px]">
             {/* Header row */}
             <div className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">Horário</div>
             {weekDays.map((day) => (
@@ -566,7 +567,8 @@ export default function Schedule() {
   };
 
   const renderTeacherCalendarView = () => {
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+    // Segunda a Sábado (6 dias)
+    const weekDays = Array.from({ length: 6 }, (_, i) => addDays(currentWeekStart, i));
     const timeSlots = Array.from({ length: 14 }, (_, i) => `${(8 + i).toString().padStart(2, '0')}:00`);
 
     // Dados específicos do professor
@@ -647,7 +649,7 @@ export default function Schedule() {
         </div>
 
         <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
-          <div className="grid grid-cols-8 gap-0 min-w-[1200px]">
+          <div className="grid grid-cols-7 gap-0 min-w-[1200px]">
             {/* Header */}
             <div className="p-2 font-medium text-center bg-muted border-b border-r border-border text-xs sm:text-sm">Horário</div>
             {weekDays.map((day) => (

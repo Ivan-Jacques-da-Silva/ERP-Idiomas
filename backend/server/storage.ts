@@ -1,3 +1,4 @@
+replit_final_file>
 import type {
   InsertUnit,
   InsertStaff,
@@ -98,7 +99,7 @@ import {
   studentCourseEnrollments,
   teacherSchedule,
 } from "../shared/schema.js";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, or } from "drizzle-orm";
 import { db } from "./db.js";
 
 // ============================================================================
@@ -261,7 +262,7 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
   await db.transaction(async (tx) => {
     // Remove permissões existentes
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
-    
+
     // Adiciona novas permissões
     if (permissionIds.length > 0) {
       await tx.insert(rolePermissions).values(
@@ -335,17 +336,17 @@ export async function getPermissions(): Promise<Permission[]> {
 export async function getPermissionsByCategory(): Promise<PermissionsByCategory> {
   const allPermissions = await getPermissions();
   const result: PermissionsByCategory = {};
-  
+
   for (const permission of allPermissions) {
     const category = await getPermissionCategory(permission.categoryId);
     const categoryName = category?.name || 'uncategorized';
-    
+
     if (!result[categoryName]) {
       result[categoryName] = [];
     }
     result[categoryName].push(permission);
   }
-  
+
   return result;
 }
 
@@ -400,18 +401,18 @@ export async function deleteUnit(id: string): Promise<void> {
   const [staffCount] = await db.select({ count: sql<number>`count(*)` }).from(staff).where(eq(staff.unitId, id));
   const [studentsCount] = await db.select({ count: sql<number>`count(*)` }).from(students).where(eq(students.unitId, id));
   const [classesCount] = await db.select({ count: sql<number>`count(*)` }).from(classes).where(eq(classes.unitId, id));
-  
+
   const totalDependencies = Number(staffCount.count) + Number(studentsCount.count) + Number(classesCount.count);
-  
+
   if (totalDependencies > 0) {
     const errorDetails = [];
     if (Number(staffCount.count) > 0) errorDetails.push(`${staffCount.count} funcionário(s)`);
     if (Number(studentsCount.count) > 0) errorDetails.push(`${studentsCount.count} estudante(s)`);
     if (Number(classesCount.count) > 0) errorDetails.push(`${classesCount.count} turma(s)`);
-    
+
     throw new Error(`Não é possível excluir a unidade. Existem registros vinculados: ${errorDetails.join(', ')}. Remova ou transfira esses registros antes de excluir a unidade.`);
   }
-  
+
   await db.delete(units).where(eq(units.id, id));
 }
 
@@ -846,18 +847,28 @@ export async function getTeachers(): Promise<StaffWithUser[]> {
     .select({
       staff: staff,
       user: users,
+      role: roles,
     })
     .from(staff)
     .innerJoin(users, eq(staff.userId, users.id))
     .innerJoin(roles, eq(users.roleId, roles.id))
     .where(and(
       eq(staff.isActive, true),
-      eq(roles.name, 'teacher')
+      or(
+        eq(roles.name, 'teacher'),
+        eq(staff.position, 'instrutor'),
+        eq(staff.position, 'professor')
+      )
     ));
 
   return result.map(r => ({
-    ...r.staff,
-    user: r.user,
+    id: r.user.id,
+    name: `${r.user.firstName} ${r.user.lastName}`,
+    email: r.user.email,
+    firstName: r.user.firstName,
+    lastName: r.user.lastName,
+    position: r.staff.position,
+    staffId: r.staff.id,
   }));
 }
 
@@ -898,18 +909,18 @@ export async function getTeacherSchedule(teacherId: string) {
     '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
     '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'
   ];
-  
+
   for (let day = 1; day <= 6; day++) { // Segunda a sábado
     for (let i = 0; i < timeSlots.length - 1; i++) {
       const startTime = timeSlots[i];
       const endTime = timeSlots[i + 1];
-      
+
       // Verificar se este horário não está ocupado
       const isOccupied = occupiedSlots.some(slot => 
         slot.dayOfWeek === day && 
         slot.startTime === startTime
       );
-      
+
       if (!isOccupied) {
         availableSlots.push({
           dayOfWeek: day,
@@ -1016,7 +1027,7 @@ export async function getSupportTicket(id: string): Promise<SupportTicketWithRes
     .orderBy(supportTicketResponses.createdAt);
 
   const [user] = await db.select().from(users).where(eq(users.id, ticket.userId)).limit(1);
-  
+
   let assignedUser;
   if (ticket.assignedTo) {
     [assignedUser] = await db.select().from(users).where(eq(users.id, ticket.assignedTo)).limit(1);
@@ -1306,7 +1317,7 @@ export const storage = {
   deleteUser,
   getUsers,
   upsertUser,
-  
+
   // Roles
   createRole,
   getRoleByName,
@@ -1316,7 +1327,7 @@ export const storage = {
   updateRolePermissions,
   updateRole,
   deactivateRole,
-  
+
   // Permissions
   getPermissions,
   getPermissionsByCategory,
@@ -1326,14 +1337,14 @@ export const storage = {
   createPermission,
   getUserPermissionOverrides,
   updateUserPermissions,
-  
+
   // Units
   createUnit,
   getUnits,
   getUnit,
   updateUnit,
   deleteUnit,
-  
+
   // Staff
   createStaff,
   getStaff,
@@ -1341,7 +1352,7 @@ export const storage = {
   getStaffByUserId,
   updateStaff,
   deleteStaff,
-  
+
   // Guardians
   createGuardian,
   getGuardian,
@@ -1349,7 +1360,7 @@ export const storage = {
   getGuardianWithFinancial,
   createFinancialResponsible,
   updateFinancialResponsible,
-  
+
   // Students
   createStudent,
   getStudents,
@@ -1358,7 +1369,7 @@ export const storage = {
   getStudentCourseEnrollmentsForUser,
   updateStudent,
   deleteStudent,
-  
+
   // Courses
   getCourseWithBooksBasic,
   createCourse,
@@ -1366,43 +1377,43 @@ export const storage = {
   getCourse,
   updateCourse,
   deleteCourse,
-  
+
   // Books
   createBook,
   getBooks,
   getBook,
   updateBook,
   deleteBook,
-  
+
   // Classes
   createClass,
   getClasses,
   getClass,
   updateClass,
   deleteClass,
-  
+
   // Lessons
   createLesson,
   getLessons,
   getLesson,
   updateLesson,
   deleteLesson,
-  
+
   // Dashboard
   getDashboardStats,
-  
+
   // Support
   createSupportTicket,
   getSupportTickets,
   getSupportTicket,
   updateSupportTicket,
   createSupportTicketResponse,
-  
+
   // User Settings
   getUserSettings,
   createUserSettings,
   updateUserSettings,
-  
+
   // Pages
   createPage,
   getPages,
@@ -1410,7 +1421,7 @@ export const storage = {
   getPageById,
   updatePage,
   deletePage,
-  
+
   // Role Page Permissions
   createRolePagePermission,
   getRolePagePermissions,
@@ -1418,19 +1429,19 @@ export const storage = {
   updateRolePagePermission,
   deleteRolePagePermission,
   getRoleAllowedPages,
-  
+
   // Teacher Schedule
   getTeacherSchedule,
-  
+
   // Teacher Individual Schedule (Nova funcionalidade)
   createTeacherSchedule,
   getTeacherIndividualSchedule,
   updateTeacherSchedule,
   deleteTeacherSchedule,
-  
+
   // Staff with Teachers
   getTeachers,
-  
+
   // Course Units
   createCourseUnit,
   getCourseUnits,
@@ -1438,7 +1449,7 @@ export const storage = {
   getCourseUnitsByBook,
   updateCourseUnit,
   deleteCourseUnit,
-  
+
   // Unit Days
   createUnitDay,
   getUnitDays,
@@ -1446,7 +1457,7 @@ export const storage = {
   getUnitDaysByUnit,
   updateUnitDay,
   deleteUnitDay,
-  
+
   // Unit Day Activities
   createUnitDayActivity,
   getUnitDayActivities,
@@ -1455,3 +1466,5 @@ export const storage = {
   updateUnitDayActivity,
   deleteUnitDayActivity,
 };
+
+</replit_final_file>

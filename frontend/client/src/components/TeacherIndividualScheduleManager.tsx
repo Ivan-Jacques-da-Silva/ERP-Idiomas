@@ -33,8 +33,6 @@ interface TeacherScheduleEntry {
   room: string;
   notes?: string;
   isActive: boolean;
-  scheduleType: 'fixed' | 'flexible'; // Novo campo para tipo de horário
-  isRecurring: boolean; // Novo campo para horários recorrentes
   teacher: {
     id: string;
     name: string;
@@ -54,8 +52,6 @@ interface ScheduleFormData {
   endTime: string;
   room: string;
   notes: string;
-  scheduleType: 'fixed' | 'flexible'; // Novo campo para tipo de horário
-  isRecurring: boolean; // Novo campo para horários recorrentes
 }
 
 const DAYS_OF_WEEK = [
@@ -80,9 +76,7 @@ const TeacherIndividualScheduleManager: React.FC = () => {
     startTime: '',
     endTime: '',
     room: '',
-    notes: '',
-    scheduleType: 'fixed',
-    isRecurring: true
+    notes: ''
   });
 
   const { toast } = useToast();
@@ -220,9 +214,7 @@ const TeacherIndividualScheduleManager: React.FC = () => {
       startTime: '',
       endTime: '',
       room: '',
-      notes: '',
-      scheduleType: 'fixed',
-      isRecurring: true
+      notes: ''
     });
     setEditingEntry(null);
   };
@@ -238,9 +230,7 @@ const TeacherIndividualScheduleManager: React.FC = () => {
         startTime: entry.startTime,
         endTime: entry.endTime,
         room: entry.room,
-        notes: entry.notes || '',
-        scheduleType: entry.scheduleType || 'fixed',
-        isRecurring: entry.isRecurring !== undefined ? entry.isRecurring : true
+        notes: entry.notes || ''
       });
     } else {
       resetForm();
@@ -376,27 +366,7 @@ const TeacherIndividualScheduleManager: React.FC = () => {
                                       <MapPin className="h-3 w-3" />
                                       {entry.room}
                                     </Badge>
-                                    <Badge 
-                                      variant={entry.scheduleType === 'fixed' ? 'default' : 'outline'} 
-                                      className="flex items-center gap-1 text-xs"
-                                    >
-                                      {entry.scheduleType === 'fixed' ? (
-                                        <>
-                                          <Clock className="h-3 w-3" />
-                                          Fixo
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Calendar className="h-3 w-3" />
-                                          Flexível
-                                        </>
-                                      )}
-                                    </Badge>
-                                    {entry.isRecurring && (
-                                      <Badge variant="outline" className="text-xs">
-                                        Recorrente
-                                      </Badge>
-                                    )}
+                                    
                                   </div>
                                   <h4 className="font-medium text-sm md:text-base">{entry.courseName}</h4>
                                   <p className="text-xs md:text-sm text-muted-foreground">
@@ -543,67 +513,7 @@ const TeacherIndividualScheduleManager: React.FC = () => {
               />
             </div>
 
-            {/* Configurações de Horário */}
-            <div className="space-y-4 border-t pt-4">
-              <h4 className="font-medium text-sm text-foreground">Configurações de Horário</h4>
-              
-              <div>
-                <Label htmlFor="scheduleType">Tipo de Horário</Label>
-                <Select
-                  value={scheduleForm.scheduleType}
-                  onValueChange={(value: 'fixed' | 'flexible') => setScheduleForm(prev => ({ ...prev, scheduleType: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fixed">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="h-4 w-4" />
-                        <div>
-                          <div className="font-medium">Horário Fixo</div>
-                          <div className="text-xs text-muted-foreground">Mesmo horário toda semana</div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="flexible">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4" />
-                        <div>
-                          <div className="font-medium">Horário Flexível</div>
-                          <div className="text-xs text-muted-foreground">Horário pode variar</div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isRecurring"
-                  checked={scheduleForm.isRecurring}
-                  onChange={(e) => setScheduleForm(prev => ({ ...prev, isRecurring: e.target.checked }))}
-                  className="rounded border-gray-300"
-                />
-                <Label htmlFor="isRecurring" className="text-sm">
-                  Horário recorrente (repetir semanalmente)
-                </Label>
-              </div>
-
-              {scheduleForm.scheduleType === 'flexible' && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <div className="flex items-start space-x-2">
-                    <i className="fas fa-info-circle text-amber-600 mt-0.5"></i>
-                    <div className="text-sm text-amber-800">
-                      <strong>Horário Flexível:</strong> Este horário serve como base, mas pode ser ajustado conforme necessário. 
-                      Ideal para aulas particulares ou atividades que podem ter variações de horário.
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            
 
             <div className="flex gap-2 pt-4">
               <Button
