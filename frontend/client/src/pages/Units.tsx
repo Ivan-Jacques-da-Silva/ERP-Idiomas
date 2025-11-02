@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +45,7 @@ export default function Units() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
-        title: "N�o autorizado",
+        title: "Não autorizado",
         description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
@@ -79,7 +79,7 @@ export default function Units() {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
       toast({
         title: "Sucesso!",
-        description: "Unidade excluída com sucesso",
+        description: "Unidade excluÃ­da com sucesso",
       });
       setIsDeleteDialogOpen(false);
       setUnitToDelete(null);
@@ -112,7 +112,7 @@ export default function Units() {
   // Check permissions
   const canManageUnits = permissions?.includes('units:write') || user?.role === 'admin';
 
-  // Extrair cidades únicas das unidades para o filtro
+  // Extrair cidades Ãºnicas das unidades para o filtro
   const cityOptions = units ? [...new Set(units
     .map((unit: any) => unit.realEstateLocation)
     .filter(Boolean)
@@ -149,7 +149,7 @@ export default function Units() {
           {/* Filtros e Controles */}
           <FadeIn delay={300}>
             <div className="flex justify-between items-center">
-              <div></div> {/* Espaço vazio à esquerda */}
+              <div></div> {/* EspaÃ§o vazio Ã  esquerda */}
               
               <div className="flex items-center gap-3">
                 {/* Filtro por Nome */}
@@ -176,7 +176,7 @@ export default function Units() {
                   </SelectContent>
                 </Select>
                 
-                {/* Modo de Visualização - Apenas Ícones */}
+                {/* Modo de VisualizaÃ§Ã£o - Apenas Ãcones */}
                  <div className="flex gap-1 border rounded-md p-1">
                    <Button
                      variant={viewMode === "card" ? "default" : "ghost"}
@@ -228,7 +228,7 @@ export default function Units() {
                     ? "Tente ajustar os filtros de busca." 
                     : canManageUnits
                     ? "Comece criando sua primeira unidade."
-                    : "Não há unidades cadastradas no sistema."}
+                    : " hÃ¡ unidades cadastradas no sistema."}
                 </p>
                 {canManageUnits && !searchName && !(selectedCity && selectedCity !== "all") && (
                   <Button onClick={handleNewUnit} data-testid="button-create-first-unit">
@@ -315,10 +315,10 @@ export default function Units() {
                     <TableHead>
                       <TableRow>
                         <TableCell className="font-semibold">Nome</TableCell>
-                        <TableCell className="font-semibold">Endereço</TableCell>
+                        <TableCell className="font-semibold">EndereÃ§o</TableCell>
                         <TableCell className="font-semibold">Telefone</TableCell>
                         <TableCell className="font-semibold">Email</TableCell>
-                        {canManageUnits && <TableCell className="font-semibold">Ações</TableCell>}
+                        {canManageUnits && <TableCell className="font-semibold">AÃ§Ãµes</TableCell>}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -396,10 +396,10 @@ export default function Units() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent data-testid="dialog-delete-unit">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusÃ£o</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir a unidade <strong>"{unitToDelete?.name}"</strong>?
-              Esta ação não pode ser desfeita e todos os dados relacionados serão permanentemente removidos.
+              Esta aÃ§Ã£o nÃ£o pode ser desfeita e todos os dados relacionados serÃ£o permanentemente removidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -423,3 +423,8 @@ export default function Units() {
     </Layout>
   );
 }
+
+
+
+
+

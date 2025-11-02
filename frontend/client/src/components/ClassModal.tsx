@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -34,7 +35,7 @@ import {
   FormMessage,
   FormDescription,
 } from "@/components/ui/form";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Check } from "lucide-react";
 
 // Extended schema for class form validation
 const classFormSchema = z.object({
@@ -45,7 +46,7 @@ const classFormSchema = z.object({
   daysOfWeek: z.array(z.number()).min(1, "Selecione pelo menos um dia da semana"),
   startTime: z.string().min(1, "Horário de início é obrigatório"),
   endTime: z.string().min(1, "Horário de fim é obrigatório"),
-  maxStudents: z.coerce.number().min(1, "Máximo de alunos deve ser pelo menos 1"),
+  maxStudents: z.coerce.number().min(1, "MÃ¡ximo de alunos deve ser pelo menos 1"),
   room: z.string().optional(),
   repeatWeekly: z.boolean().default(false),
 }).refine((data: any) => {
@@ -93,6 +94,10 @@ export default function ClassModal({
 }: ClassModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [step, setStep] = useState<1 | 2>(1);
+  const [createdClassId, setCreatedClassId] = useState<string | null>(null);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isEditing = !!classToEdit;
@@ -113,6 +118,28 @@ export default function ClassModal({
   const { data: units = [], isLoading: unitsLoading } = useQuery<any[]>({
     queryKey: ["/api/units"],
     enabled: isOpen,
+  });
+
+  // Students for step 2
+  const { data: students = [], isLoading: studentsLoading } = useQuery<any[]>({
+    queryKey: ["/api/students"],
+    enabled: isOpen && step === 2,
+  });
+
+  // Existing enrollments when editing or after create
+  const effectiveClassId = classToEdit?.id || createdClassId;
+  useQuery<any[]>({
+    queryKey: ["/api/classes", effectiveClassId, "enrollments"],
+    enabled: isOpen && step === 2 && !!effectiveClassId,
+    queryFn: async () => {
+      const res = await fetch(`/api/classes/${effectiveClassId}/enrollments`);
+      if (!res.ok) throw new Error("Erro ao carregar matrÃ­culas da turma");
+      return res.json();
+    },
+    onSuccess: (enrollments: any[]) => {
+      const ids = enrollments.map((e: any) => e.student.id);
+      setSelectedStudentIds(ids);
+    }
   });
 
   // Filter teachers from staff
@@ -189,29 +216,16 @@ export default function ClassModal({
     return () => subscription.unsubscribe();
   }, [form, isEditing]);
 
-  // Create class mutation - creates multiple classes for multiple days
+  // Create class mutation - creates one class (first selected day)
   const createClassMutation = useMutation({
     mutationFn: async (data: ClassFormData) => {
-      // Create a class for each selected day of week
-      const promises = data.daysOfWeek.map((dayOfWeek) => 
-        apiRequest("POST", "/api/classes", {
-          ...data,
-          dayOfWeek,
-        })
-      );
-      return await Promise.all(promises);
+      const dayOfWeek = data.daysOfWeek[0];
+      return await apiRequest("POST", "/api/classes", { ...data, dayOfWeek });
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedule/admin"] });
-      const daysCount = variables.daysOfWeek.length;
-      toast({
-        title: "Sucesso!",
-        description: daysCount > 1 
-          ? `${daysCount} turmas criadas com sucesso (uma para cada dia selecionado).`
-          : "Turma criada com sucesso.",
-      });
-      onClose();
+      toast({ title: "Sucesso!", description: "Turma criada. Selecione os alunos." });
     },
     onError: (error: any) => {
       toast({
@@ -234,11 +248,7 @@ export default function ClassModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/classes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedule/admin"] });
-      toast({
-        title: "Sucesso!",
-        description: "Turma atualizada com sucesso.",
-      });
-      onClose();
+      toast({ title: "Sucesso!", description: "Turma atualizada. Selecione os alunos." });
     },
     onError: (error: any) => {
       toast({
@@ -259,7 +269,7 @@ export default function ClassModal({
       queryClient.invalidateQueries({ queryKey: ["/api/schedule/admin"] });
       toast({
         title: "Sucesso!",
-        description: "Turma excluída com sucesso.",
+        description: "Turma excluÃ­da com sucesso.",
       });
       setShowDeleteConfirm(false);
       onClose();
@@ -276,15 +286,25 @@ export default function ClassModal({
 
   const onSubmit = async (data: ClassFormData) => {
     if (isEditing) {
-      updateClassMutation.mutate(data);
+      updateClassMutation.mutate(data, {
+        onSuccess: () => setStep(2)
+      });
     } else {
-      createClassMutation.mutate(data);
+      createClassMutation.mutate(data, {
+        onSuccess: (created: any) => {
+          setCreatedClassId(created.id);
+          setStep(2);
+        }
+      });
     }
   };
 
   const handleClose = () => {
     form.reset();
     setShowDeleteConfirm(false);
+    setStep(1);
+    setCreatedClassId(null);
+    setSelectedStudentIds([]);
     onClose();
   };
 
@@ -293,6 +313,37 @@ export default function ClassModal({
   };
 
   const isSubmitting = createClassMutation.isPending || updateClassMutation.isPending || deleteClassMutation.isPending;
+
+  const filteredStudents = useMemo(() => {
+    const term = studentSearch.trim().toLowerCase();
+    if (!term) return students;
+    return students.filter((s: any) => {
+      const name = `${s.user?.firstName || ""} ${s.user?.lastName || ""}`.trim().toLowerCase();
+      return name.includes(term);
+    });
+  }, [studentSearch, students]);
+
+  const saveEnrollmentsMutation = useMutation({
+    mutationFn: async () => {
+      const clsId = effectiveClassId;
+      if (!clsId) throw new Error("Turma ainda nÃ£o criada");
+      const res = await fetch(`/api/classes/${clsId}/enrollments`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentIds: selectedStudentIds })
+      });
+      if (!res.ok) throw new Error('Erro ao salvar matrÃ­culas');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Sucesso', description: 'Alunos matriculados na turma' });
+      queryClient.invalidateQueries({ queryKey: ['/api/classes'] });
+      handleClose();
+    },
+    onError: (e: any) => {
+      toast({ title: 'Erro', description: e.message || 'Falha ao salvar matrÃ­culas', variant: 'destructive' });
+    }
+  });
 
   return (
     <>
@@ -305,6 +356,7 @@ export default function ClassModal({
           </DialogHeader>
 
           <Form {...form}>
+            {step === 1 ? (
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Class Name */}
@@ -469,7 +521,7 @@ export default function ClassModal({
                   name="startTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Horário de Início</FormLabel>
+                      <FormLabel>HorÃ¡rio de InÃ­cio</FormLabel>
                       <FormControl>
                         <Input 
                           type="time" 
@@ -488,7 +540,7 @@ export default function ClassModal({
                   name="endTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Horário de Fim</FormLabel>
+                      <FormLabel>HorÃ¡rio de Fim</FormLabel>
                       <FormControl>
                         <Input 
                           type="time" 
@@ -522,7 +574,7 @@ export default function ClassModal({
                   name="maxStudents"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Máximo de Alunos</FormLabel>
+                      <FormLabel>MÃ¡ximo de Alunos</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
@@ -565,48 +617,123 @@ export default function ClassModal({
               </div>
 
               {/* Form Actions */}
-              <div className="flex justify-between pt-4">
-                <div>
-                  {isEditing && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      disabled={isSubmitting}
-                      data-testid="button-delete-class"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir Turma
-                    </Button>
-                  )}
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleClose}
-                    disabled={isSubmitting}
-                    data-testid="button-cancel"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    data-testid="button-save-class"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {deleteClassMutation.isPending ? "Excluindo..." : (isEditing ? "Atualizando..." : "Criando...")}
-                      </>
-                    ) : (
-                      isEditing ? "Atualizar" : "Criar Turma"
+<div className="flex items-center justify-between pt-4">
+  <div>
+    {isEditing && (
+      <Button
+        type="button"
+        variant="destructive"
+        onClick={() => setShowDeleteConfirm(true)}
+        disabled={isSubmitting}
+        data-testid="button-delete-class"
+      >
+        <Trash2 className="mr-2 h-4 w-4" />
+        Excluir Turma
+      </Button>
+    )}
+  </div>
+  <div className="flex gap-2">
+    <Button
+      type="button"
+      variant="secondary"
+      onClick={() => {
+        const firstBook = (books || [])[0];
+        const firstTeacher = (teachers || [])[0];
+        const firstUnit = (units || [])[0];
+        const sampleStart = "09:00";
+        const sampleEnd = calculateEndTime(sampleStart);
+        form.setValue('name', 'Turma Exemplo - Inglês A1');
+        if (firstBook?.id) form.setValue('bookId', firstBook.id);
+        if (firstTeacher?.user?.id) form.setValue('teacherId', firstTeacher.user.id);
+        if (firstUnit?.id) form.setValue('unitId', firstUnit.id);
+        form.setValue('daysOfWeek', form.getValues('daysOfWeek').length ? form.getValues('daysOfWeek') : [1,3,5]);
+        form.setValue('startTime', sampleStart);
+        form.setValue('endTime', sampleEnd);
+        form.setValue('room', 'Sala 101');
+        form.setValue('maxStudents', 15);
+        form.setValue('repeatWeekly', true);
+      }}
+      data-testid="button-sample-class"
+    >
+      Dados Exemplares
+    </Button>
+    <Button
+      type="button"
+      variant="outline"
+      onClick={handleClose}
+      disabled={isSubmitting}
+      data-testid="button-cancel"
+    >
+      Cancelar
+    </Button>
+    <Button type="submit" disabled={isSubmitting}>
+      {isEditing ? 'Avançar' : 'Próximo'}
+    </Button>
+  </div>
+</div>
+</form>
+) : (
+  <div className="space-y-4">
+    <div className="flex items-end gap-3">
+      <div className="flex-1">
+        <Label>Selecionar Alunos</Label>
+        <Input placeholder="Buscar por nome..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} />
+      </div>
+      <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
+    </div>{studentsLoading ? (
+                  <div className="p-4 text-center text-muted-foreground">Carregando alunos...</div>
+                ) : (
+                  <div className="max-h-72 overflow-auto border rounded-md p-3 space-y-2">
+                    {filteredStudents.map((st: any) => {
+  const id = st.id;
+  const name = `${st.user?.firstName || ''} ${st.user?.lastName || ''}`.trim();
+  const label = name || st.studentId || st.id;
+  const checked = selectedStudentIds.includes(id);
+  return (
+    <div
+      key={id}
+      role="button"
+      tabIndex={0}
+      onClick={() => setSelectedStudentIds(prev => checked ? prev.filter((x) => x !== id) : [...prev, id])}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setSelectedStudentIds(prev => checked ? prev.filter((x) => x !== id) : [...prev, id]);
+        }
+      }}
+      className={
+        `flex items-center justify-between p-2 rounded-md border transition-colors cursor-pointer ` +
+        (checked ? 'bg-primary/10 border-primary' : 'hover:bg-muted')
+      }
+      data-testid={'student-item-' + id}
+    >
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          className="sr-only"
+          checked={checked}
+          onChange={() => {}}
+          aria-label={'Selecionar ' + label}
+        />
+        <span className={checked ? 'text-sm text-primary font-medium' : 'text-sm'}>{label}</span>
+      </div>
+      {checked ? <Check className="h-4 w-4 text-primary" aria-hidden /> : null}
+    </div>
+  );
+})}
+                    {filteredStudents.length === 0 && (
+                      <div className="text-center text-sm text-muted-foreground">Nenhum aluno encontrado</div>
                     )}
+                  </div>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
+                  <Button onClick={() => saveEnrollmentsMutation.mutate()} disabled={saveEnrollmentsMutation.isPending}>
+                    {saveEnrollmentsMutation.isPending ? 'Salvando...' : 'Salvar Alunos'}
                   </Button>
                 </div>
               </div>
-            </form>
+            )}
           </Form>
         </DialogContent>
       </Dialog>
@@ -618,7 +745,7 @@ export default function ClassModal({
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza de que deseja excluir a turma "{classToEdit?.name}"? 
-              Esta ação não pode ser desfeita e todas as aulas relacionadas também serão excluídas.
+              Esta aÃ§Ã£o nÃ£o pode ser desfeita e todas as aulas relacionadas tambÃ©m serÃ£o excluÃ­das.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -646,3 +773,14 @@ export default function ClassModal({
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+

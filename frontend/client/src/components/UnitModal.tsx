@@ -189,7 +189,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
   const isEditing = !!unit;
 
   const [formData, setFormData] = useState<FormDataShape>({
-    name: "", address: "", phone: "", email: "", franchiseeType: "",
+    name: "", address: "", phone: "", email: "", franchiseeType: "pessoa_fisica",
     franchiseeName: "", franchiseeCpf: "", franchiseeCpfDoc: "", franchiseeRg: "", franchiseeRgDoc: "",
     franchiseeResidenceAddress: "", franchiseeResidenceDoc: "", franchiseeMaritalStatus: "", franchiseeMaritalStatusDoc: "",
     franchiseeCurriculumDoc: "", franchiseeAssetsDoc: "", franchiseeIncomeDoc: "",
@@ -205,7 +205,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
   useEffect(() => {
     if (unit) {
       setFormData({
-        name: unit.name || "", address: unit.address || "", phone: unit.phone || "", email: unit.email || "", franchiseeType: unit.franchiseeType || "",
+        name: unit.name || "", address: unit.address || "", phone: unit.phone || "", email: unit.email || "", franchiseeType: unit.franchiseeType || "pessoa_fisica",
         franchiseeName: unit.franchiseeName || "", franchiseeCpf: unit.franchiseeCpf ? formatarCPF(unit.franchiseeCpf) : "", franchiseeCpfDoc: unit.franchiseeCpfDoc || "",
         franchiseeRg: unit.franchiseeRg || "", franchiseeRgDoc: unit.franchiseeRgDoc || "",
         franchiseeResidenceAddress: unit.franchiseeResidenceAddress || "", franchiseeResidenceDoc: unit.franchiseeResidenceDoc || "",
@@ -225,7 +225,7 @@ export function UnitModal({ open, onOpenChange, unit }: UnitModalProps) {
 
   const resetForm = () => {
     setFormData({
-      name: "", address: "", phone: "", email: "", franchiseeType: "",
+      name: "", address: "", phone: "", email: "", franchiseeType: "pessoa_fisica",
       franchiseeName: "", franchiseeCpf: "", franchiseeCpfDoc: "", franchiseeRg: "", franchiseeRgDoc: "",
       franchiseeResidenceAddress: "", franchiseeResidenceDoc: "", franchiseeMaritalStatus: "", franchiseeMaritalStatusDoc: "",
       franchiseeCurriculumDoc: "", franchiseeAssetsDoc: "", franchiseeIncomeDoc: "",
