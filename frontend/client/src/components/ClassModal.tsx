@@ -132,9 +132,8 @@ export default function ClassModal({
     queryKey: ["/api/classes", effectiveClassId, "enrollments"],
     enabled: isOpen && step === 2 && !!effectiveClassId,
     queryFn: async () => {
-      const res = await fetch(`/api/classes/${effectiveClassId}/enrollments`);
-      if (!res.ok) throw new Error("Erro ao carregar matrÃ­culas da turma");
-      return res.json();
+      const data = await apiRequest("GET", `/api/classes/${effectiveClassId}/enrollments`);
+      return data;
     },
     onSuccess: (enrollments: any[]) => {
       const ids = enrollments.map((e: any) => e.student.id);
@@ -327,13 +326,7 @@ export default function ClassModal({
     mutationFn: async () => {
       const clsId = effectiveClassId;
       if (!clsId) throw new Error("Turma ainda nÃ£o criada");
-      const res = await fetch(`/api/classes/${clsId}/enrollments`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentIds: selectedStudentIds })
-      });
-      if (!res.ok) throw new Error('Erro ao salvar matrÃ­culas');
-      return res.json();
+      return await apiRequest("PUT", `/api/classes/${clsId}/enrollments`, { studentIds: selectedStudentIds });
     },
     onSuccess: () => {
       toast({ title: 'Sucesso', description: 'Alunos matriculados na turma' });
@@ -773,6 +766,7 @@ export default function ClassModal({
     </>
   );
 }
+
 
 
 
