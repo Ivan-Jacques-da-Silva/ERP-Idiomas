@@ -32,6 +32,7 @@ import {
   staff,
   createInsertSchema,
   courses,
+  students,
 } from "../shared/schema.js";
 import { z } from "zod";
 import { db } from "./db.js";
@@ -454,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/staff", auth.requireAdmin, requirePagePermission('staff'), async (req, res) => {
     try {
-      const { firstName, lastName, email, password, ...staffFields } = req.body;
+      const { firstName, lastName, email, password, unitIds, ...staffFields } = req.body;
 
       // Validação: verificar se já existe um colaborador com este CPF (apenas se CPF for fornecido)
       if (staffFields.cpf && staffFields.cpf.trim() !== '') {
@@ -553,6 +554,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...processedStaffFields,
       });
 
+      // Persistir unidades adicionais, se enviadas
+      if (Array.isArray(unitIds)) {
+        await storage.setStaffAdditionalUnits(staffMember.id, unitIds, processedStaffFields.unitId);
+      }
+
       res.status(201).json(staffMember);
     } catch (error) {
       console.error("Error creating staff:", error);
@@ -571,7 +577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/staff/:id", auth.requireAdmin, async (req, res) => {
     try {
-      const { firstName, lastName, email, userId, ...staffFields } = req.body;
+      const { firstName, lastName, email, userId, unitIds, ...staffFields } = req.body;
 
       // Normalizar position para minúsculo
       if (staffFields.position) {
@@ -624,6 +630,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Atualizar staff
       const staffData = insertStaffSchema.partial().parse(staffFields);
       const staff = await storage.updateStaff(req.params.id, staffData);
+
+      if (Array.isArray(unitIds)) {
+        await storage.setStaffAdditionalUnits(req.params.id, unitIds, staffData.unitId);
+      }
+
       res.json(staff);
     } catch (error: any) {
       console.error("Error updating staff member:", error);
@@ -1250,6 +1261,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching teachers:", error);
       res.status(500).json({ message: "Erro ao buscar professores" });
+    }
+  });
+
+  // CLASS ENROLLMENTS
+  app.get("/api/classes/:id/enrollments", auth.isAuthenticated, async (req, res) => {
+    try {
+      const list = await storage.getClassEnrollments(req.params.id);
+      res.json(list);
+    } catch (error) {
+      console.error("Error fetching class enrollments:", error);
+      res.status(500).json({ message: "Erro ao buscar matrículas da turma" });
+    }
+  });
+
+  app.put("/api/classes/:id/enrollments", auth.requireAdminOrSecretary, async (req, res) => {
+    try {
+      const { studentIds } = req.body as { studentIds: string[] };
+      if (!Array.isArray(studentIds)) return res.status(400).json({ message: 'studentIds deve ser um array' });
+      await storage.setClassEnrollments(req.params.id, studentIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating class enrollments:", error);
+      res.status(500).json({ message: "Erro ao atualizar matrículas da turma" });
+    }
+  });
+
+  // CLASS ATTENDANCE
+  app.get("/api/classes/:id/attendance", auth.isAuthenticated, async (req: any, res) => {
+    try {
+      const dateParam = req.query.date as string | undefined;
+      if (!dateParam) return res.status(400).json({ message: 'Parâmetro date é obrigatório (YYYY-MM-DD)' });
+      const date = new Date(`${dateParam}T00:00:00.000Z`);
+      const list = await storage.getClassAttendance(req.params.id, date);
+      res.json(list);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      res.status(500).json({ message: 'Erro ao buscar presenças' });
+    }
+  });
+
+  app.put("/api/classes/:id/attendance", auth.requireAdminOrSecretary, async (req: any, res) => {
+    try {
+      const { date, records } = req.body as { date: string; records: { studentId: string; status: string; notes?: string }[] };
+      if (!date || !Array.isArray(records)) return res.status(400).json({ message: 'Payload inválido' });
+      const dt = new Date(`${date}T00:00:00.000Z`);
+      await storage.setClassAttendance(req.params.id, dt, records);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      res.status(500).json({ message: 'Erro ao salvar presenças' });
     }
   });
 

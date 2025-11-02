@@ -80,6 +80,7 @@ import {
   classes,
   lessons,
   books,
+  classEnrollments,
   permissions,
   permissionCategories,
   roles,
@@ -99,8 +100,10 @@ import {
   studentProgress,
   studentCourseEnrollments,
   teacherSchedule,
+  staffUnits,
+  classAttendance,
 } from "../shared/schema.js";
-import { eq, and, desc, sql, or } from "drizzle-orm";
+import { eq, and, desc, sql, or, inArray, count } from "drizzle-orm";
 import { db } from "./db.js";
 
 // ============================================================================
@@ -432,12 +435,34 @@ export async function getStaff(): Promise<StaffWithUser[]> {
       staff: staff,
       user: users,
       unit: units,
+      role: roles,
     })
     .from(staff)
     .innerJoin(users, eq(staff.userId, users.id))
-    .leftJoin(units, eq(staff.unitId, units.id));
+    .leftJoin(units, eq(staff.unitId, units.id))
+    .leftJoin(roles, eq(users.roleId, roles.id));
 
-  return result.map(r => ({ ...r.staff, user: r.user, unit: r.unit || undefined }));
+  // Carregar unidades adicionais para todos os colaboradores retornados
+  const staffIds = result.map((r) => r.staff.id);
+  let unitLinks: Record<string, string[]> = {};
+  if (staffIds.length > 0) {
+    const links = await db
+      .select({ sId: staffUnits.staffId, uId: staffUnits.unitId })
+      .from(staffUnits)
+      .where(inArray(staffUnits.staffId, staffIds));
+    unitLinks = links.reduce((acc, l) => {
+      if (!acc[l.sId]) acc[l.sId] = [];
+      acc[l.sId].push(l.uId);
+      return acc;
+    }, {} as Record<string, string[]>);
+  }
+
+  return result.map(r => ({
+    ...r.staff,
+    user: { ...r.user, role: r.role?.name },
+    unit: r.unit || undefined,
+    unitIds: unitLinks[r.staff.id] || [],
+  }));
 }
 
 export async function getStaffMember(id: string): Promise<StaffWithUser | undefined> {
@@ -454,7 +479,11 @@ export async function getStaffMember(id: string): Promise<StaffWithUser | undefi
     .limit(1);
 
   if (!result) return undefined;
-  return { ...result.staff, user: result.user, unit: result.unit || undefined };
+  const extraUnits = await db
+    .select({ uId: staffUnits.unitId })
+    .from(staffUnits)
+    .where(eq(staffUnits.staffId, id));
+  return { ...result.staff, user: result.user, unit: result.unit || undefined, unitIds: extraUnits.map(e => e.uId) } as any;
 }
 
 export async function updateStaff(id: string, data: Partial<InsertStaff>): Promise<Staff> {
@@ -486,7 +515,26 @@ export async function getStaffByUserId(userId: string): Promise<StaffWithUser | 
     .limit(1);
 
   if (!result) return undefined;
-  return { ...result.staff, user: result.user, unit: result.unit || undefined };
+  const extraUnits = await db
+    .select({ uId: staffUnits.unitId })
+    .from(staffUnits)
+    .where(eq(staffUnits.staffId, result.staff.id));
+  return { ...result.staff, user: result.user, unit: result.unit || undefined, unitIds: extraUnits.map(e => e.uId) } as any;
+}
+
+// ============================================================================
+// STAFF ADDITIONAL UNITS
+// ============================================================================
+
+export async function setStaffAdditionalUnits(staffId: string, unitIds: string[], primaryUnitId?: string): Promise<void> {
+  const unique = Array.from(new Set((unitIds || []).filter(Boolean)));
+  const filtered = primaryUnitId ? unique.filter((id) => id !== primaryUnitId) : unique;
+  await db.transaction(async (tx) => {
+    await tx.delete(staffUnits).where(eq(staffUnits.staffId, staffId));
+    if (filtered.length > 0) {
+      await tx.insert(staffUnits).values(filtered.map((uId) => ({ staffId, unitId: uId })));
+    }
+  });
 }
 
 // ============================================================================
@@ -843,6 +891,72 @@ export async function deleteClass(id: string): Promise<void> {
   await db.delete(classes).where(eq(classes.id, id));
 }
 
+// ============================================================================
+// CLASS ENROLLMENT OPERATIONS
+// ============================================================================
+
+export async function getClassEnrollments(classId: string) {
+  const rows = await db
+    .select({
+      enrollmentId: classEnrollments.id,
+      student: students,
+      user: users,
+    })
+    .from(classEnrollments)
+    .innerJoin(students, eq(classEnrollments.studentId, students.id))
+    .innerJoin(users, eq(students.userId, users.id))
+    .where(eq(classEnrollments.classId, classId));
+
+  return rows.map(r => ({
+    id: r.enrollmentId,
+    student: { ...r.student, user: r.user },
+  }));
+}
+
+export async function setClassEnrollments(classId: string, studentIds: string[]): Promise<void> {
+  const unique = Array.from(new Set(studentIds.filter(Boolean)));
+  await db.transaction(async (tx) => {
+    await tx.delete(classEnrollments).where(eq(classEnrollments.classId, classId));
+    if (unique.length > 0) {
+      await tx.insert(classEnrollments).values(unique.map((sid) => ({ classId, studentId: sid })));
+    }
+    // Atualiza contador currentStudents na turma
+    const [cnt] = await tx.select({ c: count() }).from(classEnrollments).where(eq(classEnrollments.classId, classId));
+    await tx.update(classes).set({ currentStudents: Number(cnt?.c || 0), updatedAt: new Date() }).where(eq(classes.id, classId));
+  });
+}
+
+// Attendance helpers
+export async function getClassAttendance(classId: string, attendanceDate: Date) {
+  const rows = await db
+    .select({
+      attendance: classAttendance,
+      student: students,
+      user: users,
+    })
+    .from(classAttendance)
+    .innerJoin(students, eq(classAttendance.studentId, students.id))
+    .innerJoin(users, eq(students.userId, users.id))
+    .where(and(eq(classAttendance.classId, classId), eq(classAttendance.attendanceDate, attendanceDate)));
+
+  return rows.map(r => ({
+    id: r.attendance.id,
+    student: { ...r.student, user: r.user },
+    status: (r.attendance as any).status as string,
+    notes: (r.attendance as any).notes as string | null,
+  }));
+}
+
+export async function setClassAttendance(classId: string, attendanceDate: Date, records: { studentId: string; status: string; notes?: string }[]): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(classAttendance).where(and(eq(classAttendance.classId, classId), eq(classAttendance.attendanceDate, attendanceDate)));
+    if (records.length > 0) {
+      const values = records.map(r => ({ classId, studentId: r.studentId, attendanceDate, status: r.status, notes: r.notes || null }));
+      await tx.insert(classAttendance).values(values);
+    }
+  });
+}
+
 export async function getTeachers(): Promise<Teacher[]> {
   const result = await db
     .select({
@@ -852,13 +966,15 @@ export async function getTeachers(): Promise<Teacher[]> {
     })
     .from(staff)
     .innerJoin(users, eq(staff.userId, users.id))
-    .innerJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(roles, eq(users.roleId, roles.id))
     .where(and(
       eq(staff.isActive, true),
       or(
+        // Por role do usuário
         eq(roles.name, 'teacher'),
-        eq(staff.position, 'instrutor'),
-        eq(staff.position, 'professor')
+        // Por posição do colaborador (case-insensitive)
+        sql`lower(trim(${staff.position})) = 'instrutor'`,
+        sql`lower(trim(${staff.position})) = 'professor'`
       )
     ));
 
@@ -976,31 +1092,37 @@ export async function deleteLesson(id: string): Promise<void> {
 // ============================================================================
 
 export async function getDashboardStats() {
+  // Total de alunos ativos
   const [totalStudentsResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(students)
     .where(eq(students.isActive, true));
 
-  const [totalStaffResult] = await db
+  // Professores ativos: contar APENAS pelo cargo do staff (position = 'professor')
+  const [activeTeachersResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(staff)
-    .where(eq(staff.isActive, true));
+    .where(and(
+      eq(staff.isActive, true),
+      sql`lower(trim(${staff.position})) = 'professor'`
+    ));
 
-  const [totalCoursesResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(courses)
-    .where(eq(courses.isActive, true));
-
-  const [totalClassesResult] = await db
+  // Aulas (turmas) de hoje
+  const jsDay = new Date().getDay(); // 0=Domingo..6=Sábado
+  const dayOfWeek = jsDay === 0 ? 7 : jsDay; // Modelo usado no app (Seg=1..Dom=7)
+  const [todaysClassesResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(classes)
-    .where(eq(classes.isActive, true));
+    .where(and(eq(classes.isActive, true), eq(classes.dayOfWeek, dayOfWeek)));
+
+  // Receita mensal (ainda não implementada no schema) -> placeholder 0
+  const monthlyRevenue = 0;
 
   return {
     totalStudents: totalStudentsResult?.count || 0,
-    totalStaff: totalStaffResult?.count || 0,
-    totalCourses: totalCoursesResult?.count || 0,
-    totalClasses: totalClassesResult?.count || 0,
+    activeTeachers: activeTeachersResult?.count || 0,
+    todaysClasses: todaysClassesResult?.count || 0,
+    monthlyRevenue,
   };
 }
 
@@ -1392,6 +1514,10 @@ export const storage = {
   getClass,
   updateClass,
   deleteClass,
+  getClassEnrollments,
+  setClassEnrollments,
+  getClassAttendance,
+  setClassAttendance,
 
   // Lessons
   createLesson,
@@ -1442,6 +1568,7 @@ export const storage = {
 
   // Staff with Teachers
   getTeachers,
+  setStaffAdditionalUnits,
 
   // Course Units
   createCourseUnit,

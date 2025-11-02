@@ -263,6 +263,22 @@ export const staff = pgTable("staff", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Staff Units - unidades adicionais (secundárias) do colaborador
+export const staffUnits = pgTable(
+  "staff_units",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    staffId: varchar("staff_id").references(() => staff.id, { onDelete: 'cascade' }).notNull(),
+    unitId: varchar("unit_id").references(() => units.id, { onDelete: 'cascade' }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // Evitar duplicidade do mesmo par staff-unidade
+    index("UQ_staff_units").on(table.staffId, table.unitId),
+  ]
+);
+
 // Guardians table - responsáveis legais
 export const guardians = pgTable("guardians", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -453,6 +469,20 @@ export const lessons = pgTable("lessons", {
   endTime: varchar("end_time").notNull(),
   room: varchar("room"),
   status: varchar("status").default('scheduled').notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Class attendance (presenças)
+export const classAttendance = pgTable("class_attendance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  classId: varchar("class_id").references(() => classes.id, { onDelete: 'cascade' }).notNull(),
+  studentId: varchar("student_id").references(() => students.id, { onDelete: 'cascade' }).notNull(),
+  // Data da aula para registrar presença
+  attendanceDate: timestamp("attendance_date").notNull(),
+  // 'present' | 'absent' | 'justified'
+  status: varchar("status").notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
