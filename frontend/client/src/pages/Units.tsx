@@ -79,7 +79,7 @@ export default function Units() {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
       toast({
         title: "Sucesso!",
-        description: "Unidade excluÃ­da com sucesso",
+        description: "Unidade excluída com sucesso",
       });
       setIsDeleteDialogOpen(false);
       setUnitToDelete(null);
@@ -228,7 +228,7 @@ export default function Units() {
                     ? "Tente ajustar os filtros de busca." 
                     : canManageUnits
                     ? "Comece criando sua primeira unidade."
-                    : " hÃ¡ unidades cadastradas no sistema."}
+                    : "Não há unidades cadastradas no sistema."}
                 </p>
                 {canManageUnits && !searchName && !(selectedCity && selectedCity !== "all") && (
                   <Button onClick={handleNewUnit} data-testid="button-create-first-unit">
@@ -315,10 +315,10 @@ export default function Units() {
                     <TableHead>
                       <TableRow>
                         <TableCell className="font-semibold">Nome</TableCell>
-                        <TableCell className="font-semibold">EndereÃ§o</TableCell>
+                        <TableCell className="font-semibold">Endereço</TableCell>
                         <TableCell className="font-semibold">Telefone</TableCell>
                         <TableCell className="font-semibold">Email</TableCell>
-                        {canManageUnits && <TableCell className="font-semibold">AÃ§Ãµes</TableCell>}
+                        {canManageUnits && <TableCell className="font-semibold">Ações</TableCell>}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -396,10 +396,10 @@ export default function Units() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent data-testid="dialog-delete-unit">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusÃ£o</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir a unidade <strong>"{unitToDelete?.name}"</strong>?
-              Esta aÃ§Ã£o nÃ£o pode ser desfeita e todos os dados relacionados serÃ£o permanentemente removidos.
+              Esta ação não pode ser desfeita e todos os dados relacionados serão permanentemente removidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
